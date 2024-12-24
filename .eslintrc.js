@@ -23,7 +23,8 @@ module.exports = {
         'object-curly-spacing': ['error', 'always'],
         'react/jsx-indent': ['error', 4],
         '@typescript-eslint/no-explicit-any': 'off',
-        'react/react-in-jsx-scope': 'off'
+        'react/react-in-jsx-scope': 'off',
+        'react/no-unstable-nested-components': ['off']
     },
     env: {
         'react-native/react-native': true
