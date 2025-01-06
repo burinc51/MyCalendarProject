@@ -1,109 +1,385 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { 
+    View, 
+    TextInput, 
+    FlatList, 
+    Text, 
+    TouchableOpacity, 
+    Modal, 
+    StyleSheet,
+    StatusBar,
+    SafeAreaView
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+const initialNotes = [
+    { 
+        id: '1', 
+        title: 'Welcome Note Function', 
+        content: 'Welcome to GR Planer App! Tap the + button to create a new note.',
+        date: new Date().toLocaleDateString()
+    }
+];
 
-export default function TabTwoScreen() {
-    return (
-        <ParallaxScrollView
-            headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-            headerImage={
-                <IconSymbol
-                    size={310}
-                    color="#808080"
-                    name="chevron.left.forwardslash.chevron.right"
-                    style={styles.headerImage}
-                />
-            }>
-            <ThemedView style={styles.titleContainer}>
-                <ThemedText type="title">Explore</ThemedText>
-            </ThemedView>
-            <ThemedText>This app includes example code to help you get started.</ThemedText>
-            <Collapsible title="File-based routing">
-                <ThemedText>
-                    This app has two screens:{' '}
-                    <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-                    <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-                </ThemedText>
-                <ThemedText>
-                    The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-                    sets up the tab navigator.
-                </ThemedText>
-                <ExternalLink href="https://docs.expo.dev/router/introduction">
-                    <ThemedText type="link">Learn more</ThemedText>
-                </ExternalLink>
-            </Collapsible>
-            <Collapsible title="Android, iOS, and web support">
-                <ThemedText>
-                    You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-                    <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-                </ThemedText>
-            </Collapsible>
-            <Collapsible title="Images">
-                <ThemedText>
-                    For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-                    <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-                    different screen densities
-                </ThemedText>
-                <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-                <ExternalLink href="https://reactnative.dev/docs/images">
-                    <ThemedText type="link">Learn more</ThemedText>
-                </ExternalLink>
-            </Collapsible>
-            <Collapsible title="Custom fonts">
-                <ThemedText>
-                    Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-                    <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-                        custom fonts such as this one.
-                    </ThemedText>
-                </ThemedText>
-                <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-                    <ThemedText type="link">Learn more</ThemedText>
-                </ExternalLink>
-            </Collapsible>
-            <Collapsible title="Light and dark mode components">
-                <ThemedText>
-                    This template has light and dark mode support. The{' '}
-                    <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-                    what the user's current color scheme is, and so you can adjust UI colors accordingly.
-                </ThemedText>
-                <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-                    <ThemedText type="link">Learn more</ThemedText>
-                </ExternalLink>
-            </Collapsible>
-            <Collapsible title="Animations">
-                <ThemedText>
-                    This template includes an example of an animated component. The{' '}
-                    <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-                    the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-                    library to create a waving hand animation.
-                </ThemedText>
-                {Platform.select({
-                    ios: (
-                        <ThemedText>
-                            The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-                            component provides a parallax effect for the header image.
-                        </ThemedText>
-                    ),
-                })}
-            </Collapsible>
-        </ParallaxScrollView>
+const NotesApp = () => {
+    const [notes, setNotes] = useState(initialNotes);
+    const [newNote, setNewNote] = useState({ title: '', content: '' });
+    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredNotes = notes.filter(note => 
+        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        note.content.toLowerCase().includes(searchQuery.toLowerCase())
     );
-}
+
+    const resetNoteFields = () => {
+        setNewNote({ title: '', content: '' });
+        setSelectedNoteId(null);
+        setModalVisible(false);
+    };
+
+    const handleAddOrUpdateNote = useCallback(() => {
+        if (!newNote.title.trim() || !newNote.content.trim()) {
+            alert('Please fill in both title and content');
+            return;
+        }
+
+        const updatedNotes = selectedNoteId 
+            ? notes.map(note => 
+                note.id === selectedNoteId 
+                    ? { ...note, ...newNote, date: new Date().toLocaleDateString() } 
+                    : note
+              )
+            : [
+                { 
+                    ...newNote, 
+                    id: String(Date.now()), 
+                    date: new Date().toLocaleDateString() 
+                }, 
+                ...notes
+              ];
+        
+        setNotes(updatedNotes);
+        resetNoteFields();
+    }, [newNote, notes, selectedNoteId]);
+
+    const handleDeleteNote = () => {
+      if (selectedNoteId) {
+          const updatedNotes = notes.filter((note) => note.id !== selectedNoteId);
+          setNotes(updatedNotes);
+          setDeleteModalVisible(false); 
+          setSelectedNoteId(null); 
+      } else {
+          alert('No note selected');
+      }
+    };
+  
+    const closeDeleteModal = () => {
+        setDeleteModalVisible(false);
+    };
+
+    const handleEditNote = (note : any) => {
+        setNewNote({ title: note.title, content: note.content });
+        setSelectedNoteId(note.id);
+        setModalVisible(true);
+    };
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
+            
+            <View style={styles.header}>
+                <Text style={styles.title}>My Notes</Text>
+                <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => setModalVisible(true)}
+                >
+                    <Ionicons name="add" size={28} color="#fff" />
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.searchContainer}>
+                <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search notes..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                />
+            </View>
+
+            <FlatList
+                data={filteredNotes}
+                renderItem={({ item }) => (
+                    <TouchableOpacity 
+                        style={styles.noteItem}
+                        onPress={() => handleEditNote(item)}
+                    >
+                        <View style={styles.noteContent}>
+                            <Text style={styles.noteTitle}>{item.title}</Text>
+                            <Text style={styles.noteText} numberOfLines={2}>
+                                {item.content}
+                            </Text>
+                            <Text style={styles.noteDate}>{item.date}</Text>
+                        </View>
+                        <TouchableOpacity
+                            onPress={() => {
+                                setSelectedNoteId(item.id);
+                                setDeleteModalVisible(true);
+                            }}
+                            style={styles.deleteButton}
+                        >
+                            <Ionicons name="trash-outline" size={24} color="#fff" />
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                )}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+            />
+
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={resetNoteFields}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>
+                            {selectedNoteId ? 'Edit Note' : 'Create Note'}
+                        </Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Title"
+                            value={newNote.title}
+                            onChangeText={(text) => setNewNote({ ...newNote, title: text })}
+                        />
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            placeholder="Write your note here..."
+                            value={newNote.content}
+                            onChangeText={(text) => setNewNote({ ...newNote, content: text })}
+                            multiline
+                            textAlignVertical="top"
+                        />
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity 
+                                style={[styles.modalButton, styles.cancelButton]} 
+                                onPress={resetNoteFields}
+                            >
+                                <Ionicons name="close-outline" size={24} color="#666" />
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.modalButton, styles.saveButton]} 
+                                onPress={handleAddOrUpdateNote}
+                            >
+                                <Ionicons name="checkmark" size={24} color="#fff" />
+                                <Text style={styles.saveButtonText}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={deleteModalVisible}
+                onRequestClose={closeDeleteModal}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={[styles.modalContent, styles.deleteModalContent]}>
+                        <Ionicons name="warning" size={48} color="#ff6b6b" />
+                        <Text style={styles.deleteModalTitle}>Delete Note?</Text>
+                        <Text style={styles.deleteModalText}>
+                            This action cannot be undone.
+                        </Text>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity 
+                                style={[styles.modalButton, styles.cancelButton]} 
+                                onPress={closeDeleteModal}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.modalButton, styles.deleteButton]} 
+                                onPress={handleDeleteNote}
+                            >
+                                <Text style={styles.deleteText}>Delete</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+        </SafeAreaView>
+    );
+};
 
 const styles = StyleSheet.create({
-    headerImage: {
-        color: '#808080',
-        bottom: -90,
-        left: -35,
-        position: 'absolute',
+    container: {
+        flex: 1,
+        backgroundColor: '#f5f5f5',
     },
-    titleContainer: {
+    header: {
         flexDirection: 'row',
-        gap: 8,
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    addButton: {
+        backgroundColor: '#4CAF50',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginVertical: 8,
+        borderRadius: 10,
+        elevation: 2,
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        color: '#333',
+    },
+    noteItem: {
+        flexDirection: 'row',
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginVertical: 8,
+        borderRadius: 12,
+        elevation: 2,
+        overflow: 'hidden',
+    },
+    noteContent: {
+        flex: 1,
+        padding: 16,
+    },
+    noteTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 8,
+    },
+    noteText: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 8,
+    },
+    noteDate: {
+        fontSize: 12,
+        color: '#aaa',
+    },
+    deleteButton: {
+        backgroundColor: '#ff6b6b',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 12,
+        width: 50,
+        borderRadius: 10,
+    },
+    modalBackdrop: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        padding: 20,
+        borderRadius: 12,
+        width: '85%',
+        maxWidth: 500,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    input: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#ddd',
+        marginBottom: 20,
+        fontSize: 16,
+        padding: 10,
+        color: '#333',
+    },
+    textArea: {
+        height: 150,
+        textAlignVertical: 'top',
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    modalButton: {
+        padding: 10,
+        borderRadius: 8,
+        flex: 1,
+        marginHorizontal: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: '#ddd',
+    },
+    saveButton: {
+        backgroundColor: '#4CAF50',
+    },
+    cancelButtonText: {
+        color: '#666',
+    },
+    saveButtonText: {
+        color: '#fff',
+    },
+    deleteModalContent: {
+        alignItems: 'center',
+        paddingVertical: 30,
+        paddingHorizontal: 20,
+        maxWidth: 350,
+    },
+    deleteModalTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#333',
+        marginVertical: 10,
+    },
+    deleteModalText: {
+        fontSize: 16,
+        color: '#666',
+        marginVertical: 10,
+        textAlign: 'center',
+    },
+    deleteText: {
+        color: '#fff',
+        fontWeight: 'bold',
     },
 });
+
+export default NotesApp;
