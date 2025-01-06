@@ -33,43 +33,26 @@ const Calendar = () => {
         const firstDay = new Date(year, month, 1).getDay();
 
         const days = [];
-        let week = new Array(7).fill('');
 
-        // Previous month's days
+        // Calculate the number of days needed from the previous month
         const prevMonthDays = new Date(year, month, 0).getDate();
+        const prevDays = [];
         for (let i = firstDay - 1; i >= 0; i--) {
-            week[i] = `${prevMonthDays - (firstDay - 1 - i)}`;
+            prevDays.push(`${prevMonthDays - i}`);
         }
 
-        // Current month's days
-        let dayCounter = 1;
-        for (let i = firstDay; i < 7; i++) {
-            week[i] = `${dayCounter}`;
-            dayCounter++;
-        }
-        days.push(week);
+        // Current month days
+        const currentDays = Array.from({ length: daysInMonth }, (_, i) => `${i + 1}`);
 
-        // Fill weeks with current month's days
-        week = [];
-        while (dayCounter <= daysInMonth) {
-            week = [];
-            for (let i = 0; i < 7 && dayCounter <= daysInMonth; i++) {
-                week[i] = `${dayCounter}`;
-                dayCounter++;
-            }
-            // Handle leftover days at the end of the month
-            while (week.length < 7) {
-                week.push('');
-            }
-            days.push(week);
-        }
+        // Calculate the number of days needed from the next month
+        const totalDaysNeeded = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+        const nextDays = Array.from({ length: totalDaysNeeded - (prevDays.length + currentDays.length) }, (_, i) => `${i + 1}`);
 
-        // Fill remaining days with next month's days
-        let nextMonthCounter = 1;
-        while (week.length < 7) {
-            week.push(`${nextMonthCounter++}`);
+        // Combine all days and split into weeks
+        const allDays = [...prevDays, ...currentDays, ...nextDays];
+        for (let i = 0; i < allDays.length; i += 7) {
+            days.push(allDays.slice(i, i + 7));
         }
-        days.push(week);
 
         return days;
     };
@@ -78,6 +61,7 @@ const Calendar = () => {
         const newDate = new Date(currentDate);
         newDate.setMonth(newDate.getMonth() + direction);
         setCurrentDate(newDate);
+        setSelectedDate(null);
     };
 
     const isCurrentMonth = (date: string, weekIndex: number) => {
@@ -175,35 +159,39 @@ const Calendar = () => {
                         style={styles.week}
                     >
                         {week.map((date, dateIndex) => {
-                            const isToday = currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear() && parseInt(date) === today.getDate();
-
-                            const dateHasEvents = hasEvents(date) && isCurrentMonth(date, weekIndex);
+                            const dateNum = parseInt(date, 10);
+                            const isCurrentMonthDate = isCurrentMonth(date, weekIndex);
+                            const isToday =
+                                currentDate.getMonth() === today.getMonth() &&
+                                currentDate.getFullYear() === today.getFullYear() &&
+                                dateNum === today.getDate() &&
+                                isCurrentMonthDate;
 
                             return (
                                 <TouchableOpacity
                                     key={`${weekIndex}-${dateIndex}`}
                                     onPress={() => {
-                                        if (isCurrentMonth(date, weekIndex)) {
-                                            setSelectedDate(parseInt(date));
+                                        if (isCurrentMonthDate) {
+                                            setSelectedDate(dateNum);
                                             setModalVisible(true);
                                         }
                                     }}
                                     style={styles.dateContainer}
                                 >
-                                    <View style={[styles.date, parseInt(date) === selectedDate && isCurrentMonth(date, weekIndex) && styles.selectedDate, isToday && styles.today]}>
+                                    <View style={[styles.date, dateNum === selectedDate && isCurrentMonthDate && styles.selectedDate, isToday && styles.today]}>
                                         <Text
                                             style={[
                                                 styles.dateText,
                                                 dateIndex === 0 && styles.sunday,
                                                 dateIndex === 6 && styles.saturday,
-                                                !isCurrentMonth(date, weekIndex) && styles.otherMonth,
+                                                !isCurrentMonthDate && styles.otherMonth,
                                                 isToday && styles.todayText,
-                                                parseInt(date) === selectedDate && isCurrentMonth(date, weekIndex) && styles.selectedDateText
+                                                dateNum === selectedDate && isCurrentMonthDate && styles.selectedDateText
                                             ]}
                                         >
                                             {date}
                                         </Text>
-                                        {dateHasEvents && <View style={styles.eventDot} />}
+                                        {hasEvents(date) && isCurrentMonthDate && <View style={styles.eventDot} />}
                                     </View>
                                 </TouchableOpacity>
                             );
@@ -291,7 +279,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 12,
         padding: 16,
-        width: 300
+        width: 'auto',
+        height: '100%'
     },
     header: {
         flexDirection: 'row',

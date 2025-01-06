@@ -7,19 +7,7 @@ import { ThemedView } from '@/components/ThemedView';
 import Calendar from '@/components/Calendar';
 
 export default function HomeScreen() {
-    return (
-        <ParallaxScrollView
-            headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-            headerImage={
-                <Image
-                    source={require('@/assets/images/partial-react-logo.png')}
-                    style={styles.reactLogo}
-                />
-            }
-        >
-            <Calendar />
-        </ParallaxScrollView>
-    );
+    return <Calendar />;
 }
 
 const styles = StyleSheet.create({
