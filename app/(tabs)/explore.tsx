@@ -1,21 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { 
-    View, 
-    TextInput, 
-    FlatList, 
-    Text, 
-    TouchableOpacity, 
-    Modal, 
-    StyleSheet,
-    StatusBar,
-    SafeAreaView
-} from 'react-native';
+import { View, TextInput, FlatList, Text, TouchableOpacity, Modal, StyleSheet, StatusBar, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const initialNotes = [
-    { 
-        id: '1', 
-        title: 'Welcome Note Function', 
+    {
+        id: '1',
+        title: 'Welcome Note Function',
         content: 'Welcome to GR Planer App! Tap the + button to create a new note.',
         date: new Date().toLocaleDateString()
     }
@@ -29,10 +19,7 @@ const NotesApp = () => {
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredNotes = notes.filter(note => 
-        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        note.content.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredNotes = notes.filter((note) => note.title.toLowerCase().includes(searchQuery.toLowerCase()) || note.content.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const resetNoteFields = () => {
         setNewNote({ title: '', content: '' });
@@ -46,41 +33,37 @@ const NotesApp = () => {
             return;
         }
 
-        const updatedNotes = selectedNoteId 
-            ? notes.map(note => 
-                note.id === selectedNoteId 
-                    ? { ...note, ...newNote, date: new Date().toLocaleDateString() } 
-                    : note
-              )
+        const updatedNotes = selectedNoteId
+            ? notes.map((note) => (note.id === selectedNoteId ? { ...note, ...newNote, date: new Date().toLocaleDateString() } : note))
             : [
-                { 
-                    ...newNote, 
-                    id: String(Date.now()), 
-                    date: new Date().toLocaleDateString() 
-                }, 
+                {
+                    ...newNote,
+                    id: String(Date.now()),
+                    date: new Date().toLocaleDateString()
+                },
                 ...notes
-              ];
-        
+            ];
+
         setNotes(updatedNotes);
         resetNoteFields();
     }, [newNote, notes, selectedNoteId]);
 
     const handleDeleteNote = () => {
-      if (selectedNoteId) {
-          const updatedNotes = notes.filter((note) => note.id !== selectedNoteId);
-          setNotes(updatedNotes);
-          setDeleteModalVisible(false); 
-          setSelectedNoteId(null); 
-      } else {
-          alert('No note selected');
-      }
+        if (selectedNoteId) {
+            const updatedNotes = notes.filter((note) => note.id !== selectedNoteId);
+            setNotes(updatedNotes);
+            setDeleteModalVisible(false);
+            setSelectedNoteId(null);
+        } else {
+            alert('No note selected');
+        }
     };
-  
+
     const closeDeleteModal = () => {
         setDeleteModalVisible(false);
     };
 
-    const handleEditNote = (note : any) => {
+    const handleEditNote = (note: any) => {
         setNewNote({ title: note.title, content: note.content });
         setSelectedNoteId(note.id);
         setModalVisible(true);
@@ -88,20 +71,32 @@ const NotesApp = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
-            
+            <StatusBar
+                barStyle="dark-content"
+                backgroundColor="#f5f5f5"
+            />
+
             <View style={styles.header}>
                 <Text style={styles.title}>My Notes</Text>
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => setModalVisible(true)}
                 >
-                    <Ionicons name="add" size={28} color="#fff" />
+                    <Ionicons
+                        name="add"
+                        size={28}
+                        color="#fff"
+                    />
                 </TouchableOpacity>
             </View>
 
             <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+                <Ionicons
+                    name="search"
+                    size={20}
+                    color="#666"
+                    style={styles.searchIcon}
+                />
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Search notes..."
@@ -113,13 +108,16 @@ const NotesApp = () => {
             <FlatList
                 data={filteredNotes}
                 renderItem={({ item }) => (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.noteItem}
                         onPress={() => handleEditNote(item)}
                     >
                         <View style={styles.noteContent}>
                             <Text style={styles.noteTitle}>{item.title}</Text>
-                            <Text style={styles.noteText} numberOfLines={2}>
+                            <Text
+                                style={styles.noteText}
+                                numberOfLines={2}
+                            >
                                 {item.content}
                             </Text>
                             <Text style={styles.noteDate}>{item.date}</Text>
@@ -131,7 +129,11 @@ const NotesApp = () => {
                             }}
                             style={styles.deleteButton}
                         >
-                            <Ionicons name="trash-outline" size={24} color="#fff" />
+                            <Ionicons
+                                name="trash-outline"
+                                size={24}
+                                color="#fff"
+                            />
                         </TouchableOpacity>
                     </TouchableOpacity>
                 )}
@@ -147,9 +149,7 @@ const NotesApp = () => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>
-                            {selectedNoteId ? 'Edit Note' : 'Create Note'}
-                        </Text>
+                        <Text style={styles.modalTitle}>{selectedNoteId ? 'Edit Note' : 'Create Note'}</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="Title"
@@ -165,18 +165,26 @@ const NotesApp = () => {
                             textAlignVertical="top"
                         />
                         <View style={styles.modalButtons}>
-                            <TouchableOpacity 
-                                style={[styles.modalButton, styles.cancelButton]} 
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.cancelButton]}
                                 onPress={resetNoteFields}
                             >
-                                <Ionicons name="close-outline" size={24} color="#666" />
+                                <Ionicons
+                                    name="close-outline"
+                                    size={24}
+                                    color="#666"
+                                />
                                 <Text style={styles.cancelButtonText}>Cancel</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={[styles.modalButton, styles.saveButton]} 
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.saveButton]}
                                 onPress={handleAddOrUpdateNote}
                             >
-                                <Ionicons name="checkmark" size={24} color="#fff" />
+                                <Ionicons
+                                    name="checkmark"
+                                    size={24}
+                                    color="#fff"
+                                />
                                 <Text style={styles.saveButtonText}>Save</Text>
                             </TouchableOpacity>
                         </View>
@@ -192,20 +200,22 @@ const NotesApp = () => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={[styles.modalContent, styles.deleteModalContent]}>
-                        <Ionicons name="warning" size={48} color="#ff6b6b" />
+                        <Ionicons
+                            name="warning"
+                            size={48}
+                            color="#ff6b6b"
+                        />
                         <Text style={styles.deleteModalTitle}>Delete Note?</Text>
-                        <Text style={styles.deleteModalText}>
-                            This action cannot be undone.
-                        </Text>
+                        <Text style={styles.deleteModalText}>This action cannot be undone.</Text>
                         <View style={styles.modalButtons}>
-                            <TouchableOpacity 
-                                style={[styles.modalButton, styles.cancelButton]} 
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.cancelButton]}
                                 onPress={closeDeleteModal}
                             >
                                 <Text style={styles.cancelButtonText}>Cancel</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={[styles.modalButton, styles.deleteButton]} 
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.deleteButton]}
                                 onPress={handleDeleteNote}
                             >
                                 <Text style={styles.deleteText}>Delete</Text>
@@ -221,7 +231,7 @@ const NotesApp = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#f5f5f5'
     },
     header: {
         flexDirection: 'row',
@@ -230,12 +240,12 @@ const styles = StyleSheet.create({
         padding: 16,
         backgroundColor: '#fff',
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: '#eee'
     },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#333'
     },
     addButton: {
         backgroundColor: '#4CAF50',
@@ -248,7 +258,7 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
-        shadowRadius: 4,
+        shadowRadius: 4
     },
     searchContainer: {
         flexDirection: 'row',
@@ -258,15 +268,15 @@ const styles = StyleSheet.create({
         marginHorizontal: 16,
         marginVertical: 8,
         borderRadius: 10,
-        elevation: 2,
+        elevation: 2
     },
     searchIcon: {
-        marginRight: 8,
+        marginRight: 8
     },
     searchInput: {
         flex: 1,
         fontSize: 16,
-        color: '#333',
+        color: '#333'
     },
     noteItem: {
         flexDirection: 'row',
@@ -275,26 +285,26 @@ const styles = StyleSheet.create({
         marginVertical: 8,
         borderRadius: 12,
         elevation: 2,
-        overflow: 'hidden',
+        overflow: 'hidden'
     },
     noteContent: {
         flex: 1,
-        padding: 16,
+        padding: 16
     },
     noteTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
-        marginBottom: 8,
+        marginBottom: 8
     },
     noteText: {
         fontSize: 14,
         color: '#666',
-        marginBottom: 8,
+        marginBottom: 8
     },
     noteDate: {
         fontSize: 12,
-        color: '#aaa',
+        color: '#aaa'
     },
     deleteButton: {
         backgroundColor: '#ff6b6b',
@@ -302,25 +312,25 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 12,
         width: 50,
-        borderRadius: 10,
+        borderRadius: 10
     },
     modalBackdrop: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)'
     },
     modalContent: {
         backgroundColor: '#fff',
         padding: 20,
         borderRadius: 12,
         width: '85%',
-        maxWidth: 500,
+        maxWidth: 500
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 10,
+        marginBottom: 10
     },
     input: {
         borderBottomWidth: 1,
@@ -328,15 +338,15 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         fontSize: 16,
         padding: 10,
-        color: '#333',
+        color: '#333'
     },
     textArea: {
         height: 150,
-        textAlignVertical: 'top',
+        textAlignVertical: 'top'
     },
     modalButtons: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'space-between'
     },
     modalButton: {
         padding: 10,
@@ -344,42 +354,42 @@ const styles = StyleSheet.create({
         flex: 1,
         marginHorizontal: 5,
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'center'
     },
     cancelButton: {
-        backgroundColor: '#ddd',
+        backgroundColor: '#ddd'
     },
     saveButton: {
-        backgroundColor: '#4CAF50',
+        backgroundColor: '#4CAF50'
     },
     cancelButtonText: {
-        color: '#666',
+        color: '#666'
     },
     saveButtonText: {
-        color: '#fff',
+        color: '#fff'
     },
     deleteModalContent: {
         alignItems: 'center',
         paddingVertical: 30,
         paddingHorizontal: 20,
-        maxWidth: 350,
+        maxWidth: 350
     },
     deleteModalTitle: {
         fontSize: 22,
         fontWeight: 'bold',
         color: '#333',
-        marginVertical: 10,
+        marginVertical: 10
     },
     deleteModalText: {
         fontSize: 16,
         color: '#666',
         marginVertical: 10,
-        textAlign: 'center',
+        textAlign: 'center'
     },
     deleteText: {
         color: '#fff',
-        fontWeight: 'bold',
-    },
+        fontWeight: 'bold'
+    }
 });
 
 export default NotesApp;

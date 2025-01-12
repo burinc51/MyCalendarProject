@@ -27,7 +27,7 @@ export default function TabLayout() {
                 })
             }}
         >
-             <Tabs.Screen
+            <Tabs.Screen
                 name="explore"
                 options={{
                     title: 'My Notes',
@@ -53,7 +53,6 @@ export default function TabLayout() {
                     )
                 }}
             />
-           
         </Tabs>
     );
 }

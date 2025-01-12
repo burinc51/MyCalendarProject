@@ -5,9 +5,10 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import Calendar from '@/components/Calendar';
+import CustomCalendar from '@/components/CustomCalendar';
 
 export default function HomeScreen() {
-    return <Calendar />;
+    return <CustomCalendar />;
 }
 
 const styles = StyleSheet.create({
