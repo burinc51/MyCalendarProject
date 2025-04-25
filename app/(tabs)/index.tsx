@@ -1,31 +1,52 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { Calendar } from 'react-native-big-calendar';
+import { StyleSheet, View, Dimensions, SafeAreaView } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import Calendar from '@/components/Calendar';
-import CustomCalendar from '@/components/CustomCalendar';
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-    return <CustomCalendar />;
+    const events = [
+        {
+            title: 'Meeting',
+            start: new Date(2025, 2, 23, 10, 0),
+            end: new Date(2025, 2, 23, 10, 30)
+        },
+        {
+            title: 'Coffee break',
+            start: new Date(2025, 2, 26, 15, 45),
+            end: new Date(2025, 2, 26, 16, 30)
+        }
+    ];
+
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <View style={styles.calendarStyle}>
+                    <Calendar
+                        events={[]}
+                        height={600}
+                        mode="month"
+                    />
+                </View>
+            </GestureHandlerRootView>
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-    titleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8
+    safeArea: {
+        flex: 1
     },
-    stepContainer: {
-        gap: 8,
-        marginBottom: 8
+    calendarStyle: {
+        flex: 1,
+        top: 40
     },
-    reactLogo: {
-        height: 178,
-        width: 290,
-        bottom: 0,
-        left: 0,
-        position: 'absolute'
+    headerStyle: {
+        // Header style customization if needed
+    },
+    dayHeaderStyle: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
+        borderRightWidth: 0
     }
 });

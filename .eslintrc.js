@@ -18,13 +18,13 @@ module.exports = {
         semi: ['error', 'always'],
         curly: 'error',
         indent: ['error', 4],
-        'linebreak-style': 'off',
         '@typescript-eslint/no-unused-vars': 'off',
         'object-curly-spacing': ['error', 'always'],
         'react/jsx-indent': ['error', 4],
         '@typescript-eslint/no-explicit-any': 'off',
         'react/react-in-jsx-scope': 'off',
-        'react/no-unstable-nested-components': ['off']
+        'react/no-unstable-nested-components': ['off'],
+        'react-native/no-inline-styles': 'off'
     },
     env: {
         'react-native/react-native': true
