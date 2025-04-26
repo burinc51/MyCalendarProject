@@ -19,17 +19,15 @@ export default function HomeScreen() {
     ];
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-                <View style={styles.calendarStyle}>
-                    <Calendar
-                        events={[]}
-                        height={600}
-                        mode="month"
-                    />
-                </View>
-            </GestureHandlerRootView>
-        </SafeAreaView>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <View style={styles.calendarStyle}>
+                <Calendar
+                    events={[]}
+                    height={600}
+                    mode="month"
+                />
+            </View>
+        </GestureHandlerRootView>
     );
 }
 
