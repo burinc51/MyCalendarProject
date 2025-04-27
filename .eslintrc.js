@@ -14,7 +14,6 @@ module.exports = {
         'no-console': 'warn',
         'prettier/prettier': 'off',
         'react-hooks/exhaustive-deps': 'off',
-        quotes: ['error', 'single'],
         semi: ['error', 'always'],
         curly: 'error',
         indent: ['error', 4],

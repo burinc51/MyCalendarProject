@@ -1,50 +1,33 @@
-import { Calendar } from 'react-native-big-calendar';
-import { StyleSheet, View, Dimensions, SafeAreaView } from 'react-native';
+// import { Calendar } from 'react-native-big-calendar';
+import { View, Dimensions, Text } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Calendar } from '@/components/Calendar';
 
-const { width } = Dimensions.get('window');
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function HomeScreen() {
-    const events = [
-        {
-            title: 'Meeting',
-            start: new Date(2025, 2, 23, 10, 0),
-            end: new Date(2025, 2, 23, 10, 30)
-        },
-        {
-            title: 'Coffee break',
-            start: new Date(2025, 2, 26, 15, 45),
-            end: new Date(2025, 2, 26, 16, 30)
-        }
-    ];
-
+    console.log('HomeScreen');
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
-            <View style={styles.calendarStyle}>
-                <Calendar
-                    events={[]}
-                    height={600}
-                    mode="month"
-                />
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#333333' }}>
+            <View className="flex-1 bg-white ">
+                {/*<Calendar*/}
+                {/*    events={[]}*/}
+                {/*    height={SCREEN_HEIGHT - 80}*/}
+                {/*    mode="month"*/}
+                {/*    calendarCellStyle={{*/}
+                {/*        borderTopWidth: 1,*/}
+                {/*        borderBottomWidth: 0,*/}
+                {/*        borderLeftWidth: 0,*/}
+                {/*        borderRightWidth: 0,*/}
+                {/*        borderColor: '#cccccc'*/}
+                {/*    }}*/}
+                {/*    onChangeDate={([start, end]) => {*/}
+                {/*        console.log(`Date range changed: Start - ${start}, End - ${end}`);*/}
+                {/*    }}*/}
+                {/*    swipeEnabled={true}*/}
+                {/*/>*/}
+                <Calendar />
             </View>
         </GestureHandlerRootView>
     );
 }
-
-const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1
-    },
-    calendarStyle: {
-        flex: 1,
-        top: 40
-    },
-    headerStyle: {
-        // Header style customization if needed
-    },
-    dayHeaderStyle: {
-        borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
-        borderRightWidth: 0
-    }
-});

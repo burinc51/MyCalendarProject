@@ -10329,6 +10329,7 @@ __metadata:
     "@types/react-test-renderer": "npm:^18.3.0"
     autoprefixer: "npm:^10.4.21"
     babel-preset-expo: "npm:^12.0.2"
+    dayjs: "npm:^1.11.13"
     eas-cli: "npm:^14.2.0"
     eslint: "npm:8.0.0"
     eslint-config-prettier: "npm:^9.1.0"
