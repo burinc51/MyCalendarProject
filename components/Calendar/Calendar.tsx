@@ -1,20 +1,24 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, Button, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import InfinitePager from 'react-native-infinite-pager';
 import dayjs from 'dayjs';
 import CalendarBody from '@/components/Calendar/CalendarBody';
 
-const Component = () => {
+const CalendarComponent = () => {
     const baseDate = dayjs(); // use dayjs here
-    const event: CalendarEvent[] = [
-        { startDate: '2025-04-28', endDate: '2025-05-02', title: 'AAAA', color: 'black' },
-        { startDate: '2025-04-13', endDate: '2025-04-16', title: 'วันหยุดยาวสงกรานต์', color: 'red' },
-        { startDate: '2025-04-29', endDate: '2025-05-02', title: 'gggg', color: 'red' }
+    const [month, setMonth] = useState<String>(baseDate.format('MMMM YYYY')); // Initialize with current month
+
+    // Sample events - you can replace with your actual events
+    const events: CalendarEvent[] = [
+        { id: 1, startDate: '2025-04-28T10:00:00Z', endDate: '2025-05-02T18:00:00Z', title: 'AAAA', color: 'black' },
+        { id: 2, startDate: '2025-04-13', endDate: '2025-04-16', title: 'วันหยุดยาวสงกรานต์', color: 'red' },
+        { id: 3, startDate: '2025-04-29T09:30:00Z', endDate: '2025-05-02T12:00:00Z', title: '1111', color: 'red' },
+        { id: 4, startDate: '2025-04-29T14:30:00Z', endDate: '2025-05-02T16:00:00Z', title: '2222', color: 'red' },
+        { id: 5, startDate: '2025-04-29T08:00:00Z', endDate: '2025-05-02T10:00:00Z', title: '3333', color: 'red' },
+        { id: 6, startDate: '2025-04-29', endDate: '2025-05-02', title: '4444', color: 'red', isAllDay: true }
     ];
 
-    const [events, setEvents] = useState<Record<string, string[]>>({});
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
-    const [newEventText, setNewEventText] = useState('');
 
     const getDateFromIndex = useCallback(
         (index: number) => {
@@ -23,111 +27,97 @@ const Component = () => {
         },
         [baseDate]
     );
-    console.log('events', events);
+
+    const handleSelectDate = (date: string) => {
+        setSelectedDate(date);
+        // You can add additional logic here for handling date selection
+    };
 
     return (
-        <View style={{ flex: 1 }}>
+        <View style={styles.container}>
+            {/* Header */}
+            <View style={styles.headerContainer}>
+                <View style={styles.headerLeft}>
+                    <View style={styles.redDot} />
+                    <View style={styles.headerTextContainer}>
+                        <Text style={styles.headerMonthText}>{month}</Text>
+                        {/*<Text style={styles.headerSubText}>ผ่านมา</Text>*/}
+                    </View>
+                </View>
+            </View>
+
+            {/* Calendar */}
             <InfinitePager
-                pageBuffer={2}
-                onPageChange={useCallback((page) => {
-                    console.log('Current page index:', page);
-                }, [])}
+                pageBuffer={5}
+                onPageChange={useCallback(
+                    (page) => {
+                        console.log('Page changed:', page);
+                        const { year, month } = getDateFromIndex(page);
+                        const monthName = dayjs(`${year}-${month + 1}-01`).format('MMMM YYYY');
+                        setMonth(monthName);
+                    },
+                    [getDateFromIndex, setMonth]
+                )}
                 renderPage={({ index }) => {
-                    const { year, month } = getDateFromIndex(index);
                     return (
                         <View style={styles.pageContainer}>
                             <CalendarBody
-                                year={year}
-                                month={month}
-                                onSelectDate={(date) => setSelectedDate(date)}
-                                events={event}
+                                index={index}
+                                onSelectDate={handleSelectDate}
+                                events={events}
+                                // setMonth={setMonth}
                             />
                         </View>
                     );
                 }}
             />
-
-            {/* Popup for adding event */}
-            {/*{selectedDate && (*/}
-            {/*    <View style={styles.popupContainer}>*/}
-            {/*        <View style={styles.popup}>*/}
-            {/*            <Text style={styles.popupTitle}>Add Event for {selectedDate}</Text>*/}
-            {/*            <TextInput*/}
-            {/*                placeholder="Event Name"*/}
-            {/*                value={newEventText}*/}
-            {/*                onChangeText={setNewEventText}*/}
-            {/*                style={styles.input}*/}
-            {/*            />*/}
-            {/*            <View style={styles.buttonRow}>*/}
-            {/*                <Button*/}
-            {/*                    title="Save"*/}
-            {/*                    onPress={() => {*/}
-            {/*                        if (selectedDate && newEventText.trim()) {*/}
-            {/*                            setEvents((prev) => ({*/}
-            {/*                                ...prev,*/}
-            {/*                                [selectedDate]: [...(prev[selectedDate] || []), newEventText.trim()]*/}
-            {/*                            }));*/}
-            {/*                            setNewEventText('');*/}
-            {/*                            setSelectedDate(null);*/}
-            {/*                        }*/}
-            {/*                    }}*/}
-            {/*                />*/}
-            {/*                <Button*/}
-            {/*                    title="Cancel"*/}
-            {/*                    color="red"*/}
-            {/*                    onPress={() => {*/}
-            {/*                        setNewEventText('');*/}
-            {/*                        setSelectedDate(null);*/}
-            {/*                    }}*/}
-            {/*                />*/}
-            {/*            </View>*/}
-            {/*        </View>*/}
-            {/*    </View>*/}
-            {/*)}*/}
         </View>
     );
 };
 
-export default Component;
-
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
-    pageContainer: {
-        width: width,
-        height: '100%'
+    container: {
+        flex: 1,
+        backgroundColor: '#fff'
     },
-    popupContainer: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        height: 65,
+        backgroundColor: '#f5f5f5',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0'
+    },
+    headerLeft: {
+        flexDirection: 'row',
         alignItems: 'center'
     },
-    popup: {
-        width: '80%',
-        backgroundColor: 'white',
-        padding: 20,
-        borderRadius: 8
+    redDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: 'red',
+        marginRight: 8
     },
-    popupTitle: {
-        fontSize: 18,
-        marginBottom: 10,
-        textAlign: 'center'
+    headerTextContainer: {
+        flexDirection: 'column'
     },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 8,
-        marginTop: 8,
-        marginBottom: 16,
-        borderRadius: 4
+    headerMonthText: {
+        fontSize: 16,
+        fontWeight: 'bold'
     },
-    buttonRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between'
+    headerSubText: {
+        fontSize: 12,
+        color: '#666'
+    },
+    pageContainer: {
+        width: width,
+        flex: 1
     }
 });
+
+export default CalendarComponent;

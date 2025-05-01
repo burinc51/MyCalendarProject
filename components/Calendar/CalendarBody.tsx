@@ -1,397 +1,381 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import getDateFromIndex from '@/utils/getDateFromIndex';
 
 dayjs.extend(isBetween);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-const CalendarBody = React.memo(
-    ({
-        year,
-        month,
-        onSelectDate,
-        events
-    }: {
-        year: number;
-        month: number;
-        onSelectDate: (date: string) => void;
-        events: {
-            startDate: string;
-            endDate: string;
-            title: string;
-            color: string;
-            startTime?: string;
-            endTime?: string;
-        }[];
-    }) => {
-        const getDaysInMonth = (y: number, m: number) => dayjs(`${y}-${m + 1}-01`).daysInMonth();
+// Calculate dimensions based on provided specs
+const HEADER_HEIGHT = 63.5; // header height as specified
+const NAVBAR_HEIGHT = 48.6; // navbar height as specified
+const WEEKDAY_HEADER_HEIGHT = 30; // height for days of week row
 
-        const generateCalendar = useMemo(() => {
-            const daysInMonth = getDaysInMonth(year, month);
-            const startDay = dayjs(`${year}-${month + 1}-01`).day(); // Sunday = 0
-            const calendar: (dayjs.Dayjs | null)[] = [];
+// Available height for calendar cells
+const AVAILABLE_HEIGHT = height - HEADER_HEIGHT - NAVBAR_HEIGHT - WEEKDAY_HEADER_HEIGHT;
 
-            // Add days from previous month
-            const prevMonth = month === 0 ? 11 : month - 1;
-            const prevYear = month === 0 ? year - 1 : year;
-            const daysInPrevMonth = getDaysInMonth(prevYear, prevMonth);
+// Always show 6 weeks (fixed number of rows)
+const WEEKS_TO_DISPLAY = 6;
+const DAY_CELL_HEIGHT = AVAILABLE_HEIGHT / WEEKS_TO_DISPLAY;
+const DAY_CELL_WIDTH = width / 7;
 
-            for (let i = 0; i < startDay; i++) {
-                const day = daysInPrevMonth - startDay + i + 1;
-                calendar.push(dayjs(`${prevYear}-${prevMonth + 1}-${day}`));
+interface EventWithPosition extends CalendarEvent {
+    weekSpan: number;
+    isStartOfEvent: boolean;
+    isEndOfEvent: boolean;
+    startDayIndex: number;
+    endDayIndex: number;
+    slot: number;
+}
+
+interface Props {
+    index: number;
+    onSelectDate: (date: string) => void;
+    events: CalendarEvent[];
+    setMonth?: (monthName: string) => void;
+}
+
+// Constants for styles to reduce object creation
+const TODAY_STYLE = { backgroundColor: '#f7e6e6' };
+const OUTSIDE_MONTH_STYLE = { backgroundColor: '#f9f9f9' };
+const SELECTED_DATE_STYLE = { backgroundColor: '#eeeaea' };
+
+const CalendarBody = React.memo(({ index, onSelectDate, events, setMonth }: Props) => {
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const { year, month } = getDateFromIndex(index);
+    const today = useMemo(() => dayjs().format('YYYY-MM-DD'), []); // Calculate once
+
+    // Calculate days in month - use useMemo to calculate only when year or month changes
+    const getDaysInMonth = useCallback((y: number, m: number) => {
+        return dayjs(`${y}-${m + 1}-01`).daysInMonth();
+    }, []);
+
+    // Generate calendar - use useMemo to calculate only when year or month changes
+    const generateCalendar = useMemo(() => {
+        const daysInMonth = getDaysInMonth(year, month);
+        const startDay = dayjs(`${year}-${month + 1}-01`).day(); // Sunday = 0
+        const calendar: dayjs.Dayjs[] = [];
+
+        // Add days from previous month
+        const prevMonth = month === 0 ? 11 : month - 1;
+        const prevYear = month === 0 ? year - 1 : year;
+        const daysInPrevMonth = getDaysInMonth(prevYear, prevMonth);
+
+        for (let i = 0; i < startDay; i++) {
+            const day = daysInPrevMonth - startDay + i + 1;
+            calendar.push(dayjs(`${prevYear}-${prevMonth + 1}-${day}`));
+        }
+
+        // Days in current month
+        for (let i = 1; i <= daysInMonth; i++) {
+            calendar.push(dayjs(`${year}-${month + 1}-${i}`));
+        }
+
+        // Days in next month - now we ensure we fill to exactly 6 weeks (42 days)
+        const nextMonth = month === 11 ? 0 : month + 1;
+        const nextYear = month === 11 ? year + 1 : year;
+        let nextMonthDay = 1;
+
+        while (calendar.length < 42) {
+            // Always force 6 weeks (6 * 7 = 42 days)
+            calendar.push(dayjs(`${nextYear}-${nextMonth + 1}-${nextMonthDay}`));
+            nextMonthDay++;
+        }
+
+        return calendar;
+    }, [year, month, getDaysInMonth]);
+
+    // Create calendar weeks (array of arrays)
+    const calendarWeeks = useMemo(() => {
+        const weeks = [];
+        for (let i = 0; i < generateCalendar.length; i += 7) {
+            weeks.push(generateCalendar.slice(i, i + 7));
+        }
+        return weeks;
+    }, [generateCalendar]);
+
+    // Process multi-day events by week
+    const processedEvents = useMemo(() => {
+        const result = {};
+
+        // Sort events by start date first, then prioritize all-day events for same date
+        const sortedEvents = [...events].sort((a, b) => {
+            const aStartDate = dayjs(a.startDate);
+            const bStartDate = dayjs(b.startDate);
+
+            // First compare by date only (without time)
+            const dateDiff = aStartDate.startOf('day').diff(bStartDate.startOf('day'));
+            if (dateDiff !== 0) {
+                return dateDiff;
             }
 
-            // Current month days
-            for (let i = 1; i <= daysInMonth; i++) {
-                calendar.push(dayjs(`${year}-${month + 1}-${i}`));
+            // Same date, prioritize all-day events
+            if (a.isAllDay && !b.isAllDay) return -1;
+            if (!a.isAllDay && b.isAllDay) return 1;
+
+            // Both are all-day or both are timed events, sort by exact time
+            return aStartDate.diff(bStartDate);
+        });
+
+        calendarWeeks.forEach((week, weekIndex) => {
+            const firstDayOfWeek = week[0];
+            const lastDayOfWeek = week[6];
+
+            if (!firstDayOfWeek || !lastDayOfWeek) {
+                return;
             }
 
-            // Next month days
-            const nextMonth = month === 11 ? 0 : month + 1;
-            const nextYear = month === 11 ? year + 1 : year;
-            let nextMonthDay = 1;
+            result[weekIndex] = {};
+            const occupiedSlots = {};
 
-            while (calendar.length % 7 !== 0) {
-                calendar.push(dayjs(`${nextYear}-${nextMonth + 1}-${nextMonthDay}`));
-                nextMonthDay++;
-            }
-
-            return calendar;
-        }, [year, month]);
-
-        const today = dayjs().format('YYYY-MM-DD');
-
-        // Create calendar weeks (array of arrays)
-        const calendarWeeks = useMemo(() => {
-            const weeks = [];
-            let week = [];
-
-            generateCalendar.forEach((day, index) => {
-                week.push(day);
-                if ((index + 1) % 7 === 0) {
-                    weeks.push(week);
-                    week = [];
-                }
+            // Filter events only for this week first
+            const weekEvents = sortedEvents.filter((event) => {
+                const startDate = dayjs(event.startDate);
+                const endDate = dayjs(event.endDate);
+                return !(endDate.isBefore(firstDayOfWeek) || startDate.isAfter(lastDayOfWeek));
             });
-            return weeks;
-        }, [generateCalendar]);
 
-        const monthName = dayjs(`${year}-${month + 1}-01`).format('MMMM YYYY');
+            // Process rest of the events as before
+            weekEvents.forEach((event) => {
+                const startDate = dayjs(event.startDate);
+                const endDate = dayjs(event.endDate);
 
-        // Process multi-day events by week
-        // In CalendarBody.tsx - update the processedEvents function
-        const processedEvents = useMemo(() => {
-            const result = {};
+                // Find first and last day of event in this week
+                let startDayIndex = -1;
+                let endDayIndex = -1;
 
-            calendarWeeks.forEach((week, weekIndex) => {
-                result[weekIndex] = {};
+                for (let i = 0; i < week.length; i++) {
+                    const day = week[i];
 
-                // Track occupied slots for this week
-                const occupiedSlots = {};
-
-                // Process events and sort by start date (earlier events first)
-                const weekEvents = [...events].sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
-
-                weekEvents.forEach((event) => {
-                    const startDate = dayjs(event.startDate);
-                    const endDate = dayjs(event.endDate);
-
-                    // Check if event is in this week
-                    const firstDayOfWeek = week[0];
-                    const lastDayOfWeek = week[6];
-
-                    if (!firstDayOfWeek || !lastDayOfWeek) {
-                        return;
+                    if (startDayIndex === -1 && !day.isBefore(startDate, 'day')) {
+                        startDayIndex = i;
                     }
 
-                    if (endDate.isBefore(firstDayOfWeek) || startDate.isAfter(lastDayOfWeek)) {
-                        return; // Event not in this week
+                    if (day.isSame(endDate, 'day') || day.isAfter(endDate, 'day')) {
+                        endDayIndex = i;
+                        break;
                     }
+                }
 
-                    // Find which days of the week this event spans
-                    let startDayIndex = -1;
-                    let endDayIndex = -1;
+                // If end day is outside this week
+                if (endDayIndex === -1) {
+                    endDayIndex = 6;
+                }
 
-                    for (let i = 0; i < week.length; i++) {
-                        const day = week[i];
-                        if (!day) {
-                            continue;
-                        }
+                if (startDayIndex !== -1) {
+                    // Find first available slot
+                    let slot = 0;
+                    while (true) {
+                        let slotAvailable = true;
 
-                        if (startDayIndex === -1 && !day.isBefore(startDate, 'day')) {
-                            startDayIndex = i;
-                        }
-                        if (endDayIndex === -1 && day.isSame(endDate, 'day')) {
-                            endDayIndex = i;
-                            break;
-                        }
-                    }
-
-                    // If end date is beyond this week
-                    if (endDayIndex === -1) {
-                        endDayIndex = 6;
-                    }
-
-                    if (startDayIndex !== -1) {
-                        // Find the first available slot
-                        let slot = 0;
-                        while (true) {
-                            let slotAvailable = true;
-
-                            // Check if this slot is available for all days this event spans
-                            for (let i = startDayIndex; i <= endDayIndex; i++) {
-                                const key = `${i}-${slot}`;
-                                if (occupiedSlots[key]) {
-                                    slotAvailable = false;
-                                    break;
-                                }
-                            }
-
-                            if (slotAvailable) {
+                        for (let i = startDayIndex; i <= endDayIndex; i++) {
+                            if (occupiedSlots[`${i}-${slot}`]) {
+                                slotAvailable = false;
                                 break;
                             }
-                            slot++;
                         }
 
-                        // Mark slots as occupied
-                        for (let i = startDayIndex; i <= endDayIndex; i++) {
-                            occupiedSlots[`${i}-${slot}`] = true;
+                        if (slotAvailable) {
+                            break;
                         }
-
-                        const eventInfo = {
-                            ...event,
-                            weekSpan: endDayIndex - startDayIndex + 1,
-                            isStartOfEvent: startDate.isSame(week[startDayIndex], 'day'),
-                            isEndOfEvent: endDate.isSame(week[endDayIndex], 'day'),
-                            startDayIndex,
-                            endDayIndex,
-                            slot // Add slot information
-                        };
-
-                        if (!result[weekIndex][startDayIndex]) {
-                            result[weekIndex][startDayIndex] = [];
-                        }
-                        result[weekIndex][startDayIndex].push(eventInfo);
+                        slot++;
                     }
+
+                    // Mark occupied slots
+                    for (let i = startDayIndex; i <= endDayIndex; i++) {
+                        occupiedSlots[`${i}-${slot}`] = true;
+                    }
+
+                    const eventInfo: EventWithPosition = {
+                        ...event,
+                        weekSpan: endDayIndex - startDayIndex + 1,
+                        isStartOfEvent: startDate.isSame(week[startDayIndex], 'day') || startDate.isBefore(week[startDayIndex], 'day'),
+                        isEndOfEvent: endDate.isSame(week[endDayIndex], 'day') || endDate.isAfter(week[endDayIndex], 'day'),
+                        startDayIndex,
+                        endDayIndex,
+                        slot
+                    };
+
+                    if (!result[weekIndex][startDayIndex]) {
+                        result[weekIndex][startDayIndex] = [];
+                    }
+                    result[weekIndex][startDayIndex].push(eventInfo);
+                }
+            });
+        });
+
+        return result;
+    }, [calendarWeeks, events]);
+
+    // Handler for day click - use useCallback to prevent creating new function every render
+    const handleDatePress = useCallback(
+        (dateString: string) => {
+            if (dateString) {
+                setSelectedDate(dateString);
+                onSelectDate(dateString);
+            }
+        },
+        [onSelectDate]
+    );
+
+    // Render day and events
+    const renderDay = useCallback(
+        (dateObj: dayjs.Dayjs, weekIndex: number, dayIndex: number) => {
+            const dateString = dateObj.format('YYYY-MM-DD');
+            const isToday = dateString === today;
+            const isCurrentMonth = dateObj.month() === month;
+
+            return (
+                <TouchableOpacity
+                    key={`day-${weekIndex}-${dayIndex}`}
+                    style={[styles.dayCell, isToday && TODAY_STYLE, !isCurrentMonth && OUTSIDE_MONTH_STYLE, selectedDate === dateString && SELECTED_DATE_STYLE]}
+                    onPress={() => handleDatePress(dateString)}
+                >
+                    <Text style={[styles.dateText, !isCurrentMonth && styles.outsideMonthText, isToday && styles.todayText]}>{dateObj.date()}</Text>
+                </TouchableOpacity>
+            );
+        },
+        [today, month, selectedDate, handleDatePress]
+    );
+
+    // Render events in a week
+    const renderEvents = useCallback(
+        (weekIndex: number) => {
+            if (!processedEvents[weekIndex]) {
+                return null;
+            }
+
+            return Object.entries(processedEvents[weekIndex]).map(([dayIndexStr, dayEvents]) => {
+                const dayIndex = parseInt(dayIndexStr);
+                const events = dayEvents as EventWithPosition[];
+                console.log('events', events);
+                return events.map((event, eventIndex) => {
+                    // Calculate position and width for event bar
+                    const leftPosition = (dayIndex / 7) * 100;
+                    const width = (event.weekSpan / 7) * 100;
+
+                    return (
+                        <View
+                            key={`event-${weekIndex}-${dayIndex}-${eventIndex}`}
+                            style={[
+                                styles.multiDayEvent,
+                                {
+                                    left: `${leftPosition}%`,
+                                    width: `${width}%`,
+                                    backgroundColor: event.color || '#e74c3c',
+                                    top: 26 + event.slot * 18,
+                                    borderTopLeftRadius: event.isStartOfEvent ? 4 : 0,
+                                    borderBottomLeftRadius: event.isStartOfEvent ? 4 : 0,
+                                    borderTopRightRadius: event.isEndOfEvent ? 4 : 0,
+                                    borderBottomRightRadius: event.isEndOfEvent ? 4 : 0
+                                }
+                            ]}
+                        >
+                            <Text
+                                style={styles.eventLabelText}
+                                numberOfLines={1}
+                            >
+                                {event.title}
+                            </Text>
+                        </View>
+                    );
                 });
             });
+        },
+        [processedEvents]
+    );
 
-            return result;
-        }, [calendarWeeks, events]);
-
-        return (
-            <View style={styles.container}>
-                {/* Calendar Header */}
-                <View style={styles.headerContainer}>
-                    <View style={styles.headerLeft}>
-                        <View style={styles.redDot} />
-                        <View style={styles.headerTextContainer}>
-                            <Text style={styles.headerMonthText}>{monthName}</Text>
-                            <Text style={styles.headerSubText}>ผ่านมา</Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Days of week header */}
-                <View style={styles.weekRow}>
-                    {daysOfWeek.map((day) => (
-                        <Text
-                            key={day}
-                            style={styles.weekDay}
-                        >
-                            {day}
-                        </Text>
-                    ))}
-                </View>
-
-                {/* Calendar body */}
-                <View style={styles.calendarContainer}>
-                    {calendarWeeks.map((week, weekIndex) => (
-                        <View
-                            key={`week-${weekIndex}`}
-                            style={styles.weekContainer}
-                        >
-                            {/* Days */}
-                            {week.map((dateObj, dayIndex) => {
-                                const dateString = dateObj ? dateObj.format('YYYY-MM-DD') : '';
-                                const isToday = dateString === today;
-                                const isCurrentMonth = dateObj ? dateObj.month() === month : false;
-
-                                return (
-                                    <TouchableOpacity
-                                        key={`day-${weekIndex}-${dayIndex}`}
-                                        style={[styles.dayCell, isToday && styles.todayCell, !isCurrentMonth && styles.outsideMonthCell]}
-                                        onPress={() => dateString && onSelectDate(dateString)}
-                                    >
-                                        <Text style={[styles.dateText, !isCurrentMonth && styles.outsideMonthText, isToday && styles.todayText]}>{dateObj?.date()}</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-
-                            {/* Overlay for multi-day events */}
-                            <View style={styles.eventsOverlay}>
-                                {processedEvents[weekIndex] &&
-                                    Object.entries(processedEvents[weekIndex]).map(([dayIndexStr, dayEvents]) => {
-                                        const dayIndex = parseInt(dayIndexStr);
-                                        const events = dayEvents as any[];
-
-                                        return events.map((event, eventIndex) => {
-                                            // Calculate position and width for the event bar
-                                            const leftPosition = (dayIndex / 7) * 100;
-                                            const width = (event.weekSpan / 7) * 100;
-                                            const eventHeight = 20;
-
-                                            // Format time display if available
-                                            let displayTitle = event.title;
-                                            if (event.startTime) {
-                                                displayTitle = `${event.startTime}${event.endTime ? '-' + event.endTime : ''} ${event.title}`;
-                                            }
-
-                                            return (
-                                                <View
-                                                    key={`event-${weekIndex}-${dayIndex}-${eventIndex}`}
-                                                    style={[
-                                                        styles.multiDayEvent,
-                                                        {
-                                                            left: `${leftPosition}%`,
-                                                            width: `${width}%`,
-                                                            backgroundColor: event.color || '#e74c3c',
-                                                            top: 35 + event.slot * 24,
-                                                            borderTopLeftRadius: event.isStartOfEvent ? 4 : 0,
-                                                            borderBottomLeftRadius: event.isStartOfEvent ? 4 : 0,
-                                                            borderTopRightRadius: event.isEndOfEvent ? 4 : 0,
-                                                            borderBottomRightRadius: event.isEndOfEvent ? 4 : 0
-                                                        }
-                                                    ]}
-                                                >
-                                                    <Text
-                                                        style={styles.eventLabelText}
-                                                        numberOfLines={1}
-                                                    >
-                                                        {event.title}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        });
-                                    })}
-                            </View>
-                        </View>
-                    ))}
-                </View>
+    return (
+        <View style={styles.container}>
+            {/* Calendar header - days of week */}
+            <View style={styles.weekRow}>
+                {daysOfWeek.map((day) => (
+                    <Text
+                        key={day}
+                        style={styles.weekDay}
+                    >
+                        {day}
+                    </Text>
+                ))}
             </View>
-        );
-    }
-);
 
-export default CalendarBody;
+            {/* Calendar body */}
+            <View style={styles.calendarContainer}>
+                {calendarWeeks.map((week, weekIndex) => (
+                    <View
+                        key={`week-${weekIndex}`}
+                        style={styles.weekContainer}
+                    >
+                        {/* Days in week */}
+                        {week.map((dateObj, dayIndex) => renderDay(dateObj, weekIndex, dayIndex))}
+
+                        {/* Multi-day events */}
+                        <View style={styles.eventsOverlay}>{renderEvents(weekIndex)}</View>
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
+});
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: 'white',
-        width: '100%',
-        height: '100%'
-    },
-    headerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#f5f5f5',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0'
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
-    redDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: 'red',
-        marginRight: 8
-    },
-    headerTextContainer: {
-        flexDirection: 'column'
-    },
-    headerMonthText: {
-        fontSize: 16,
-        fontWeight: 'bold'
-    },
-    headerSubText: {
-        fontSize: 12,
-        color: '#666'
-    },
-    headerRight: {
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
-    iconButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: 8
-    },
-    iconText: {
-        fontSize: 18,
-        color: '#333'
+        width: '100%'
     },
     weekRow: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        paddingVertical: 10,
+        paddingVertical: 5,
+        height: WEEKDAY_HEADER_HEIGHT,
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0'
     },
     weekDay: {
-        width: width / 7,
+        width: DAY_CELL_WIDTH,
         textAlign: 'center',
         color: '#333',
-        fontSize: 14
+        fontSize: 12
     },
     calendarContainer: {
-        flex: 1,
         flexDirection: 'column'
     },
     weekContainer: {
-        flex: 1,
         flexDirection: 'row',
         width: '100%',
+        height: DAY_CELL_HEIGHT,
         position: 'relative'
     },
     dayCell: {
-        flex: 1,
+        width: DAY_CELL_WIDTH,
+        height: DAY_CELL_HEIGHT,
         justifyContent: 'flex-start',
         alignItems: 'center',
-        paddingTop: 10,
+        paddingTop: 6,
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0'
     },
-    todayCell: {
-        backgroundColor: '#f7e6e6'
-    },
-    outsideMonthCell: {
-        backgroundColor: '#f9f9f9'
-    },
     dateText: {
-        fontSize: 14,
+        fontSize: 11,
         color: '#333'
     },
     todayText: {
         color: '#fff',
         backgroundColor: '#e74c3c',
-        width: 24,
-        height: 24,
+        width: 18,
+        height: 18,
         borderRadius: 12,
+        lineHeight: 18,
         textAlign: 'center',
-        lineHeight: 24,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        fontWeight: 'bold'
     },
     outsideMonthText: {
         color: '#ccc'
@@ -405,13 +389,15 @@ const styles = StyleSheet.create({
     },
     multiDayEvent: {
         position: 'absolute',
-        height: 20,
-        paddingHorizontal: 4,
+        height: 16,
         justifyContent: 'center'
     },
     eventLabelText: {
         color: 'white',
         fontSize: 10,
-        textAlign: 'center'
+        textAlign: 'center',
+        fontWeight: 'bold'
     }
 });
+
+export default CalendarBody;
