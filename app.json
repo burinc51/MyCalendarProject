@@ -46,6 +46,10 @@
         "projectId": "4b12d89a-d8f0-44eb-b817-7f4640458ad5"
       }
     },
+    "assets": [
+      "./assets/fonts/Kanit-Regular.ttf",
+      "./assets/fonts/Kanit-Bold.ttf"
+    ],
     "owner": "gotzila"
   }
 }

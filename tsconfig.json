@@ -18,8 +18,6 @@
         ".expo/types/**/*.ts",
         "expo-env.d.ts",
         "nativewind.d.ts",
-        "nativewind-env.d.ts",
-        "constants/colors.js",
-        "utils/downloadJson.js"
+        "nativewind-env.d.ts"
     ]
 }

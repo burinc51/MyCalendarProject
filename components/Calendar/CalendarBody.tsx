@@ -254,7 +254,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events, setMonth }: Prop
             return Object.entries(processedEvents[weekIndex]).map(([dayIndexStr, dayEvents]) => {
                 const dayIndex = parseInt(dayIndexStr);
                 const events = dayEvents as EventWithPosition[];
-                console.log('events', events);
+
                 return events.map((event, eventIndex) => {
                     // Calculate position and width for event bar
                     const leftPosition = (dayIndex / 7) * 100;
@@ -342,7 +342,8 @@ const styles = StyleSheet.create({
         width: DAY_CELL_WIDTH,
         textAlign: 'center',
         color: '#333',
-        fontSize: 12
+        fontSize: 12,
+        fontFamily: 'Kanit-Regular'
     },
     calendarContainer: {
         flexDirection: 'column'
@@ -364,9 +365,11 @@ const styles = StyleSheet.create({
     },
     dateText: {
         fontSize: 11,
-        color: '#333'
+        color: '#333',
+        fontFamily: 'Kanit-Regular'
     },
     todayText: {
+        top: -0.5,
         color: '#fff',
         backgroundColor: '#e74c3c',
         width: 18,
@@ -375,7 +378,7 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         textAlign: 'center',
         overflow: 'hidden',
-        fontWeight: 'bold'
+        fontFamily: 'Kanit-Bold'
     },
     outsideMonthText: {
         color: '#ccc'
@@ -396,7 +399,7 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 10,
         textAlign: 'center',
-        fontWeight: 'bold'
+        fontFamily: 'Kanit-Bold'
     }
 });
 

@@ -10,7 +10,7 @@ const CalendarComponent = () => {
 
     // Sample events - you can replace with your actual events
     const events: CalendarEvent[] = [
-        { id: 1, startDate: '2025-04-28T10:00:00Z', endDate: '2025-05-02T18:00:00Z', title: 'AAAA', color: 'black' },
+        { id: 1, startDate: '2025-04-28T10:00:00Z', endDate: '2025-05-02T18:00:00Z', title: 'โดยที่การไม่นำพาและการหมิ่นในคุณค่าของสิทธิมนุษยชน', color: 'black' },
         { id: 2, startDate: '2025-04-13', endDate: '2025-04-16', title: 'วันหยุดยาวสงกรานต์', color: 'red' },
         { id: 3, startDate: '2025-04-29T09:30:00Z', endDate: '2025-05-02T12:00:00Z', title: '1111', color: 'red' },
         { id: 4, startDate: '2025-04-29T14:30:00Z', endDate: '2025-05-02T16:00:00Z', title: '2222', color: 'red' },
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     },
     headerMonthText: {
         fontSize: 16,
-        fontWeight: 'bold'
+        fontFamily: 'Kanit-Bold'
     },
     headerSubText: {
         fontSize: 12,

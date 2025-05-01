@@ -9,11 +9,16 @@ import '../global.css';
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
-    const [loaded] = useFonts({
-        SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf')
+    const [loaded, error] = useFonts({
+        'Kanit-Regular': require('../assets/fonts/Kanit-Regular.ttf'),
+        'Kanit-Bold': require('../assets/fonts/Kanit-Bold.ttf')
     });
 
-    console.log('Color scheme:', colorScheme); // ตรวจสอบค่าของ colorScheme
+    if (!loaded && !error) return null;
+    if (error) {
+        console.log('Font loading error:', error);
+        return null;
+    }
 
     return (
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
