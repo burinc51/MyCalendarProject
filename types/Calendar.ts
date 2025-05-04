@@ -1,4 +1,4 @@
-interface CalendarEvent {
+export interface CalendarEvent {
     id: number | string | null;
     title: string;
     startDate: string;
@@ -12,4 +12,5 @@ interface CalendarEvent {
     startDayIndex?: number;
     endDayIndex?: number;
     isAllDay?: boolean;
+    slot?: number;
 }
