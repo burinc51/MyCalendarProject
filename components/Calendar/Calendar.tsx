@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import CalendarBody from '@/components/Calendar/CalendarBody';
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 import { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
-import { CalendarEvent } from '@/types/CalendarEvent';
+import { Calendar } from '@/types/Calendar';
 import { AntDesign } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
@@ -17,7 +17,7 @@ const CalendarComponent = () => {
     const sheetRef = useRef<CustomBottomSheetModalRef>(null);
 
     // Sample events
-    const events: CalendarEvent[] = useMemo(
+    const events: Calendar[] = useMemo(
         () => [
             { id: 1, startDate: '2025-04-28T10:00:00Z', endDate: '2025-05-02T18:00:00Z', title: 'Event 1', color: 'black' },
             { id: 2, startDate: '2025-04-13', endDate: '2025-04-16', title: 'Songkran Holiday', color: 'red', isAllDay: true },
