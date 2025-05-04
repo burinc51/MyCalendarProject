@@ -30,7 +30,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="explore"
                 options={{
-                    title: 'My Notes',
+                    title: 'Notes',
                     tabBarIcon: ({ color }) => (
                         <IconSymbol
                             size={28}
@@ -48,6 +48,19 @@ export default function TabLayout() {
                         <IconSymbol
                             size={28}
                             name="house.fill"
+                            color={color}
+                        />
+                    )
+                }}
+            />
+            <Tabs.Screen
+                name="group"
+                options={{
+                    title: 'Group',
+                    tabBarIcon: ({ color }) => (
+                        <IconSymbol
+                            size={28}
+                            name="rectangle.3.group.fill"
                             color={color}
                         />
                     )
