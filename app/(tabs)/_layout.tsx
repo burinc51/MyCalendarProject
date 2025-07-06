@@ -13,6 +13,7 @@ export default function TabLayout() {
 
     return (
         <Tabs
+            initialRouteName="index"
             screenOptions={{
                 tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
                 headerShown: false,
@@ -21,10 +22,10 @@ export default function TabLayout() {
                 tabBarStyle: Platform.select({
                     ios: {
                         // Use a transparent background on iOS to show the blur effect
-                        position: 'absolute'
+                        position: 'absolute',
                     },
-                    default: {}
-                })
+                    default: {},
+                }),
             }}
         >
             <Tabs.Screen
@@ -37,7 +38,7 @@ export default function TabLayout() {
                             name="paperplane.fill"
                             color={color}
                         />
-                    )
+                    ),
                 }}
             />
             <Tabs.Screen
@@ -50,7 +51,7 @@ export default function TabLayout() {
                             name="house.fill"
                             color={color}
                         />
-                    )
+                    ),
                 }}
             />
             <Tabs.Screen
@@ -63,7 +64,7 @@ export default function TabLayout() {
                             name="rectangle.3.group.fill"
                             color={color}
                         />
-                    )
+                    ),
                 }}
             />
             <Tabs.Screen
@@ -76,7 +77,7 @@ export default function TabLayout() {
                             name="gearshape.fill"
                             color={color}
                         />
-                    )
+                    ),
                 }}
             />
         </Tabs>

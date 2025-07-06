@@ -1,0 +1,18 @@
+name: Android Dev Build (Yarn 4.9.1)
+
+jobs:
+  build_android:
+    type: build
+    params:
+      platform: android
+      profile: development
+    project_archive:
+      type: git
+    env:
+      NODE_VERSION: 22
+      YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
+    steps:
+      - run: corepack enable
+      - run: corepack prepare yarn@4.9.1 --activate
+      - run: yarn set version 4.9.1
+      - run: yarn install --inline-builds

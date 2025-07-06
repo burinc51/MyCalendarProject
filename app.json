@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.gotzila.MyCalendarProject",
       "supportsTablet": true
     },
     "android": {
@@ -35,7 +36,13 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.356083374793-t4nfsju601v0lectntcq17pqvaui9l2u"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
