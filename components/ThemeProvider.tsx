@@ -1,0 +1,129 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+type ThemeMode = 'light' | 'dark' | 'system';
+
+interface ThemeContextType {
+    theme: 'light' | 'dark';
+    themeMode: ThemeMode;
+    setThemeMode: (mode: ThemeMode) => void;
+    toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+interface ThemeProviderProps {
+    children: ReactNode;
+}
+
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+    const systemColorScheme = useColorScheme();
+    const [themeMode, setThemeMode] = useState<ThemeMode>('system');
+    const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+    // Load saved theme preference
+    useEffect(() => {
+        loadThemePreference();
+    }, []);
+
+    // Update theme when mode or system preference changes
+    useEffect(() => {
+        const newTheme = themeMode === 'system' ? systemColorScheme || 'light' : themeMode;
+        setTheme(newTheme);
+    }, [themeMode, systemColorScheme]);
+
+    const loadThemePreference = async () => {
+        try {
+            const savedMode = await AsyncStorage.getItem('theme-mode');
+            if (savedMode && ['light', 'dark', 'system'].includes(savedMode)) {
+                setThemeMode(savedMode as ThemeMode);
+            }
+        } catch (error) {
+            console.error('Error loading theme preference:', error);
+        }
+    };
+
+    const saveThemePreference = async (mode: ThemeMode) => {
+        try {
+            await AsyncStorage.setItem('theme-mode', mode);
+        } catch (error) {
+            console.error('Error saving theme preference:', error);
+        }
+    };
+
+    const handleSetThemeMode = (mode: ThemeMode) => {
+        setThemeMode(mode);
+        saveThemePreference(mode);
+    };
+
+    const toggleTheme = () => {
+        const newMode = theme === 'light' ? 'dark' : 'light';
+        handleSetThemeMode(newMode);
+    };
+
+    return (
+        <ThemeContext.Provider
+            value={{
+                theme,
+                themeMode,
+                setThemeMode: handleSetThemeMode,
+                toggleTheme,
+            }}
+        >
+            {children}
+        </ThemeContext.Provider>
+    );
+};
+
+export const useTheme = (): ThemeContextType => {
+    const context = useContext(ThemeContext);
+    if (!context) {
+        throw new Error('useTheme must be used within a ThemeProvider');
+    }
+    return context;
+};
+
+// Hook สำหรับใช้ colors ตาม theme
+export const useThemeColors = () => {
+    const { theme } = useTheme();
+
+    const colors = {
+        // Background
+        background: theme === 'light' ? '#ffffff' : '#0a0a0a',
+        surface: theme === 'light' ? '#f8fafc' : '#1e293b',
+
+        // Text
+        textPrimary: theme === 'light' ? '#1e293b' : '#f1f5f9',
+        textSecondary: theme === 'light' ? '#64748b' : '#94a3b8',
+        textDisabled: theme === 'light' ? '#cbd5e1' : '#475569',
+
+        // Border
+        border: theme === 'light' ? '#e2e8f0' : '#334155',
+
+        // Primary
+        primary: '#3b82f6',
+        primaryLight: '#60a5fa',
+        primaryDark: '#1d4ed8',
+
+        // Neutral
+        neutral50: theme === 'light' ? '#fafafa' : '#0a0a0a',
+        neutral100: theme === 'light' ? '#f5f5f5' : '#171717',
+        neutral200: theme === 'light' ? '#e5e5e5' : '#262626',
+        neutral300: theme === 'light' ? '#d4d4d4' : '#404040',
+        neutral400: theme === 'light' ? '#a3a3a3' : '#525252',
+        neutral500: theme === 'light' ? '#737373' : '#737373',
+        neutral600: theme === 'light' ? '#525252' : '#a3a3a3',
+        neutral700: theme === 'light' ? '#404040' : '#d4d4d4',
+        neutral800: theme === 'light' ? '#262626' : '#e5e5e5',
+        neutral900: theme === 'light' ? '#171717' : '#f5f5f5',
+
+        // Status Colors
+        success: '#22c55e',
+        warning: '#f59e0b',
+        error: '#ef4444',
+        info: '#0ea5e9',
+    };
+
+    return colors;
+};

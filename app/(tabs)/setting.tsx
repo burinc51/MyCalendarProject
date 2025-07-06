@@ -45,7 +45,7 @@ export default function HomeScreen() {
             // ✅ ส่ง idToken ไปยัง backend
             const idToken = await GoogleSignin.getTokens().then((tokens) => tokens.idToken);
 
-            const response = await fetch('http://192.168.183.82:9001/api/auth/google', {
+            const response = await fetch('http://192.168.106.216:9001/api/auth/google', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
