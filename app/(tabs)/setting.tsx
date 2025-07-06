@@ -5,17 +5,18 @@ import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/go
 type User = {
     email: string;
     name: string;
-    picture: string;
+    imageUrl: string;
 };
 
 export default function HomeScreen() {
+    const webClientId = process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
     const [loading, setLoading] = React.useState(false);
     const [isSignedIn, setIsSignedIn] = React.useState(false);
     const [userInfo, setUserInfo] = React.useState<User | null>(null);
 
     useEffect(() => {
         GoogleSignin.configure({
-            webClientId: '356083374793-mbdr9e7v0sctd8glmvhsgqnlvkjr14cu.apps.googleusercontent.com',
+            webClientId: webClientId,
             offlineAccess: true,
             forceCodeForRefreshToken: true,
         });
@@ -45,7 +46,7 @@ export default function HomeScreen() {
             // ✅ ส่ง idToken ไปยัง backend
             const idToken = await GoogleSignin.getTokens().then((tokens) => tokens.idToken);
 
-            const response = await fetch('http://192.168.106.216:9001/api/auth/google', {
+            const response = await fetch('http://192.168.106.216:9001/v1/auth/google-sign-in', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -90,9 +91,9 @@ export default function HomeScreen() {
                 />
             ) : (
                 <View className="items-center p-5">
-                    {userInfo?.picture && (
+                    {userInfo?.imageUrl && (
                         <Image
-                            source={{ uri: userInfo.picture }}
+                            source={{ uri: userInfo.imageUrl }}
                             className="w-24 h-24 rounded-full mb-5 border-2 border-gray-300"
                         />
                     )}
