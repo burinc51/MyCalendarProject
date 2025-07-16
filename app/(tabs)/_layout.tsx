@@ -1,36 +1,51 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { useTheme, useThemeColors } from '@/components/ThemeProvider';
 
 export default function TabLayout() {
-    const { theme } = useTheme();
-    const colors = useThemeColors();
+    const insets = useSafeAreaInsets();
 
     return (
         <Tabs
             initialRouteName="index"
             screenOptions={{
-                tabBarActiveTintColor: colors.primary,
-                tabBarInactiveTintColor: colors.textSecondary,
+                tabBarActiveTintColor: '#007aff',
+                tabBarInactiveTintColor: '#8e8e93',
                 headerShown: false,
                 tabBarButton: HapticTab,
                 tabBarBackground: TabBarBackground,
                 tabBarStyle: Platform.select({
                     ios: {
-                        // Use a transparent background on iOS to show the blur effect
                         position: 'absolute',
-                        backgroundColor: theme === 'dark' ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                        backgroundColor: 'rgba(255,255,255,0.92)',
+                        borderTopWidth: 0,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.08,
+                        shadowRadius: 12,
+                        shadowOffset: { width: 0, height: -2 },
+                        elevation: 10,
+                        height: 70 + insets.bottom,
+                        paddingBottom: insets.bottom + 8,
+                        borderTopColor: '#e0e0e0'
                     },
-                    default: {
-                        backgroundColor: colors.surface,
-                        borderTopColor: colors.border,
-                    },
+                    android: {
+                        backgroundColor: '#fff',
+                        borderTopColor: '#e0e0e0',
+                        elevation: 10,
+                        height: 70
+                    }
                 }),
+                tabBarLabelStyle: {
+                    fontSize: 13,
+                    fontWeight: '600',
+                    marginBottom: 6,
+                    letterSpacing: 0.3
+                }
             }}
         >
             <Tabs.Screen
@@ -44,6 +59,8 @@ export default function TabLayout() {
                             color={color}
                         />
                     ),
+                    tabBarAccessibilityLabel: 'Notes Tab'
+                    // tabBarAccessibilityRole: 'button'
                 }}
             />
             <Tabs.Screen
@@ -57,6 +74,8 @@ export default function TabLayout() {
                             color={color}
                         />
                     ),
+                    tabBarAccessibilityLabel: 'Home Tab'
+                    // tabBarAccessibilityRole: 'button'
                 }}
             />
             <Tabs.Screen
@@ -70,6 +89,8 @@ export default function TabLayout() {
                             color={color}
                         />
                     ),
+                    tabBarAccessibilityLabel: 'Group Tab'
+                    // tabBarAccessibilityRole: 'button'
                 }}
             />
             <Tabs.Screen
@@ -83,6 +104,8 @@ export default function TabLayout() {
                             color={color}
                         />
                     ),
+                    tabBarAccessibilityLabel: 'Settings Tab'
+                    // tabBarAccessibilityRole: 'button'
                 }}
             />
         </Tabs>
