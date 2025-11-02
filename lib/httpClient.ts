@@ -1,6 +1,5 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL;
 
 const httpClient: AxiosInstance = axios.create({
@@ -14,16 +13,29 @@ httpClient.interceptors.request.use(
         const token = await AsyncStorage.getItem('access_token');
 
         if (token) {
-            config.headers.Authorization = `bearer ${token}`;
+            config.headers.Authorization = `Bearer ${token}`;
         }
 
-        console.log(
-            `API CALL: ${config.method} ${config.baseURL}${config.url}`
-        );
+        console.log(`LOG API CALL: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
 
         return config;
     },
     (error) => {
+        return Promise.reject(error);
+    }
+);
+
+httpClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        if (error.response) {
+            const { status } = error.response;
+            if (status === 401) {
+                console.error('ERROR 401: Token expired or unauthorized. Clearing session.');
+                await AsyncStorage.removeItem('access_token');
+            }
+        }
+
         return Promise.reject(error);
     }
 );

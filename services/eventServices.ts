@@ -8,15 +8,15 @@ const pagination = {
     filter: {}
 };
 
-export const getEventsAll = async () => httpClient.post('/api/events/all', pagination);
+export const getEventsAll = async () => httpClient.post('/api/v1/event/all', pagination);
 
-export const getEventbyId = async (eventId: number) => httpClient.get(`/api/events/${eventId}`);
+export const getEventbyId = async (eventId: number) => httpClient.get(`/api/v1/event/${eventId}`);
 
-export const createEvent = async (event: FormData) => httpClient.post('/api/events', event);
+export const createEvent = async (event: FormData) => httpClient.post('/api/v1/event/create', event);
 
 export const updateEvent = async (eventId: number, userId: number, event: FormData) => {
     const updatedEvent = { ...event, userId };
-    return httpClient.put(`/api/events/${eventId}`, updatedEvent);
+    return httpClient.put(`/api/event/${eventId}`, updatedEvent);
 };
 
-export const deleteEvent = async (eventId: number) => httpClient.delete(`/api/events/${eventId}`);
+export const deleteEvent = async (eventId: number) => httpClient.delete(`/api/v1/event/${eventId}`);
