@@ -7,7 +7,7 @@ import CalendarBody from '@/components/Calendar/CalendarBody';
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 import { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
-import { createEvent, deleteEvent, getEventsAll, updateEvent } from '@/services/eventServices';
+import { createEvent, deleteEvent, getEventsAll, updateEvent } from '@/services/event-service';
 
 dayjs.extend(isBetween);
 

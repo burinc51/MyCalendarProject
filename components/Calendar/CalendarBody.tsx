@@ -4,8 +4,8 @@ import isBetween from 'dayjs/plugin/isBetween';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import getDateFromIndex from '@/utils/getDateFromIndex';
-import { Calendar } from '@/types/Calendar';
+import getDateFromIndex from '@/utils/get-date-from-index';
+import { Calendar } from '@/types/calendar';
 
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrAfter);
