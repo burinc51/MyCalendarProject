@@ -1,14 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, FlatList, Text, TouchableOpacity, StatusBar, SafeAreaView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+    View,
+    TextInput,
+    FlatList,
+    Text,
+    TouchableOpacity,
+    StatusBar,
+    SafeAreaView,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Animated,
+    Dimensions
+} from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 interface Note {
     id: string;
     title: string;
     content: string;
     lastModified?: string;
+    color?: string;
 }
 
-const PRIMARY = 'text-blue-500';
+const { width } = Dimensions.get('window');
+
+// Premium color palette for note accents
+const NOTE_COLORS = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
 
 const NotesApp = () => {
     const [notes, setNotes] = useState<Note[]>([]);
@@ -17,27 +36,40 @@ const NotesApp = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [noteTitle, setNoteTitle] = useState('');
     const [noteContent, setNoteContent] = useState('');
+    const [fabScale] = useState(new Animated.Value(0));
 
     useEffect(() => {
         if (notes.length === 0) {
             setNotes([
                 {
                     id: 'welcome',
-                    title: 'Welcome!',
-                    content: 'Tap + to create a new note.',
-                    lastModified: new Date().toISOString()
+                    title: 'Welcome to Notes!',
+                    content: 'Start capturing your thoughts, ideas, and reminders. Tap the + button below to create your first note.',
+                    lastModified: new Date().toISOString(),
+                    color: NOTE_COLORS[0]
                 }
             ]);
         }
+
+        // Animate FAB on mount
+        Animated.spring(fabScale, {
+            toValue: 1,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true
+        }).start();
     }, []);
 
-    const filteredNotes = notes.filter((note) => note.title.toLowerCase().includes(searchQuery.toLowerCase()) || note.content.toLowerCase().includes(searchQuery.toLowerCase()));
+    const filteredNotes = notes.filter(
+        (note) => note.title.toLowerCase().includes(searchQuery.toLowerCase()) || note.content.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const createNewNote = () => {
         const newNote: Note = {
             id: Date.now().toString(),
             title: '',
-            content: ''
+            content: '',
+            color: NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)]
         };
         setCurrentNote(newNote);
         setNoteTitle('');
@@ -54,18 +86,27 @@ const NotesApp = () => {
 
     const saveNote = () => {
         if (!currentNote) return;
+
+        // Don't save if both title and content are empty
+        if (!noteTitle.trim() && !noteContent.trim()) {
+            closeEditor();
+            return;
+        }
+
         const updatedNote: Note = {
             ...currentNote,
             title: noteTitle.trim() || 'Untitled Note',
             content: noteContent.trim(),
             lastModified: new Date().toISOString()
         };
+
         setNotes((prev) => (prev.find((n) => n.id === updatedNote.id) ? prev.map((n) => (n.id === updatedNote.id ? updatedNote : n)) : [updatedNote, ...prev]));
+
         closeEditor();
     };
 
     const deleteNote = (id: string) => {
-        Alert.alert('Delete', 'Delete this note?', [
+        Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
             { text: 'Cancel', style: 'cancel' },
             {
                 text: 'Delete',
@@ -88,127 +129,539 @@ const NotesApp = () => {
     const formatDate = (dateString: string) => {
         try {
             const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+
             return date.toLocaleDateString('en-US', {
-                year: 'numeric',
                 month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                day: 'numeric'
             });
         } catch {
             return '';
         }
     };
 
-    const NoteItem = ({ item }: { item: Note }) => (
-        <TouchableOpacity
-            className="bg-gray-100 border border-gray-200 rounded-md p-3 my-1"
-            onPress={() => openNote(item)}
-            activeOpacity={0.7}
-        >
-            <View className="flex-row items-center mb-1">
-                <Text
-                    className="flex-1 text-base font-kanit-bold text-gray-800"
-                    numberOfLines={1}
-                >
-                    {item.title || 'Untitled Note'}
-                </Text>
-                <TouchableOpacity
-                    onPress={() => deleteNote(item.id)}
-                    className="ml-2 px-2"
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                    <Text className="text-gray-400 text-base">🗑️</Text>
-                </TouchableOpacity>
-            </View>
-            <Text
-                className="text-sm text-gray-600 my-1"
-                numberOfLines={2}
+    const clearSearch = () => {
+        setSearchQuery('');
+    };
+
+    const NoteItem = ({ item, index }: { item: Note; index: number }) => {
+        const itemOpacity = new Animated.Value(0);
+        const itemTranslateY = new Animated.Value(20);
+
+        useEffect(() => {
+            Animated.parallel([
+                Animated.timing(itemOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    delay: index * 50,
+                    useNativeDriver: true
+                }),
+                Animated.timing(itemTranslateY, {
+                    toValue: 0,
+                    duration: 300,
+                    delay: index * 50,
+                    useNativeDriver: true
+                })
+            ]).start();
+        }, []);
+
+        return (
+            <Animated.View
+                style={[
+                    styles.noteCard,
+                    {
+                        opacity: itemOpacity,
+                        transform: [{ translateY: itemTranslateY }]
+                    }
+                ]}
             >
-                {item.content || 'Empty note'}
-            </Text>
-            {item.lastModified && <Text className="text-xs text-gray-400 self-end">{formatDate(item.lastModified)}</Text>}
-        </TouchableOpacity>
-    );
+                <View style={[styles.noteColorBar, { backgroundColor: item.color || NOTE_COLORS[0] }]} />
+                <TouchableOpacity
+                    style={styles.noteCardContent}
+                    onPress={() => openNote(item)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.noteHeader}>
+                        <Text
+                            style={styles.noteTitle}
+                            numberOfLines={1}
+                        >
+                            {item.title || 'Untitled Note'}
+                        </Text>
+                        <TouchableOpacity
+                            onPress={() => deleteNote(item.id)}
+                            style={styles.deleteButton}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <MaterialIcons
+                                name="delete-outline"
+                                size={20}
+                                color="#e74c3c"
+                            />
+                        </TouchableOpacity>
+                    </View>
+                    <Text
+                        style={styles.noteContent}
+                        numberOfLines={3}
+                    >
+                        {item.content || 'No content'}
+                    </Text>
+                    {item.lastModified && (
+                        <View style={styles.noteFooter}>
+                            <MaterialIcons
+                                name="access-time"
+                                size={12}
+                                color="#95a5a6"
+                            />
+                            <Text style={styles.noteTime}>{formatDate(item.lastModified)}</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+            </Animated.View>
+        );
+    };
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView style={styles.container}>
             <StatusBar
                 barStyle="dark-content"
-                backgroundColor="white"
+                backgroundColor="#f8f9fa"
             />
             {!isEditorVisible ? (
-                <View className="flex-1">
-                    <Text className={`text-xl font-kanit-bold ${PRIMARY} self-center my-4`}>Notes</Text>
-                    <TextInput
-                        className="bg-gray-100 rounded-md text-base px-3 py-2 mx-4 mb-1 text-gray-800"
-                        placeholder="Search…"
-                        placeholderTextColor="#bbb"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
+                <View style={styles.mainContainer}>
+                    {/* Modern Header */}
+                    <View style={styles.header}>
+                        <View style={styles.headerContent}>
+                            <MaterialIcons
+                                name="note"
+                                size={28}
+                                color="#6366f1"
+                            />
+                            <Text style={styles.headerTitle}>Notes</Text>
+                        </View>
+                        <View style={styles.noteCountBadge}>
+                            <Text style={styles.noteCountText}>{notes.length}</Text>
+                        </View>
+                    </View>
+
+                    {/* Enhanced Search Bar */}
+                    <View style={styles.searchContainer}>
+                        <MaterialIcons
+                            name="search"
+                            size={20}
+                            color="#95a5a6"
+                            style={styles.searchIcon}
+                        />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search notes..."
+                            placeholderTextColor="#95a5a6"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity
+                                onPress={clearSearch}
+                                style={styles.clearButton}
+                            >
+                                <MaterialIcons
+                                    name="close"
+                                    size={18}
+                                    color="#95a5a6"
+                                />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {/* Notes List or Empty State */}
                     {filteredNotes.length > 0 ? (
                         <FlatList
                             data={filteredNotes}
-                            renderItem={({ item }) => <NoteItem item={item} />}
+                            renderItem={({ item, index }) => (
+                                <NoteItem
+                                    item={item}
+                                    index={index}
+                                />
+                            )}
                             keyExtractor={(item) => item.id}
-                            contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: 80 }}
+                            contentContainerStyle={styles.listContent}
                             keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
                         />
                     ) : (
-                        <View className="flex-1 justify-center items-center mt-6">
-                            <Text className="text-base text-gray-500 font-kanit-bold">{searchQuery ? 'No notes found.' : 'No notes yet.'}</Text>
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyIcon}>{searchQuery ? '🔍' : '📝'}</Text>
+                            <Text style={styles.emptyTitle}>{searchQuery ? 'No notes found' : 'No notes yet'}</Text>
+                            <Text style={styles.emptySubtitle}>
+                                {searchQuery ? 'Try a different search term' : 'Tap the + button to create your first note'}
+                            </Text>
                         </View>
                     )}
-                    <TouchableOpacity
-                        className="absolute right-6 bottom-7 w-12 h-12 rounded-full bg-blue-500 justify-center items-center"
-                        onPress={createNewNote}
-                        activeOpacity={0.8}
+
+                    {/* Premium FAB */}
+                    <Animated.View
+                        style={[
+                            styles.fabContainer,
+                            {
+                                transform: [{ scale: fabScale }]
+                            }
+                        ]}
                     >
-                        <Text className="text-white text-3xl font-light -mt-1">＋</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.fab}
+                            onPress={createNewNote}
+                            activeOpacity={0.8}
+                        >
+                            <MaterialIcons
+                                name="add"
+                                size={28}
+                                color="#fff"
+                            />
+                        </TouchableOpacity>
+                    </Animated.View>
                 </View>
             ) : (
-                <SafeAreaView className="flex-1">
-                    <View className="flex-row items-center border-b border-gray-200 px-3 py-3">
+                <SafeAreaView style={styles.editorContainer}>
+                    {/* Editor Header */}
+                    <View style={styles.editorHeader}>
                         <TouchableOpacity
                             onPress={closeEditor}
-                            className="px-2"
+                            style={styles.backButton}
                         >
-                            <Text className="text-2xl font-kanit-bold text-gray-700">←</Text>
+                            <MaterialIcons
+                                name="arrow-back"
+                                size={24}
+                                color="#2c3e50"
+                            />
                         </TouchableOpacity>
+                        <View style={styles.editorHeaderCenter}>
+                            <Text style={styles.editorHeaderText}>Edit Note</Text>
+                        </View>
+                        <TouchableOpacity
+                            onPress={saveNote}
+                            style={styles.saveButton}
+                        >
+                            <MaterialIcons
+                                name="check"
+                                size={24}
+                                color="#10b981"
+                            />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Title Input */}
+                    <View style={styles.titleContainer}>
                         <TextInput
-                            className="flex-1 text-lg font-kanit-bold mx-2 text-gray-800"
-                            placeholder="Title"
-                            placeholderTextColor="#bbb"
+                            style={styles.titleInput}
+                            placeholder="Note title..."
+                            placeholderTextColor="#95a5a6"
                             value={noteTitle}
                             onChangeText={setNoteTitle}
                         />
-                        <TouchableOpacity
-                            onPress={saveNote}
-                            className="px-3"
-                        >
-                            <Text className="text-base font-kanit-bold text-blue-500">Save</Text>
-                        </TouchableOpacity>
                     </View>
+
+                    {/* Content Input */}
                     <KeyboardAvoidingView
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        className="flex-1"
+                        style={styles.contentContainer}
                     >
                         <TextInput
-                            className="flex-1 p-4 text-base text-gray-800"
+                            style={styles.contentInput}
                             multiline
-                            placeholder="Write your note here..."
+                            placeholder="Start writing..."
                             value={noteContent}
                             onChangeText={setNoteContent}
-                            placeholderTextColor="#999"
+                            placeholderTextColor="#95a5a6"
                             textAlignVertical="top"
                         />
                     </KeyboardAvoidingView>
+
+                    {/* Word Count */}
+                    <View style={styles.statsBar}>
+                        <Text style={styles.statsText}>
+                            {noteContent.split(/\s+/).filter((word) => word.length > 0).length} words • {noteContent.length} characters
+                        </Text>
+                    </View>
                 </SafeAreaView>
             )}
         </SafeAreaView>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#f8f9fa'
+    },
+    mainContainer: {
+        flex: 1
+    },
+    // Header Styles
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2
+    },
+    headerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontFamily: 'Kanit-Bold',
+        color: '#2c3e50',
+        letterSpacing: 0.5
+    },
+    noteCountBadge: {
+        backgroundColor: '#6366f1',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        minWidth: 32,
+        alignItems: 'center'
+    },
+    noteCountText: {
+        fontSize: 12,
+        fontFamily: 'Kanit-Bold',
+        color: '#fff'
+    },
+    // Search Bar Styles
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginTop: 16,
+        marginBottom: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3
+    },
+    searchIcon: {
+        marginRight: 10
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        fontFamily: 'Kanit-Regular',
+        color: '#2c3e50',
+        padding: 0
+    },
+    clearButton: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#ecf0f1',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 8
+    },
+    // Note Card Styles
+    listContent: {
+        paddingHorizontal: 16,
+        paddingBottom: 100
+    },
+    noteCard: {
+        flexDirection: 'row',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        marginBottom: 12,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3
+    },
+    noteColorBar: {
+        width: 5,
+        backgroundColor: '#6366f1'
+    },
+    noteCardContent: {
+        flex: 1,
+        padding: 16
+    },
+    noteHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8
+    },
+    noteTitle: {
+        flex: 1,
+        fontSize: 16,
+        fontFamily: 'Kanit-Bold',
+        color: '#2c3e50',
+        marginRight: 8
+    },
+    deleteButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#fadbd8',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    noteContent: {
+        fontSize: 14,
+        fontFamily: 'Kanit-Regular',
+        color: '#7f8c8d',
+        lineHeight: 20,
+        marginBottom: 8
+    },
+    noteFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4
+    },
+    noteTime: {
+        fontSize: 12,
+        fontFamily: 'Kanit-Regular',
+        color: '#95a5a6'
+    },
+    // Empty State Styles
+    emptyState: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40
+    },
+    emptyIcon: {
+        fontSize: 64,
+        marginBottom: 16,
+        opacity: 0.6
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontFamily: 'Kanit-Bold',
+        color: '#2c3e50',
+        marginBottom: 8
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        fontFamily: 'Kanit-Regular',
+        color: '#95a5a6',
+        textAlign: 'center'
+    },
+    // FAB Styles
+    fabContainer: {
+        position: 'absolute',
+        right: 20,
+        bottom: 20
+    },
+    fab: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#6366f1',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8
+    },
+    // Editor Styles
+    editorContainer: {
+        flex: 1,
+        backgroundColor: '#fff'
+    },
+    editorHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#ecf0f1'
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f8f9fa',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    editorHeaderCenter: {
+        flex: 1,
+        alignItems: 'center'
+    },
+    editorHeaderText: {
+        fontSize: 16,
+        fontFamily: 'Kanit-Bold',
+        color: '#2c3e50'
+    },
+    saveButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#d1fae5',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    titleContainer: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ecf0f1'
+    },
+    titleInput: {
+        fontSize: 20,
+        fontFamily: 'Kanit-Bold',
+        color: '#2c3e50',
+        padding: 0
+    },
+    contentContainer: {
+        flex: 1
+    },
+    contentInput: {
+        flex: 1,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        fontSize: 15,
+        fontFamily: 'Kanit-Regular',
+        color: '#2c3e50',
+        lineHeight: 24
+    },
+    statsBar: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#ecf0f1',
+        backgroundColor: '#f8f9fa'
+    },
+    statsText: {
+        fontSize: 12,
+        fontFamily: 'Kanit-Regular',
+        color: '#95a5a6',
+        textAlign: 'center'
+    }
+});
 
 export default NotesApp;
