@@ -7,7 +7,7 @@ import CalendarBody from '@/components/Calendar/CalendarBody';
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 import { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
-import { createEvent, deleteEvent, getEventsAll, updateEvent } from '@/services/event-service';
+import { createEvent, deleteEvent, getEventsAll, updateEvent } from '@/services/eventService';
 
 dayjs.extend(isBetween);
 
@@ -68,28 +68,28 @@ interface EventFormData {
 // Maps API priority ("1", "2", "3") to component's priority
 const mapApiPriorityToString = (priority: string): 'low' | 'medium' | 'high' => {
     switch (priority) {
-        case '1':
-            return 'high';
-        case '2':
-            return 'medium';
-        case '3':
-            return 'low';
-        default:
-            return 'medium';
+    case '1':
+        return 'high';
+    case '2':
+        return 'medium';
+    case '3':
+        return 'low';
+    default:
+        return 'medium';
     }
 };
 
 // Maps component's priority to API priority ("1", "2", "3")
 const mapPriorityToApi = (priority: 'low' | 'medium' | 'high'): string => {
     switch (priority) {
-        case 'high':
-            return '1';
-        case 'medium':
-            return '2';
-        case 'low':
-            return '3';
-        default:
-            return '2';
+    case 'high':
+        return '1';
+    case 'medium':
+        return '2';
+    case 'low':
+        return '3';
+    default:
+        return '2';
     }
 };
 
@@ -153,13 +153,13 @@ const EVENT_COLORS = [
     { solid: '#9b59b6', gradient: ['#9b59b6', '#8e44ad'] }, // Purple
     { solid: '#1abc9c', gradient: ['#1abc9c', '#16a085'] }, // Teal
     { solid: '#e67e22', gradient: ['#e67e22', '#d35400'] }, // Dark Orange
-    { solid: '#34495e', gradient: ['#34495e', '#2c3e50'] }  // Dark Blue
+    { solid: '#34495e', gradient: ['#34495e', '#2c3e50'] } // Dark Blue
 ];
 const CATEGORIES = ['Work', 'Personal', 'Health', 'Education', 'Social', 'Travel', 'Shopping', 'Other', 'Holiday'];
-const PRIORITY_COLORS = { 
-    low: { solid: '#95a5a6', gradient: ['#95a5a6', '#7f8c8d'] }, 
-    medium: { solid: '#f39c12', gradient: ['#f39c12', '#e67e22'] }, 
-    high: { solid: '#e74c3c', gradient: ['#e74c3c', '#c0392b'] } 
+const PRIORITY_COLORS = {
+    low: { solid: '#95a5a6', gradient: ['#95a5a6', '#7f8c8d'] },
+    medium: { solid: '#f39c12', gradient: ['#f39c12', '#e67e22'] },
+    high: { solid: '#e74c3c', gradient: ['#e74c3c', '#c0392b'] }
 };
 
 const CalendarComponent = () => {
@@ -201,9 +201,10 @@ const CalendarComponent = () => {
                 const mappedEvents = response.data.content.map(mapApiEventToCalendar);
                 setEvents(mappedEvents);
             }
+            setEvents([]);
         } catch (err) {
             console.error('Failed to fetch events:', err);
-            setError(`Could not load events. Reason: ${err.message || err.toString()}. Please try again later.`);
+            // setError(`Could not load events. Reason: ${err.message || err.toString()}. Please try again later.`);
         } finally {
             setIsLoading(false);
         }
@@ -355,23 +356,15 @@ const CalendarComponent = () => {
             const bodyData = {
                 title: formData.title.trim(),
                 description: formData.description.trim(),
-                startDate: formData.isAllDay 
-                    ? dayjs(formData.startDate).toISOString() 
-                    : dayjs(`${formData.startDate} ${formData.startTime}`).toISOString(),
-                endDate: formData.isAllDay 
-                    ? dayjs(formData.endDate).toISOString() 
-                    : dayjs(`${formData.endDate} ${formData.endTime}`).toISOString(),
+                startDate: formData.isAllDay ? dayjs(formData.startDate).toISOString() : dayjs(`${formData.startDate} ${formData.startTime}`).toISOString(),
+                endDate: formData.isAllDay ? dayjs(formData.endDate).toISOString() : dayjs(`${formData.endDate} ${formData.endTime}`).toISOString(),
                 color: mapColorToApi(formData.color),
                 category: formData.category,
                 priority: mapPriorityToApi(formData.priority),
                 location: '', // Empty by default, can be added to form later
                 repeatType: 'None', // Default repeat type
                 repeatUntil: null,
-                notificationTime: formData.reminder > 0 
-                    ? dayjs(`${formData.startDate} ${formData.startTime}`)
-                        .subtract(formData.reminder, 'minutes')
-                        .toISOString() 
-                    : null,
+                notificationTime: formData.reminder > 0 ? dayjs(`${formData.startDate} ${formData.startTime}`).subtract(formData.reminder, 'minutes').toISOString() : null,
                 notificationType: 'Push', // Default notification type
                 remindBeforeMinutes: formData.reminder,
                 pinned: false,
@@ -385,10 +378,10 @@ const CalendarComponent = () => {
 
             // Create FormData for multipart/form-data
             const formDataToSend = new FormData();
-            
+
             // Append the body as JSON string
             formDataToSend.append('body', JSON.stringify(bodyData));
-            
+
             // Optional: Append file if you have image upload functionality
             // formDataToSend.append('file', {
             //     uri: imageUri,
@@ -448,9 +441,7 @@ const CalendarComponent = () => {
                                     <Text style={styles.eventTitle}>{event.title}</Text>
                                     {event.priority && (
                                         <View style={[styles.priorityBadge, { backgroundColor: PRIORITY_COLORS[event.priority].solid }]}>
-                                            <Text style={styles.priorityBadgeText}>
-                                                {event.priority.toUpperCase()}
-                                            </Text>
+                                            <Text style={styles.priorityBadgeText}>{event.priority.toUpperCase()}</Text>
                                         </View>
                                     )}
                                 </View>
@@ -465,7 +456,10 @@ const CalendarComponent = () => {
                                     </View>
                                 )}
                                 {event.description && (
-                                    <Text style={styles.eventDescription} numberOfLines={2}>
+                                    <Text
+                                        style={styles.eventDescription}
+                                        numberOfLines={2}
+                                    >
                                         {event.description}
                                     </Text>
                                 )}
@@ -612,16 +606,16 @@ const CalendarComponent = () => {
                         {EVENT_COLORS.map((colorObj) => (
                             <TouchableOpacity
                                 key={colorObj.solid}
-                                style={[
-                                    styles.colorOption, 
-                                    { backgroundColor: colorObj.solid }, 
-                                    formData.color === colorObj.solid && styles.selectedColor
-                                ]}
+                                style={[styles.colorOption, { backgroundColor: colorObj.solid }, formData.color === colorObj.solid && styles.selectedColor]}
                                 onPress={() => updateFormData('color', colorObj.solid)}
                                 activeOpacity={0.7}
                             >
                                 {formData.color === colorObj.solid && (
-                                    <MaterialIcons name="check" size={20} color="#fff" />
+                                    <MaterialIcons
+                                        name="check"
+                                        size={20}
+                                        color="#fff"
+                                    />
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -640,19 +634,11 @@ const CalendarComponent = () => {
                         {CATEGORIES.map((category) => (
                             <TouchableOpacity
                                 key={category}
-                                style={[
-                                    styles.categoryOption, 
-                                    formData.category === category && styles.selectedCategory
-                                ]}
+                                style={[styles.categoryOption, formData.category === category && styles.selectedCategory]}
                                 onPress={() => updateFormData('category', category)}
                                 activeOpacity={0.7}
                             >
-                                <Text style={[
-                                    styles.categoryText, 
-                                    formData.category === category && styles.selectedCategoryText
-                                ]}>
-                                    {category}
-                                </Text>
+                                <Text style={[styles.categoryText, formData.category === category && styles.selectedCategoryText]}>{category}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -667,20 +653,17 @@ const CalendarComponent = () => {
                         <TouchableOpacity
                             key={priority}
                             style={[
-                                styles.priorityOption, 
+                                styles.priorityOption,
                                 formData.priority === priority && styles.selectedPriority,
-                                formData.priority === priority && { 
+                                formData.priority === priority && {
                                     backgroundColor: PRIORITY_COLORS[priority].solid,
-                                    borderColor: PRIORITY_COLORS[priority].solid 
+                                    borderColor: PRIORITY_COLORS[priority].solid
                                 }
                             ]}
                             onPress={() => updateFormData('priority', priority)}
                             activeOpacity={0.7}
                         >
-                            <Text style={[
-                                styles.priorityText, 
-                                formData.priority === priority && styles.selectedPriorityText
-                            ]}>
+                            <Text style={[styles.priorityText, formData.priority === priority && styles.selectedPriorityText]}>
                                 {priority.charAt(0).toUpperCase() + priority.slice(1)}
                             </Text>
                         </TouchableOpacity>
