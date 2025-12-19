@@ -5,7 +5,7 @@ import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import getDateFromIndex from '@/utils/get-date-from-index';
-import { Calendar } from '@/types/calendar';
+import type { CalendarEvent } from '@/types/event';
 
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrAfter);
@@ -30,7 +30,7 @@ const OUTSIDE_MONTH_STYLE = { backgroundColor: '#f9f9f9' };
 interface Props {
     index: number;
     onSelectDate: (date: string) => void;
-    events: Calendar[];
+    events: CalendarEvent[];
 }
 
 const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
@@ -85,7 +85,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
 
     // Process events efficiently
     const processedEvents = useMemo(() => {
-        const result: { [weekIndex: number]: { [dayIndex: number]: Calendar[] } } = {};
+        const result: { [weekIndex: number]: { [dayIndex: number]: CalendarEvent[] } } = {};
 
         // Pre-sort events
         const sortedEvents = [...events].sort((a, b) => {
@@ -155,7 +155,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
                     occupiedSlots[`${i}-${slot}`] = true;
                 }
 
-                const eventInfo: Calendar = {
+                const eventInfo: CalendarEvent = {
                     ...event,
                     weekSpan: endDayIndex - startDayIndex + 1,
                     isStartOfEvent: start.isSame(week[startDayIndex], 'day') || start.isBefore(week[startDayIndex], 'day'),
@@ -202,7 +202,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
 
             return Object.entries(processedEvents[weekIndex]).flatMap(([dayIndexStr, dayEvents]) => {
                 const dayIndex = parseInt(dayIndexStr);
-                const events = dayEvents as Calendar[];
+                const events = dayEvents as CalendarEvent[];
 
                 return events.map((event, eventIndex) => {
                     const leftPosition = (dayIndex / 7) * 100;
