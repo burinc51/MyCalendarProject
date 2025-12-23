@@ -162,7 +162,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
                     isEndOfEvent: end.isSame(week[endDayIndex], 'day') || end.isAfter(week[endDayIndex], 'day'),
                     startDayIndex,
                     endDayIndex,
-                    slot,
+                    slot
                 };
 
                 if (!result[weekIndex][startDayIndex]) {
@@ -192,7 +192,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
                 </TouchableOpacity>
             );
         },
-        [today, month, onSelectDate],
+        [today, month, onSelectDate]
     );
 
     // Render events
@@ -220,8 +220,8 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
                                     top: 26 + event.slot * 18,
                                     borderBottomLeftRadius: event.isStartOfEvent ? 4 : 0,
                                     borderTopRightRadius: event.isEndOfEvent ? 4 : 0,
-                                    borderBottomRightRadius: event.isEndOfEvent ? 4 : 0,
-                                },
+                                    borderBottomRightRadius: event.isEndOfEvent ? 4 : 0
+                                }
                             ]}
                         >
                             <Text
@@ -235,7 +235,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
                 });
             });
         },
-        [processedEvents],
+        [processedEvents]
     );
 
     return (
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: 'white',
-        width: '100%',
+        width: '100%'
     },
     weekRow: {
         flexDirection: 'row',
@@ -277,23 +277,23 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
         height: WEEKDAY_HEADER_HEIGHT,
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+        borderBottomColor: '#f0f0f0'
     },
     weekDay: {
         width: DAY_CELL_WIDTH,
         textAlign: 'center',
         color: '#333',
         fontSize: 12,
-        fontFamily: 'Kanit-Regular',
+        fontFamily: 'Kanit-Regular'
     },
     calendarContainer: {
-        flexDirection: 'column',
+        flexDirection: 'column'
     },
     weekContainer: {
         flexDirection: 'row',
         width: '100%',
         height: DAY_CELL_HEIGHT,
-        position: 'relative',
+        position: 'relative'
     },
     dayCell: {
         width: DAY_CELL_WIDTH,
@@ -302,12 +302,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: 6,
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+        borderBottomColor: '#f0f0f0'
     },
     dateText: {
         fontSize: 11,
         color: '#333',
-        fontFamily: 'Kanit-Regular',
+        fontFamily: 'Kanit-Regular'
     },
     todayText: {
         top: -0.5,
@@ -319,29 +319,29 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         textAlign: 'center',
         overflow: 'hidden',
-        fontFamily: 'Kanit-Bold',
+        fontFamily: 'Kanit-Bold'
     },
     outsideMonthText: {
-        color: '#ccc',
+        color: '#ccc'
     },
     eventsOverlay: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0,
+        bottom: 0
     },
     multiDayEvent: {
         position: 'absolute',
         height: 16,
-        justifyContent: 'center',
+        justifyContent: 'center'
     },
     eventLabelText: {
         color: 'white',
         fontSize: 10,
         textAlign: 'center',
-        fontFamily: 'Kanit-Bold',
-    },
+        fontFamily: 'Kanit-Bold'
+    }
 });
 
 export default CalendarBody;

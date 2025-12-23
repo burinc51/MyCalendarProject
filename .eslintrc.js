@@ -7,17 +7,16 @@ module.exports = {
         ecmaVersion: 2021,
         sourceType: 'module',
         ecmaFeatures: {
-            jsx: true,
-        },
+            jsx: true
+        }
     },
     plugins: ['react', 'react-native', '@typescript-eslint'],
     env: {
         browser: true,
         node: true,
-        'react-native/react-native': true,
+        'react-native/react-native': true
     },
     rules: {
-        'no-console': 'warn',
         'react-hooks/exhaustive-deps': 'off',
         curly: ['error', 'multi-line'],
         indent: ['error', 4],
@@ -35,7 +34,7 @@ module.exports = {
         'react/display-name': 'off',
         'react-native/sort-styles': 'off',
         '@typescript-eslint/no-var-requires': 'off',
-
-        'prettier/prettier': 'off',
-    },
+        'comma-dangle': 'off',
+        'prettier/prettier': 'off'
+    }
 };

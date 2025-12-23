@@ -18,7 +18,7 @@ export default function HomeScreen() {
         GoogleSignin.configure({
             webClientId: webClientId,
             offlineAccess: true,
-            forceCodeForRefreshToken: true,
+            forceCodeForRefreshToken: true
         });
 
         checkIfSignedIn();
@@ -40,18 +40,21 @@ export default function HomeScreen() {
             setLoading(true);
             await GoogleSignin.hasPlayServices();
             const userInfo = await GoogleSignin.signIn();
+            console.log('userInfo: ', userInfo);
 
             setIsSignedIn(true);
 
             // ✅ ส่ง idToken ไปยัง backend
             const idToken = await GoogleSignin.getTokens().then((tokens) => tokens.idToken);
 
-            const response = await fetch('http://192.168.106.216:9001/v1/auth/google-sign-in', {
+            console.log('idToken: ', idToken);
+
+            const response = await fetch('http://172.29.176.1:9001/v1/auth/google-sign-in', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ idToken: idToken }),
+                body: JSON.stringify({ idToken: idToken })
             });
 
             const result = response.status === 204 ? null : await response.json();
