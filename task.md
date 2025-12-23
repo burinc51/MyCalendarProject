@@ -1,0 +1,22 @@
+# MyCalendarProject UI Implementation Tasks
+
+- [x] Planning & Design <!-- id: 0 -->
+    - [x] Create Implementation Plan (UI Hierarchy & Components) <!-- id: 1 -->
+- [x] Core Setup <!-- id: 2 -->
+    - [x] Verify functionality of Tailwind/NativeWind setup <!-- id: 3 -->
+    - [x] Setup Navigation Structure (Tabs/Stack) <!-- id: 4 -->
+- [/] Feature Implementation <!-- id: 5 -->
+    - [/] **Calendar Module** <!-- id: 6 -->
+        - [x] Calendar View (Month/Week/Day) <!-- id: 7 -->
+        - [x] Activity/Plan Creation Modal <!-- id: 8 -->
+    - [/] **Note Module** <!-- id: 9 -->
+        - [ ] Note List Screen <!-- id: 10 -->
+        - [ ] Note Creation/Edit Screen (Image, Location, Reminder inputs) <!-- id: 11 -->
+    - [ ] **Profile Module** <!-- id: 12 -->
+        - [ ] Profile Screen <!-- id: 13 -->
+        - [ ] Edit Profile Screen <!-- id: 14 -->
+    - [ ] **Group/Appointment Module** <!-- id: 15 -->
+        - [ ] Group List Screen <!-- id: 16 -->
+        - [ ] Group Details & Member Management <!-- id: 17 -->
+- [ ] Verification <!-- id: 18 -->
+    - [ ] Verify all UI screens against requirements <!-- id: 19 -->

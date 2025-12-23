@@ -10,6 +10,9 @@ Native](https://img.shields.io/badge/React_Native-0.79.2-61DAFB?style=flat&logo=
 
 ## 🏗️ สถาปัตยกรรมระบบ
 
+[แผนการพัฒนา UI (Implementation Plan)](./implementation_plan.md)
+[ติดตามสถานะงาน (Task Tracker)](./task.md)
+
 โปรเจคประกอบด้วย 2 ส่วนหลัก:
 
 ```
