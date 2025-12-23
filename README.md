@@ -1,5 +1,11 @@
 Native](https://img.shields.io/badge/React_Native-0.79.2-61DAFB?style=flat&logo=react)
 ![Expo](https://img.shields.io/badge/Expo-53.0.7-000020?style=flat&logo=expo)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-3178C6?style=flat&logo=typescript)
+![Zustand](https://img.shields.io/badge/Zustand-5.0.9-443E38?style=flat)
+![TanStack Query](https://img.shields.io/badge/TanStack_Query-5.90.12-FF4154?style=flat)
+![React Hook Form](https://img.shields.io/badge/React_Hook_Form-7.69.0-EC5990?style=flat)
+![Zod](https://img.shields.io/badge/Zod-4.2.1-3E67B1?style=flat)
+
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3.3-6DB33F?style=flat&logo=spring-boot)
 ![Java](https://img.shields.io/badge/Java-21-007396?style=flat&logo=openjdk)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Latest-4169E1?style=flat&logo=postgresql)
@@ -27,15 +33,40 @@ MyCalendar/
 
 ### เทคโนโลยีที่ใช้
 
+#### Core Framework
 | เทคโนโลยี        | เวอร์ชัน | คำอธิบาย                                 |
 |------------------|----------|------------------------------------------|
 | React Native     | 0.79.2   | Framework สำหรับสร้าง Mobile App         |
 | Expo             | 53.0.7   | Platform สำหรับ React Native Development |
-| NativeWind       | 4.1.23   | Tailwind CSS สำหรับ React Native         |
-| React Navigation | 7.0.0    | Navigation Library                       |
-| TanStack Query   | 5.74.4   | Server State Management                  |
-| Day.js           | 1.11.13  | Date/Time Library                        |
-| Axios            | 1.10.0   | HTTP Client                              |
+| TypeScript       | 5.3.3    | Type-safe JavaScript                     |
+
+#### State Management
+| เทคโนโลยี        | เวอร์ชัน | คำอธิบาย                                 |
+|------------------|----------|------------------------------------------|
+| Zustand          | 5.0.9    | 🐻 Global State Management (ง่าย เบา เร็ว) |
+| TanStack Query   | 5.90.12  | 🔄 Server State & API Cache Management   |
+
+#### UI & Styling
+| เทคโนโลยี        | เวอร์ชัน | คำอธิบาย                                 |
+|------------------|----------|------------------------------------------|
+| NativeWind       | 4.1.23   | 🎨 Tailwind CSS สำหรับ React Native      |
+| Expo Router      | 4.0.0    | 🧭 File-based Navigation                 |
+| Bottom Sheet     | 5.0.6    | Modal & Bottom Sheet Components          |
+
+#### Form & Validation
+| เทคโนโลยี        | เวอร์ชัน | คำอธิบาย                                 |
+|------------------|----------|------------------------------------------|
+| React Hook Form  | 7.69.0   | 📝 Form Management (Performance-focused) |
+| Zod              | 4.2.1    | ✅ Schema Validation                     |
+| @hookform/resolvers | 5.2.2 | 🔗 เชื่อม Zod กับ React Hook Form       |
+
+#### Utilities
+| เทคโนโลยี        | เวอร์ชัน | คำอธิบาย                                 |
+|------------------|----------|------------------------------------------|
+| Day.js           | 1.11.13  | 📅 Date/Time Library (เบากว่า Moment.js) |
+| Axios            | 1.10.0   | 🌐 HTTP Client                           |
+| AsyncStorage     | 2.1.0    | 💾 Local Storage                         |
+
 
 ### โครงสร้างโฟลเดอร์
 
@@ -47,26 +78,36 @@ MyCalendarProject/
 │   │   ├── explore.tsx       # หน้า Notes
 │   │   ├── group.tsx         # หน้า Group Management
 │   │   └── setting.tsx       # หน้า Settings & Auth
-│   └── _layout.tsx           # Root Layout
+│   └── _layout.tsx           # Root Layout (+ QueryClientProvider)
 ├── components/               # React Components
 │   ├── Calendar/             # Calendar Component
-│   │   ├── CalendarView.tsx  # Main Calendar UI (1,197 lines)
+│   │   ├── CalendarView.tsx  # Main Calendar UI
 │   │   └── CalendarBody.tsx  # Calendar Body Component
+│   ├── forms/                # Form Components
+│   │   └── EventFormExample.tsx # React Hook Form Example
 │   ├── ui/                   # UI Components
 │   └── ThemeProvider.tsx     # Theme Management
+├── stores/                   # 🐻 Zustand Stores (Global State)
+│   ├── useAuthStore.ts       # Authentication State
+│   └── useNotesStore.ts      # Notes State
 ├── hooks/                    # Custom React Hooks
+│   ├── useEvents.ts          # 🔄 TanStack Query - Events API
 │   ├── useColorScheme.ts     # Color Scheme Hook
 │   └── useThemeColor.ts      # Theme Color Hook
+├── schemas/                  # ✅ Zod Validation Schemas
+│   └── eventSchema.ts        # Event & Note Schemas
 ├── services/                 # API Services
-│   └── eventService.ts      # Event API Calls
+│   └── eventService.ts       # Event API Calls
 ├── types/                    # TypeScript Types
 │   └── calendar.ts           # Calendar Types
 ├── utils/                    # Utility Functions
 │   ├── get-date-from-index.ts
 │   ├── month-names.ts
 │   └── spacing.ts
-└── lib/                      # Libraries
-    └── httpClient.ts         # Axios Configuration
+├── lib/                      # Libraries & Configuration
+│   ├── httpClient.ts         # Axios Configuration
+│   └── queryClient.ts        # TanStack Query Config
+└── TECH_STACK_SETUP.md       # 📚 Tech Stack Documentation
 ```
 
 ### หน้าหลักของแอป (Tabs)
@@ -136,6 +177,79 @@ interface ApiEvent {
     pinned: boolean;
 }
 ```
+
+### 🛠️ Tech Stack Architecture
+
+โปรเจคนี้ใช้ **Modern React Native Stack** ที่เน้นประสิทธิภาพและ Developer Experience:
+
+#### 1. **State Management Strategy**
+
+```typescript
+// 🐻 Zustand - สำหรับ Global UI State (เบา เร็ว ง่าย)
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useNotesStore } from '@/stores/useNotesStore';
+
+// ตัวอย่างการใช้งาน
+const { user, isAuthenticated, setAuth } = useAuthStore();
+const { notes, addNote, deleteNote } = useNotesStore();
+```
+
+```typescript
+// 🔄 TanStack Query - สำหรับ Server State & API Cache
+import { useEvents } from '@/hooks/useEvents';
+
+// Auto-caching, Auto-refetching, Optimistic Updates
+const { events, isLoading, createEvent, updateEvent, deleteEvent } = useEvents();
+```
+
+**ทำไมใช้ทั้ง 2 ตัว?**
+- **Zustand** → UI State (modal open/close, selected items, filters)
+- **TanStack Query** → Server Data (API calls, caching, sync)
+
+#### 2. **Form Management**
+
+```typescript
+// 📝 React Hook Form + ✅ Zod Validation
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { eventFormSchema } from '@/schemas/eventSchema';
+
+const { control, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(eventFormSchema)
+});
+```
+
+**ข้อดี:**
+- ✅ Type-safe validation
+- ✅ Performance (uncontrolled components)
+- ✅ Auto error messages
+- ✅ Easy integration with UI libraries
+
+#### 3. **API Layer Architecture**
+
+```
+User Action → React Hook Form → Zod Validation
+                                      ↓
+                              TanStack Query Hook
+                                      ↓
+                              API Service (Axios)
+                                      ↓
+                              Backend API
+```
+
+**ตัวอย่าง Flow:**
+1. User กรอกฟอร์ม → React Hook Form จัดการ state
+2. Submit → Zod validate ข้อมูล
+3. Valid → TanStack Query mutation
+4. API call → Axios + httpClient
+5. Success → Auto invalidate cache & refetch
+6. UI update อัตโนมัติ
+
+### 📚 เอกสารเพิ่มเติม
+
+- [Tech Stack Setup Guide](./TECH_STACK_SETUP.md) - คู่มือการใช้งาน Tech Stack แบบละเอียด
+- [Implementation Plan](./implementation_plan.md) - แผนการพัฒนา UI
+- [Task Tracker](./task.md) - ติดตามสถานะงาน
 
 ---
 
@@ -294,30 +408,43 @@ public class Group {
 ### Prerequisites
 
 - Node.js 18+
-- Yarn 4.9.1+
+- **Yarn 4.9.1+** (⚠️ โปรเจคนี้ใช้ Yarn แทน npm)
 - Java 21
 - PostgreSQL
 - Android Studio / Xcode (สำหรับ Emulator)
+
+> **📦 Package Manager:** โปรเจคนี้ใช้ **Yarn** แทน npm เพราะ:
+> - ⚡ เร็วกว่า (parallel installation)
+> - 🔒 Deterministic installs (yarn.lock)
+> - 💾 Offline cache
+> - 🎯 Workspaces support
+> 
+> **ติดตั้ง Yarn:** `npm install -g yarn`
 
 ### Frontend Setup
 
 ```bash
 cd MyCalendarProject
 
-# ติดตั้ง dependencies
+# ติดตั้ง dependencies (ใช้ yarn แทน npm)
 yarn install
 
 # สร้างไฟล์ .env (copy จาก .env.example)
 cp .env.example .env
 
 # รันแอป
+yarn start
+# หรือ
 npx expo start
 
-# หรือรันบน Android
+# รันบน Android
 yarn android
 
 # รันบน iOS
 yarn ios
+
+# Clear cache (ถ้ามีปัญหา)
+yarn start --clear
 ```
 
 ### Backend Setup
