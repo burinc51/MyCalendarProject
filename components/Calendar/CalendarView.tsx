@@ -6,7 +6,7 @@ import isBetween from 'dayjs/plugin/isBetween';
 import CalendarBody from '@/components/Calendar/CalendarBody';
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 import { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
-import { AntDesign, MaterialIcons, Feather } from '@expo/vector-icons';
+import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import { createEvent, deleteEvent, getEventsAll, updateEvent } from '@/services/eventService';
 
 dayjs.extend(isBetween);
@@ -68,28 +68,28 @@ interface EventFormData {
 // Maps API priority ("1", "2", "3") to component's priority
 const mapApiPriorityToString = (priority: string): 'low' | 'medium' | 'high' => {
     switch (priority) {
-        case '1':
-            return 'high';
-        case '2':
-            return 'medium';
-        case '3':
-            return 'low';
-        default:
-            return 'medium';
+    case '1':
+        return 'high';
+    case '2':
+        return 'medium';
+    case '3':
+        return 'low';
+    default:
+        return 'medium';
     }
 };
 
 // Maps component's priority to API priority ("1", "2", "3")
 const mapPriorityToApi = (priority: 'low' | 'medium' | 'high'): string => {
     switch (priority) {
-        case 'high':
-            return '1';
-        case 'medium':
-            return '2';
-        case 'low':
-            return '3';
-        default:
-            return '2';
+    case 'high':
+        return '1';
+    case 'medium':
+        return '2';
+    case 'low':
+        return '3';
+    default:
+        return '2';
     }
 };
 
@@ -165,7 +165,6 @@ const PRIORITY_COLORS = {
 const CalendarComponent = () => {
     const baseDate = useMemo(() => dayjs(), []);
     const [month, setMonth] = useState<string>(baseDate.format('MMMM YYYY'));
-    const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month'); // New View Mode State
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [editingEvent, setEditingEvent] = useState<Calendar | null>(null);
@@ -718,44 +717,22 @@ const CalendarComponent = () => {
                     <View style={styles.redDot} />
                     <Text style={styles.headerMonthText}>{month}</Text>
                 </View>
-                {/* View Switcher */}
-                <View style={styles.viewSwitcher}>
-                    {(['month', 'week', 'day'] as const).map((mode) => (
-                        <TouchableOpacity
-                            key={mode}
-                            style={[styles.viewModeButton, viewMode === mode && styles.viewModeButtonActive]}
-                            onPress={() => setViewMode(mode)}
-                        >
-                            <Text style={[styles.viewModeText, viewMode === mode && styles.viewModeTextActive]}>
-                                {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
             </View>
 
-            {/* Calendar Body based on View Mode */}
-            {viewMode === 'month' ? (
-                <InfinitePager
-                    pageBuffer={3}
-                    onPageChange={handlePageChange}
-                    renderPage={({ index }) => (
-                        <View style={styles.pageContainer}>
-                            <CalendarBody
-                                index={index}
-                                onSelectDate={handleSelectDate}
-                                events={events}
-                            />
-                        </View>
-                    )}
-                />
-            ) : (
-                <View style={styles.centered}>
-                    <Text style={{ fontFamily: 'Kanit-Regular', fontSize: 16, color: '#666' }}>
-                        {viewMode === 'week' ? 'Week' : 'Day'} view coming soon!
-                    </Text>
-                </View>
-            )}
+            {/* Calendar */}
+            <InfinitePager
+                pageBuffer={3}
+                onPageChange={handlePageChange}
+                renderPage={({ index }) => (
+                    <View style={styles.pageContainer}>
+                        <CalendarBody
+                            index={index}
+                            onSelectDate={handleSelectDate}
+                            events={events} // <-- Pass the events from the API state!
+                        />
+                    </View>
+                )}
+            />
 
             {/* Bottom Sheet Modal */}
             <CustomBottomSheetModal
@@ -810,36 +787,7 @@ const styles = StyleSheet.create({
     },
     headerLeft: {
         flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1
-    },
-    viewSwitcher: {
-        flexDirection: 'row',
-        backgroundColor: '#f1f2f6',
-        borderRadius: 8,
-        padding: 4
-    },
-    viewModeButton: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 6
-    },
-    viewModeButtonActive: {
-        backgroundColor: '#fff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2
-    },
-    viewModeText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 12,
-        color: '#95a5a6'
-    },
-    viewModeTextActive: {
-        fontFamily: 'Kanit-Bold',
-        color: '#2c3e50'
+        alignItems: 'center'
     },
     redDot: {
         width: 10,
