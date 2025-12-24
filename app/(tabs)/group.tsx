@@ -6,7 +6,6 @@ import {
     Text,
     TouchableOpacity,
     StatusBar,
-    SafeAreaView,
     Alert,
     Animated,
     KeyboardAvoidingView,
@@ -14,6 +13,7 @@ import {
     Keyboard,
     Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const PRIMARY = 'text-blue-500';
@@ -101,7 +101,7 @@ const GroupManagementScreen = () => {
                             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                             keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
                         >
-                            <TouchableWithoutFeedback onPress={() => {}}>
+                            <TouchableWithoutFeedback onPress={() => { }}>
                                 <Animated.View
                                     style={{
                                         height: animatedHeight,

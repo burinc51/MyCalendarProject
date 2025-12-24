@@ -1,7 +1,8 @@
 /**
  * CalendarView Component
- * Main calendar view with infinite paging and event management
- * Refactored to use modular components and hooks
+ * Main calendar view with pager-based navigation and event management
+ * Fully responsive across all device sizes and orientations
+ * Uses react-native-pager-view for SDK 54 compatibility
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -9,12 +10,13 @@ import {
     View,
     Text,
     StyleSheet,
-    Dimensions,
     BackHandler,
     TouchableOpacity,
-    ActivityIndicator
+    ActivityIndicator,
+    ViewStyle,
+    TextStyle
 } from 'react-native';
-import InfinitePager from 'react-native-infinite-pager';
+import PagerView from 'react-native-pager-view';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
@@ -28,19 +30,70 @@ import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/
 
 // Hooks
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 
 // Types
 import type { CalendarEvent } from '@/types/event';
 
 dayjs.extend(isBetween);
 
-const { width } = Dimensions.get('window');
+// Virtual infinite scrolling: 5 years before and after current date (120 months total)
+const MONTHS_RANGE = 60; // 5 years in each direction
+const TOTAL_PAGES = MONTHS_RANGE * 2 + 1; // 121 pages total
+const INITIAL_PAGE = MONTHS_RANGE; // Start at center (current month)
 
 const CalendarView: React.FC = () => {
+    // Get responsive dimensions
+    const {
+        width,
+        headerHeight,
+        horizontalPadding,
+        titleFontSize,
+        isSmallPhone,
+        isTablet
+    } = useResponsiveDimensions();
+
     const baseDate = useMemo(() => dayjs(), []);
+    const [currentPage, setCurrentPage] = useState(INITIAL_PAGE);
     const [month, setMonth] = useState<string>(baseDate.format('MMMM YYYY'));
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const sheetRef = useRef<CustomBottomSheetModalRef>(null);
+    const pagerRef = useRef<PagerView>(null);
+
+    // Dynamic styles based on responsive dimensions
+    const dynamicStyles = useMemo(() => ({
+        headerContainer: {
+            height: headerHeight,
+            paddingHorizontal: horizontalPadding
+        } as ViewStyle,
+        headerMonthText: {
+            fontSize: isSmallPhone ? 18 : isTablet ? 24 : 20
+        } as TextStyle,
+        redDot: {
+            width: isSmallPhone ? 8 : 10,
+            height: isSmallPhone ? 8 : 10,
+            borderRadius: isSmallPhone ? 4 : 5,
+            marginRight: isSmallPhone ? 10 : 12
+        } as ViewStyle,
+        pageContainer: {
+            width
+        } as ViewStyle,
+        modalHeaderText: {
+            fontSize: isSmallPhone ? 18 : isTablet ? 26 : titleFontSize
+        } as TextStyle,
+        sheetContent: {
+            padding: isSmallPhone ? 12 : isTablet ? 24 : 16
+        } as ViewStyle,
+        addButtonSize: isSmallPhone ? 26 : isTablet ? 36 : 30
+    }), [width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet]);
+
+    // Bottom sheet snap points - responsive
+    const snapPoints = useMemo(() => {
+        if (isTablet) {
+            return ['70%', '100%'];
+        }
+        return ['100%'];
+    }, [isTablet]);
 
     // Use custom hook for all event operations
     const {
@@ -89,22 +142,30 @@ const CalendarView: React.FC = () => {
         return () => backHandler.remove();
     }, [closePanel]);
 
-    // Get date from index for infinite pager
-    const getDateFromIndex = useCallback(
-        (index: number) => {
-            const newDate = baseDate.add(index, 'month');
+    // Convert page index to month offset (relative to baseDate)
+    const getMonthOffset = useCallback((pageIndex: number) => {
+        return pageIndex - INITIAL_PAGE;
+    }, []);
+
+    // Get date from page index
+    const getDateFromPageIndex = useCallback(
+        (pageIndex: number) => {
+            const offset = getMonthOffset(pageIndex);
+            const newDate = baseDate.add(offset, 'month');
             return { year: newDate.year(), month: newDate.month() };
         },
-        [baseDate]
+        [baseDate, getMonthOffset]
     );
 
-    // Handle page change
-    const handlePageChange = useCallback(
-        (page: number) => {
-            const { year, month } = getDateFromIndex(page);
+    // Handle page change from PagerView
+    const handlePageSelected = useCallback(
+        (e: { nativeEvent: { position: number } }) => {
+            const pageIndex = e.nativeEvent.position;
+            setCurrentPage(pageIndex);
+            const { year, month } = getDateFromPageIndex(pageIndex);
             setMonth(dayjs(`${year}-${month + 1}-01`).format('MMMM YYYY'));
         },
-        [getDateFromIndex]
+        [getDateFromPageIndex]
     );
 
     // Filter events for selected date
@@ -137,6 +198,11 @@ const CalendarView: React.FC = () => {
         resetForm();
     }, [setShowAddForm, setEditingEvent, resetForm]);
 
+    // Generate pages array for rendering
+    const pages = useMemo(() => {
+        return Array.from({ length: TOTAL_PAGES }, (_, i) => i);
+    }, []);
+
     // Loading state
     if (isLoading) {
         return (
@@ -161,45 +227,59 @@ const CalendarView: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.headerContainer}>
+            <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
                 <View style={styles.headerLeft}>
-                    <View style={styles.redDot} />
-                    <Text style={styles.headerMonthText}>{month}</Text>
+                    <View style={[styles.redDot, dynamicStyles.redDot]} />
+                    <Text style={[styles.headerMonthText, dynamicStyles.headerMonthText]}>
+                        {month}
+                    </Text>
                 </View>
             </View>
 
-            {/* Calendar */}
-            <InfinitePager
-                pageBuffer={3}
-                onPageChange={handlePageChange}
-                renderPage={({ index }) => (
-                    <View style={styles.pageContainer}>
-                        <CalendarBody
-                            index={index}
-                            onSelectDate={handleSelectDate}
-                            events={events as CalendarEvent[]}
-                        />
-                    </View>
-                )}
-            />
+            {/* Calendar with PagerView */}
+            <PagerView
+                ref={pagerRef}
+                style={styles.pagerView}
+                initialPage={INITIAL_PAGE}
+                onPageSelected={handlePageSelected}
+                offscreenPageLimit={3}
+            >
+                {pages.map((pageIndex) => {
+                    const monthOffset = getMonthOffset(pageIndex);
+                    return (
+                        <View key={pageIndex} style={[styles.pageContainer, dynamicStyles.pageContainer]}>
+                            <CalendarBody
+                                index={monthOffset}
+                                onSelectDate={handleSelectDate}
+                                events={events as CalendarEvent[]}
+                            />
+                        </View>
+                    );
+                })}
+            </PagerView>
 
             {/* Bottom Sheet Modal */}
             <CustomBottomSheetModal
                 ref={sheetRef}
-                snapPoints={['100%']}
+                snapPoints={snapPoints}
             >
-                <BottomSheetScrollView contentContainerStyle={styles.sheetContent}>
+                <BottomSheetScrollView
+                    contentContainerStyle={[styles.sheetContent, dynamicStyles.sheetContent]}
+                >
                     {!showAddForm ? (
                         <>
                             <BottomSheetView style={styles.modalHeader}>
-                                <Text style={styles.modalHeaderText}>{formattedDate}</Text>
+                                <Text style={[styles.modalHeaderText, dynamicStyles.modalHeaderText]}>
+                                    {formattedDate}
+                                </Text>
                                 <TouchableOpacity
                                     onPress={handleAddEvent}
                                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                    activeOpacity={0.7}
                                 >
                                     <AntDesign
                                         name="pluscircle"
-                                        size={30}
+                                        size={dynamicStyles.addButtonSize}
                                         color="#2ecc71"
                                     />
                                 </TouchableOpacity>
@@ -225,6 +305,7 @@ const CalendarView: React.FC = () => {
     );
 };
 
+// Base styles (static)
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -233,8 +314,6 @@ const styles = StyleSheet.create({
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        height: 70,
         backgroundColor: '#fff',
         borderBottomWidth: 0,
         shadowColor: '#000',
@@ -248,11 +327,7 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     redDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
         backgroundColor: '#e74c3c',
-        marginRight: 12,
         shadowColor: '#e74c3c',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.5,
@@ -260,18 +335,18 @@ const styles = StyleSheet.create({
         elevation: 2
     },
     headerMonthText: {
-        fontSize: 20,
         fontFamily: 'Kanit-Bold',
         color: '#2c3e50',
         letterSpacing: 0.5
     },
+    pagerView: {
+        flex: 1
+    },
     pageContainer: {
-        width,
         flex: 1
     },
     sheetContent: {
-        flex: 1,
-        padding: 16
+        flexGrow: 1
     },
     modalHeader: {
         flexDirection: 'row',
@@ -283,7 +358,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent'
     },
     modalHeaderText: {
-        fontSize: 22,
         fontFamily: 'Kanit-Bold',
         color: '#2c3e50'
     },

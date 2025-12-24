@@ -16,9 +16,9 @@ import {
     TextInput,
     ScrollView,
     KeyboardAvoidingView,
-    Platform,
-    SafeAreaView
+    Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AntDesign, MaterialIcons, Feather } from '@expo/vector-icons';
 import type { NoteFormData } from '@/types/note';
 import { NOTE_COLORS } from '@/types/note';

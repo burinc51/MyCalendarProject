@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import { ThemeProvider as NavigationThemeProvider, DefaultTheme, DarkTheme } from '@react-navigation/native';
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
@@ -25,25 +26,30 @@ export default function RootLayout() {
         return null;
     }
 
+    // Create navigation theme based on color scheme
+    const navigationTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+
     return (
         <QueryClientProvider client={queryClient}>
             <GestureHandlerRootView style={{ flex: 1 }}>
                 <BottomSheetModalProvider>
-                    {/*<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>*/}
                     <ThemeProvider>
-                        <SafeAreaView className="flex-1">
-                            <Stack>
-                                <Stack.Screen
-                                    name="(tabs)"
-                                    options={{ headerShown: false }}
-                                />
-                                <Stack.Screen name="+not-found" />
-                            </Stack>
-                        </SafeAreaView>
-                        <StatusBar style="auto" />
+                        <NavigationThemeProvider value={navigationTheme}>
+                            <SafeAreaView style={{ flex: 1 }}>
+                                <Stack>
+                                    <Stack.Screen
+                                        name="(tabs)"
+                                        options={{ headerShown: false }}
+                                    />
+                                    <Stack.Screen name="+not-found" />
+                                </Stack>
+                            </SafeAreaView>
+                            <StatusBar style="auto" />
+                        </NavigationThemeProvider>
                     </ThemeProvider>
                 </BottomSheetModalProvider>
             </GestureHandlerRootView>
         </QueryClientProvider>
     );
 }
+
