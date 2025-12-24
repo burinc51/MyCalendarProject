@@ -42,6 +42,13 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.356083374793-t4nfsju601v0lectntcq17pqvaui9l2u"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#e74c3c"
+        }
       ]
     ],
     "experiments": {
@@ -55,6 +62,12 @@
         "projectId": "4b12d89a-d8f0-44eb-b817-7f4640458ad5"
       }
     },
-    "owner": "gotzila"
+    "owner": "gotzila",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4b12d89a-d8f0-44eb-b817-7f4640458ad5"
+    }
   }
 }

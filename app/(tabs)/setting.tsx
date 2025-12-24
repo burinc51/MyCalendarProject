@@ -1,6 +1,7 @@
 import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image } from 'react-native';
 import React, { useEffect } from 'react';
 import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
+import { sendTestNotification, testScheduledNotification } from '@/services/notificationService';
 
 type User = {
     email: string;
@@ -113,6 +114,13 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                 </View>
             )}
+
+            <TouchableOpacity onPress={() => testScheduledNotification(60)}>
+                <Text>🔔 ทดสอบ Notification (1 นาที)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => sendTestNotification()}>
+                <Text>🔔 ทดสอบ Notification (ทันที)</Text>
+            </TouchableOpacity>
         </View>
     );
 }

@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
-import { getEventsAll, createEvent, updateEvent, deleteEvent } from '@/services/event-service';
+import { getEventsAll, createEvent, updateEvent, deleteEvent } from '@/services/eventService';
 import { mapApiEventToCalendar, buildEventFormData } from '@/utils/calendar-helpers';
 import { DEFAULT_EVENT_FORM } from '@/constants/Calendar';
 import type { CalendarEvent, EventFormData } from '@/types/event';

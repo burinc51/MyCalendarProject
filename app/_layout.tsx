@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -11,9 +12,20 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import { setupNotificationHandler, registerForPushNotificationsAsync } from '@/services/notificationService';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
+    const { loadNotifications } = useNotificationStore();
+
+    // Setup notifications on app start
+    useEffect(() => {
+        setupNotificationHandler();
+        registerForPushNotificationsAsync();
+        loadNotifications();
+    }, []);
+
     const [loaded, error] = useFonts({
         'Kanit-Regular': require('../assets/fonts/Kanit-Regular.ttf'),
         'Kanit-Bold': require('../assets/fonts/Kanit-Bold.ttf'),
