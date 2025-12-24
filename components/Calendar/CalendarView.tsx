@@ -19,7 +19,6 @@ import {
 import PagerView from 'react-native-pager-view';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 import { AntDesign } from '@expo/vector-icons';
 
 // Components
@@ -162,8 +161,8 @@ const CalendarView: React.FC = () => {
         (e: { nativeEvent: { position: number } }) => {
             const pageIndex = e.nativeEvent.position;
             setCurrentPage(pageIndex);
-            const { year, month } = getDateFromPageIndex(pageIndex);
-            setMonth(dayjs(`${year}-${month + 1}-01`).format('MMMM YYYY'));
+            const { year, month: monthNum } = getDateFromPageIndex(pageIndex);
+            setMonth(dayjs(`${year}-${monthNum + 1}-01`).format('MMMM YYYY'));
         },
         [getDateFromPageIndex]
     );
@@ -263,12 +262,12 @@ const CalendarView: React.FC = () => {
                 ref={sheetRef}
                 snapPoints={snapPoints}
             >
-                <BottomSheetScrollView
-                    contentContainerStyle={[styles.sheetContent, dynamicStyles.sheetContent]}
+                <View
+                    style={[styles.sheetContent, dynamicStyles.sheetContent]}
                 >
                     {!showAddForm ? (
                         <>
-                            <BottomSheetView style={styles.modalHeader}>
+                            <View style={styles.modalHeader}>
                                 <Text style={[styles.modalHeaderText, dynamicStyles.modalHeaderText]}>
                                     {formattedDate}
                                 </Text>
@@ -278,12 +277,12 @@ const CalendarView: React.FC = () => {
                                     activeOpacity={0.7}
                                 >
                                     <AntDesign
-                                        name="pluscircle"
+                                        name="plus-circle"
                                         size={dynamicStyles.addButtonSize}
                                         color="#2ecc71"
                                     />
                                 </TouchableOpacity>
-                            </BottomSheetView>
+                            </View>
                             <EventList
                                 events={selectedDateEvents}
                                 onEdit={handleEditEvent}
@@ -299,7 +298,7 @@ const CalendarView: React.FC = () => {
                             onCancel={handleFormCancel}
                         />
                     )}
-                </BottomSheetScrollView>
+                </View>
             </CustomBottomSheetModal>
         </View>
     );

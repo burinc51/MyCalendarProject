@@ -272,7 +272,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
             if (!processedEvents[weekIndex]) return null;
 
             return Object.entries(processedEvents[weekIndex]).flatMap(([dayIndexStr, dayEvents]) => {
-                const dayIndex = parseInt(dayIndexStr);
+                const dayIndex = parseInt(dayIndexStr, 10);
                 const eventsArr = dayEvents as CalendarEvent[];
 
                 return eventsArr.map((event, eventIndex) => {

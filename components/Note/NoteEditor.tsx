@@ -2,7 +2,7 @@
  * NoteEditor Component
  * Rich text editor for creating and editing notes
  * Uses react-native-pell-rich-editor for rich text functionality
- * 
+ *
  * Note: If react-native-pell-rich-editor causes issues with Expo SDK 53,
  * you can temporarily opt-out of New Architecture or use the fallback TextInput
  */
@@ -192,7 +192,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             onPress={() => onUpdateField('isPinned', !formData.isPinned)}
                         >
                             <AntDesign
-                                name={formData.isPinned ? 'pushpin' : 'pushpino'}
+                                name="pushpin"
                                 size={22}
                                 color={formData.isPinned ? '#e74c3c' : '#666'}
                             />
@@ -206,7 +206,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.saveButton]}
+                            style={styles.saveButton}
                             onPress={onSave}
                         >
                             <Text style={styles.saveButtonText}>

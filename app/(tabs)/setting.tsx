@@ -39,8 +39,8 @@ export default function HomeScreen() {
         try {
             setLoading(true);
             await GoogleSignin.hasPlayServices();
-            const userInfo = await GoogleSignin.signIn();
-            console.log('userInfo: ', userInfo);
+            const signInResult = await GoogleSignin.signIn();
+            console.log('signInResult: ', signInResult);
 
             setIsSignedIn(true);
 

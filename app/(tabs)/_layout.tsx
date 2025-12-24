@@ -60,7 +60,6 @@ export default function TabLayout() {
                         />
                     ),
                     tabBarAccessibilityLabel: 'Notes Tab'
-                    // tabBarAccessibilityRole: 'button'
                 }}
             />
             <Tabs.Screen
@@ -75,7 +74,6 @@ export default function TabLayout() {
                         />
                     ),
                     tabBarAccessibilityLabel: 'Home Tab'
-                    // tabBarAccessibilityRole: 'button'
                 }}
             />
             <Tabs.Screen
@@ -90,7 +88,6 @@ export default function TabLayout() {
                         />
                     ),
                     tabBarAccessibilityLabel: 'Group Tab'
-                    // tabBarAccessibilityRole: 'button'
                 }}
             />
             <Tabs.Screen
@@ -105,7 +102,6 @@ export default function TabLayout() {
                         />
                     ),
                     tabBarAccessibilityLabel: 'Settings Tab'
-                    // tabBarAccessibilityRole: 'button'
                 }}
             />
         </Tabs>

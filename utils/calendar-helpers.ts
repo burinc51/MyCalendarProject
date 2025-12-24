@@ -74,7 +74,7 @@ export const buildEventFormData = (
         priority: EventPriority;
         reminder: number;
     },
-    userId: number = 2
+    userId = 2
 ): FormData => {
     const bodyData = {
         title: formData.title.trim(),

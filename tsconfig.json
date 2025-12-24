@@ -3,7 +3,8 @@
     "compilerOptions": {
         "strict": false,
         "types": [
-            "nativewind/types"
+            "nativewind/types",
+            "react"
         ],
         "jsx": "react-jsx",
         "paths": {

@@ -33,7 +33,7 @@ const EventForm: React.FC<EventFormProps> = ({
     onCancel
 }) => {
     return (
-        <ScrollView style={styles.formContainer}>
+        <View style={styles.formContainer}>
             <View style={styles.formHeader}>
                 <Text style={styles.formTitle}>{isEditing ? 'Edit Event' : 'Add New Event'}</Text>
                 <TouchableOpacity
@@ -198,8 +198,8 @@ const EventForm: React.FC<EventFormProps> = ({
                             key={priority}
                             style={[
                                 styles.priorityOption,
-                                formData.priority === priority && styles.selectedPriority,
-                                formData.priority === priority && {
+                                priority === formData.priority && styles.selectedPriority,
+                                priority === formData.priority && {
                                     backgroundColor: PRIORITY_COLORS[priority as EventPriority].solid,
                                     borderColor: PRIORITY_COLORS[priority as EventPriority].solid
                                 }
@@ -210,7 +210,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             <Text
                                 style={[
                                     styles.priorityText,
-                                    formData.priority === priority && styles.selectedPriorityText
+                                    priority === formData.priority && styles.selectedPriorityText
                                 ]}
                             >
                                 {priority.charAt(0).toUpperCase() + priority.slice(1)}
@@ -235,7 +235,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     <Text style={styles.saveButtonText}>{isEditing ? 'Update' : 'Save'}</Text>
                 </TouchableOpacity>
             </View>
-        </ScrollView>
+        </View>
     );
 };
 

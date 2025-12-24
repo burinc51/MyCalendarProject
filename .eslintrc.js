@@ -19,7 +19,7 @@ module.exports = {
     rules: {
         'react-hooks/exhaustive-deps': 'off',
         curly: ['error', 'multi-line'],
-        indent: ['error', 4],
+        indent: ['error', 4, { SwitchCase: 1 }],
         'object-curly-spacing': ['error', 'always'],
         'react/jsx-indent': ['error', 4],
 

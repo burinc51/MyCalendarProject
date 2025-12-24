@@ -101,7 +101,7 @@ const GroupManagementScreen = () => {
                             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                             keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
                         >
-                            <TouchableWithoutFeedback onPress={() => { }}>
+                            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
                                 <Animated.View
                                     style={{
                                         height: animatedHeight,

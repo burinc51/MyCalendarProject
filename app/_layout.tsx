@@ -6,7 +6,7 @@ import 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import '../global.css';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -32,22 +32,22 @@ export default function RootLayout() {
     return (
         <QueryClientProvider client={queryClient}>
             <GestureHandlerRootView style={{ flex: 1 }}>
-                <BottomSheetModalProvider>
-                    <ThemeProvider>
-                        <NavigationThemeProvider value={navigationTheme}>
-                            <SafeAreaView style={{ flex: 1 }}>
-                                <Stack>
-                                    <Stack.Screen
-                                        name="(tabs)"
-                                        options={{ headerShown: false }}
-                                    />
-                                    <Stack.Screen name="+not-found" />
-                                </Stack>
-                            </SafeAreaView>
-                            <StatusBar style="auto" />
-                        </NavigationThemeProvider>
-                    </ThemeProvider>
-                </BottomSheetModalProvider>
+
+                <ThemeProvider>
+                    <NavigationThemeProvider value={navigationTheme}>
+                        <SafeAreaView style={{ flex: 1 }}>
+                            <Stack>
+                                <Stack.Screen
+                                    name="(tabs)"
+                                    options={{ headerShown: false }}
+                                />
+                                <Stack.Screen name="+not-found" />
+                            </Stack>
+                        </SafeAreaView>
+                        <StatusBar style="auto" />
+                    </NavigationThemeProvider>
+                </ThemeProvider>
+
             </GestureHandlerRootView>
         </QueryClientProvider>
     );
