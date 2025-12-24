@@ -1,6 +1,16 @@
-import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, Platform } from 'react-native';
 import React, { useEffect } from 'react';
-import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
+
+let GoogleSignin: any = null;
+let GoogleSigninButton: any = null;
+
+try {
+    const googleSigninModule = require('@react-native-google-signin/google-signin');
+    GoogleSignin = googleSigninModule.GoogleSignin;
+    GoogleSigninButton = googleSigninModule.GoogleSigninButton;
+} catch (e) {
+    console.log('GoogleSignin module not available (likely running in Expo Go)');
+}
 
 type User = {
     email: string;
@@ -8,23 +18,33 @@ type User = {
     imageUrl: string;
 };
 
-export default function HomeScreen() {
+export default function SettingsScreen() {
     const webClientId = process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
+    const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || 'http://172.29.176.1:9001';
+
     const [loading, setLoading] = React.useState(false);
     const [isSignedIn, setIsSignedIn] = React.useState(false);
     const [userInfo, setUserInfo] = React.useState<User | null>(null);
+    const [isGoogleAvailable, setIsGoogleAvailable] = React.useState(false);
 
     useEffect(() => {
-        GoogleSignin.configure({
-            webClientId: webClientId,
-            offlineAccess: true,
-            forceCodeForRefreshToken: true
-        });
-
-        checkIfSignedIn();
+        if (GoogleSignin) {
+            try {
+                GoogleSignin.configure({
+                    webClientId: webClientId,
+                    offlineAccess: true,
+                    forceCodeForRefreshToken: true
+                });
+                setIsGoogleAvailable(true);
+                checkIfSignedIn();
+            } catch (err) {
+                console.log('GoogleSignin configure error:', err);
+            }
+        }
     }, []);
 
     const checkIfSignedIn = async () => {
+        if (!GoogleSignin) return;
         try {
             const currentUser = await GoogleSignin.getCurrentUser();
             if (currentUser) {
@@ -36,6 +56,14 @@ export default function HomeScreen() {
     };
 
     const signInWithGoogle = async () => {
+        if (!GoogleSignin) {
+            Alert.alert(
+                'Not Supported',
+                'Google Sign-In requires a Development Build or Native App. It is not supported in Expo Go.'
+            );
+            return;
+        }
+
         try {
             setLoading(true);
             await GoogleSignin.hasPlayServices();
@@ -44,12 +72,11 @@ export default function HomeScreen() {
 
             setIsSignedIn(true);
 
-            // ✅ ส่ง idToken ไปยัง backend
-            const idToken = await GoogleSignin.getTokens().then((tokens) => tokens.idToken);
-
+            // Send idToken to backend
+            const idToken = await GoogleSignin.getTokens().then((tokens: any) => tokens.idToken);
             console.log('idToken: ', idToken);
 
-            const response = await fetch('http://172.29.176.1:9001/v1/auth/google-sign-in', {
+            const response = await fetch(`${SERVER_URL}/v1/auth/google-sign-in`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -69,6 +96,7 @@ export default function HomeScreen() {
     };
 
     const signOut = async () => {
+        if (!GoogleSignin) return;
         try {
             setLoading(true);
             await GoogleSignin.signOut();
@@ -83,15 +111,35 @@ export default function HomeScreen() {
         }
     };
 
-    return (
-        <View className="flex-1 justify-center items-center p-5">
-            {!isSignedIn ? (
+    const renderSignInButton = () => {
+        if (GoogleSigninButton && isGoogleAvailable) {
+            return (
                 <GoogleSigninButton
-                    size={GoogleSigninButton.Size.Wide}
-                    color={GoogleSigninButton.Color.Dark}
+                    size={GoogleSigninButton.Size?.Wide || 1}
+                    color={GoogleSigninButton.Color?.Dark || 1}
                     onPress={signInWithGoogle}
                     disabled={loading}
                 />
+            );
+        }
+
+        return (
+            <TouchableOpacity
+                className="bg-blue-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg"
+                onPress={signInWithGoogle}
+                disabled={loading}
+            >
+                <Text className="text-white font-semibold text-base">
+                    {isGoogleAvailable ? "Sign in with Google" : "Google Sign-In (Dev Build Only)"}
+                </Text>
+            </TouchableOpacity>
+        );
+    };
+
+    return (
+        <View className="flex-1 justify-center items-center p-5 bg-white">
+            {!isSignedIn ? (
+                renderSignInButton()
             ) : (
                 <View className="items-center p-5">
                     {userInfo?.imageUrl && (
@@ -101,15 +149,23 @@ export default function HomeScreen() {
                         />
                     )}
 
-                    <Text className="text-2xl font-bold mb-2 text-center">Welcome, {userInfo?.name || 'User'}!</Text>
-                    <Text className="text-base text-gray-600 mb-8 text-center">{userInfo?.email}</Text>
+                    <Text className="text-2xl font-bold mb-2 text-center text-gray-800">
+                        Welcome, {userInfo?.name || 'User'}!
+                    </Text>
+                    <Text className="text-base text-gray-600 mb-8 text-center">
+                        {userInfo?.email}
+                    </Text>
 
                     <TouchableOpacity
                         className="bg-red-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg min-w-30"
                         onPress={signOut}
                         disabled={loading}
                     >
-                        {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold text-base">Sign Out</Text>}
+                        {loading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text className="text-white font-semibold text-base">Sign Out</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
             )}

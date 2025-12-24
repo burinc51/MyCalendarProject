@@ -12,6 +12,11 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { ThemeProvider as NavigationThemeProvider, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs([
+    'SafeAreaView has been deprecated',
+]);
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
