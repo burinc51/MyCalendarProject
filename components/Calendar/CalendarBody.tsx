@@ -24,9 +24,21 @@ interface Props {
     index: number;
     onSelectDate: (date: string) => void;
     events: CalendarEvent[];
+    isDark?: boolean;
 }
 
-const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
+const CalendarBody = React.memo(({ index, onSelectDate, events, isDark = false }: Props) => {
+    // Theme colors
+    const colors = useMemo(() => ({
+        background: isDark ? '#171717' : 'white',
+        weekRowBg: isDark ? '#262626' : '#fafafa',
+        weekDayText: isDark ? '#a3a3a3' : '#666',
+        borderColor: isDark ? '#404040' : '#e5e5e5',
+        dateText: isDark ? '#e5e5e5' : '#333',
+        outsideMonthText: isDark ? '#525252' : '#bbb',
+        outsideMonthBg: isDark ? '#1f1f1f' : '#fafafa',
+        todayCellBg: isDark ? '#3f1f1f' : '#fff5f5'
+    }), [isDark]);
     // Get responsive dimensions
     const {
         width,
@@ -48,13 +60,22 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
 
     // Dynamic styles based on responsive dimensions
     const dynamicStyles = useMemo(() => ({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+            width: '100%'
+        } as ViewStyle,
         weekRow: {
             height: weekdayHeaderHeight,
-            paddingVertical: isSmallPhone ? 3 : 5
+            paddingVertical: isSmallPhone ? 3 : 5,
+            backgroundColor: colors.weekRowBg,
+            borderBottomColor: colors.borderColor
         } as ViewStyle,
         weekDay: {
             flex: 1,
-            fontSize: smallFontSize
+            fontSize: smallFontSize,
+            color: colors.weekDayText,
+            borderRightColor: colors.borderColor
         } as TextStyle,
         weekContainer: {
             height: dayCellHeight
@@ -62,10 +83,13 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
         dayCell: {
             flex: 1,
             height: dayCellHeight,
-            paddingTop: isSmallPhone ? 4 : isTablet ? 8 : 6
+            paddingTop: isSmallPhone ? 4 : isTablet ? 8 : 6,
+            borderBottomColor: colors.borderColor,
+            borderRightColor: colors.borderColor
         } as ViewStyle,
         dateText: {
-            fontSize: smallFontSize
+            fontSize: smallFontSize,
+            color: colors.dateText
         } as TextStyle,
         todayText: {
             width: todayIndicatorSize,
@@ -74,6 +98,15 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
             lineHeight: todayIndicatorSize,
             fontSize: smallFontSize
         } as TextStyle,
+        outsideMonthCell: {
+            backgroundColor: colors.outsideMonthBg
+        } as ViewStyle,
+        outsideMonthText: {
+            color: colors.outsideMonthText
+        } as TextStyle,
+        todayCell: {
+            backgroundColor: colors.todayCellBg
+        } as ViewStyle,
         multiDayEvent: {
             height: eventHeight
         } as ViewStyle,
@@ -90,7 +123,8 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
         eventHeight,
         eventFontSize,
         isSmallPhone,
-        isTablet
+        isTablet,
+        colors
     ]);
 
     // Memoized days in month calculation
@@ -244,8 +278,8 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
                     style={[
                         styles.dayCell,
                         dynamicStyles.dayCell,
-                        isToday && styles.todayCell,
-                        !isCurrentMonth && styles.outsideMonthCell
+                        isToday && dynamicStyles.todayCell,
+                        !isCurrentMonth && dynamicStyles.outsideMonthCell
                     ]}
                     onPress={() => onSelectDate(dateString)}
                     activeOpacity={0.7}
@@ -254,7 +288,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
                         style={[
                             styles.dateText,
                             dynamicStyles.dateText,
-                            !isCurrentMonth && styles.outsideMonthText,
+                            !isCurrentMonth && dynamicStyles.outsideMonthText,
                             isToday && [styles.todayText, dynamicStyles.todayText]
                         ]}
                     >
@@ -314,7 +348,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
     );
 
     return (
-        <View style={styles.container}>
+        <View style={dynamicStyles.container}>
             {/* Weekday Header Row */}
             <View style={[styles.weekRow, dynamicStyles.weekRow]}>
                 {DAYS_OF_WEEK.map((day) => (

@@ -1,5 +1,7 @@
-import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, Platform, ScrollView } from 'react-native';
 import React, { useEffect } from 'react';
+import { ThemeSettings } from '@/components/ThemeSettings';
+import { useTheme } from '@/components/ThemeProvider';
 
 let GoogleSignin: any = null;
 let GoogleSigninButton: any = null;
@@ -19,6 +21,9 @@ type User = {
 };
 
 export default function SettingsScreen() {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
     const webClientId = process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
     const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || 'http://172.29.176.1:9001';
 
@@ -137,38 +142,84 @@ export default function SettingsScreen() {
     };
 
     return (
-        <View className="flex-1 justify-center items-center p-5 bg-white">
-            {!isSignedIn ? (
-                renderSignInButton()
-            ) : (
-                <View className="items-center p-5">
-                    {userInfo?.imageUrl && (
-                        <Image
-                            source={{ uri: userInfo.imageUrl }}
-                            className="w-24 h-24 rounded-full mb-5 border-2 border-gray-300"
-                        />
-                    )}
+        <ScrollView
+            className={`flex-1 ${isDark ? 'bg-neutral-900' : 'bg-white'}`}
+            contentContainerStyle={{ padding: 20 }}
+        >
+            {/* Settings Title */}
+            <Text
+                className={`text-2xl font-bold mb-6 ${isDark ? 'text-neutral-100' : 'text-neutral-800'
+                    }`}
+            >
+                ⚙️ Settings
+            </Text>
 
-                    <Text className="text-2xl font-bold mb-2 text-center text-gray-800">
-                        Welcome, {userInfo?.name || 'User'}!
-                    </Text>
-                    <Text className="text-base text-gray-600 mb-8 text-center">
-                        {userInfo?.email}
-                    </Text>
+            {/* Theme Settings Section */}
+            <View className="mb-8">
+                <ThemeSettings />
+            </View>
 
-                    <TouchableOpacity
-                        className="bg-red-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg min-w-30"
-                        onPress={signOut}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text className="text-white font-semibold text-base">Sign Out</Text>
+            {/* Divider */}
+            <View
+                className={`h-px mb-6 ${isDark ? 'bg-neutral-700' : 'bg-neutral-200'}`}
+            />
+
+            {/* Account Section */}
+            <View className="mb-3 px-1">
+                <Text
+                    className={`text-base font-semibold ${isDark ? 'text-neutral-200' : 'text-neutral-700'
+                        }`}
+                >
+                    👤 Account
+                </Text>
+            </View>
+
+            <View
+                className={`rounded-2xl overflow-hidden p-4 ${isDark ? 'bg-neutral-800' : 'bg-neutral-100'
+                    }`}
+            >
+                {!isSignedIn ? (
+                    <View className="items-center py-4">
+                        {renderSignInButton()}
+                    </View>
+                ) : (
+                    <View className="items-center p-4">
+                        {userInfo?.imageUrl && (
+                            <Image
+                                source={{ uri: userInfo.imageUrl }}
+                                className="w-20 h-20 rounded-full mb-4 border-2 border-gray-300"
+                            />
                         )}
-                    </TouchableOpacity>
-                </View>
-            )}
-        </View>
+
+                        <Text
+                            className={`text-xl font-bold mb-1 text-center ${isDark ? 'text-neutral-100' : 'text-neutral-800'
+                                }`}
+                        >
+                            {userInfo?.name || 'User'}
+                        </Text>
+                        <Text
+                            className={`text-sm mb-6 text-center ${isDark ? 'text-neutral-400' : 'text-neutral-600'
+                                }`}
+                        >
+                            {userInfo?.email}
+                        </Text>
+
+                        <TouchableOpacity
+                            className="bg-red-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg"
+                            onPress={signOut}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text className="text-white font-semibold text-base">
+                                    Sign Out
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+        </ScrollView>
     );
 }

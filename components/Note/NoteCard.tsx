@@ -1,6 +1,7 @@
 /**
  * NoteCard Component
  * Card displaying a note preview in grid or list view
+ * Supports dark/light theme
  */
 
 import React, { useMemo } from 'react';
@@ -18,6 +19,7 @@ interface NoteCardProps {
     onPress: (note: Note) => void;
     onLongPress?: (note: Note) => void;
     onTogglePin?: (noteId: number) => void;
+    isDark?: boolean;
 }
 
 const { width } = Dimensions.get('window');
@@ -40,8 +42,21 @@ const NoteCard: React.FC<NoteCardProps> = ({
     viewMode,
     onPress,
     onLongPress,
-    onTogglePin
+    onTogglePin,
+    isDark = false
 }) => {
+    // Theme colors
+    const colors = useMemo(() => ({
+        title: isDark ? '#e5e5e5' : '#2c3e50',
+        content: isDark ? '#a3a3a3' : '#666',
+        timestamp: isDark ? '#737373' : '#999',
+        tagBg: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+        tagText: isDark ? '#a3a3a3' : '#666',
+        moreTagsText: isDark ? '#737373' : '#999',
+        // Adjust note color for dark mode if it's a light color
+        cardBg: isDark && note.color === '#ffffff' ? '#262626' : note.color
+    }), [isDark, note.color]);
+
     const contentPreview = useMemo(() => {
         const stripped = stripHtml(note.content);
         return stripped.length > 100 ? stripped.substring(0, 100) + '...' : stripped;
@@ -58,7 +73,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
             style={[
                 styles.card,
                 isGridView ? styles.gridCard : styles.listCard,
-                { backgroundColor: note.color }
+                { backgroundColor: colors.cardBg }
             ]}
             onPress={() => onPress(note)}
             onLongPress={() => onLongPress?.(note)}
@@ -78,7 +93,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
             {/* Title */}
             {note.title && (
                 <Text
-                    style={styles.title}
+                    style={[styles.title, { color: colors.title }]}
                     numberOfLines={isGridView ? 2 : 1}
                 >
                     {note.title}
@@ -88,7 +103,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
             {/* Content Preview */}
             {contentPreview && (
                 <Text
-                    style={styles.content}
+                    style={[styles.content, { color: colors.content }]}
                     numberOfLines={isGridView ? 4 : 2}
                 >
                     {contentPreview}
@@ -97,18 +112,27 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
             {/* Footer */}
             <View style={styles.footer}>
-                <Text style={styles.timestamp}>{timeAgo}</Text>
+                <Text style={[styles.timestamp, { color: colors.timestamp }]}>
+                    {timeAgo}
+                </Text>
 
                 {/* Tags */}
                 {note.tags && note.tags.length > 0 && (
                     <View style={styles.tagsContainer}>
                         {note.tags.slice(0, 2).map((tag, index) => (
-                            <View key={index} style={styles.tag}>
-                                <Text style={styles.tagText}>#{tag}</Text>
+                            <View
+                                key={index}
+                                style={[styles.tag, { backgroundColor: colors.tagBg }]}
+                            >
+                                <Text style={[styles.tagText, { color: colors.tagText }]}>
+                                    #{tag}
+                                </Text>
                             </View>
                         ))}
                         {note.tags.length > 2 && (
-                            <Text style={styles.moreTagsText}>+{note.tags.length - 2}</Text>
+                            <Text style={[styles.moreTagsText, { color: colors.moreTagsText }]}>
+                                +{note.tags.length - 2}
+                            </Text>
                         )}
                     </View>
                 )}
@@ -146,14 +170,12 @@ const styles = StyleSheet.create({
     title: {
         fontFamily: 'Kanit-Bold',
         fontSize: 16,
-        color: '#2c3e50',
         marginBottom: 8,
         paddingRight: 24 // Space for pin icon
     },
     content: {
         fontFamily: 'Kanit-Regular',
         fontSize: 14,
-        color: '#666',
         lineHeight: 20,
         flex: 1
     },
@@ -165,8 +187,7 @@ const styles = StyleSheet.create({
     },
     timestamp: {
         fontFamily: 'Kanit-Regular',
-        fontSize: 11,
-        color: '#999'
+        fontSize: 11
     },
     tagsContainer: {
         flexDirection: 'row',
@@ -174,20 +195,17 @@ const styles = StyleSheet.create({
         gap: 4
     },
     tag: {
-        backgroundColor: 'rgba(0,0,0,0.05)',
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 4
     },
     tagText: {
         fontFamily: 'Kanit-Regular',
-        fontSize: 10,
-        color: '#666'
+        fontSize: 10
     },
     moreTagsText: {
         fontFamily: 'Kanit-Regular',
-        fontSize: 10,
-        color: '#999'
+        fontSize: 10
     }
 });
 

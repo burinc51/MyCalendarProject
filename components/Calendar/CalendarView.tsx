@@ -26,6 +26,7 @@ import CalendarBody from '@/components/Calendar/CalendarBody';
 import EventList from '@/components/Calendar/EventList';
 import EventForm from '@/components/Calendar/EventForm';
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
+import { useTheme } from '@/components/ThemeProvider';
 
 // Hooks
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -42,6 +43,10 @@ const TOTAL_PAGES = MONTHS_RANGE * 2 + 1; // 121 pages total
 const INITIAL_PAGE = MONTHS_RANGE; // Start at center (current month)
 
 const CalendarView: React.FC = () => {
+    // Get theme
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
     // Get responsive dimensions
     const {
         width,
@@ -59,14 +64,28 @@ const CalendarView: React.FC = () => {
     const sheetRef = useRef<CustomBottomSheetModalRef>(null);
     const pagerRef = useRef<PagerView>(null);
 
+    // Theme colors
+    const colors = useMemo(() => ({
+        background: isDark ? '#171717' : '#f8f9fa',
+        headerBg: isDark ? '#262626' : '#fff',
+        headerText: isDark ? '#e5e5e5' : '#2c3e50',
+        modalText: isDark ? '#e5e5e5' : '#2c3e50'
+    }), [isDark]);
+
     // Dynamic styles based on responsive dimensions
     const dynamicStyles = useMemo(() => ({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background
+        } as ViewStyle,
         headerContainer: {
             height: headerHeight,
-            paddingHorizontal: horizontalPadding
+            paddingHorizontal: horizontalPadding,
+            backgroundColor: colors.headerBg
         } as ViewStyle,
         headerMonthText: {
-            fontSize: isSmallPhone ? 18 : isTablet ? 24 : 20
+            fontSize: isSmallPhone ? 18 : isTablet ? 24 : 20,
+            color: colors.headerText
         } as TextStyle,
         redDot: {
             width: isSmallPhone ? 8 : 10,
@@ -78,13 +97,14 @@ const CalendarView: React.FC = () => {
             width
         } as ViewStyle,
         modalHeaderText: {
-            fontSize: isSmallPhone ? 18 : isTablet ? 26 : titleFontSize
+            fontSize: isSmallPhone ? 18 : isTablet ? 26 : titleFontSize,
+            color: colors.modalText
         } as TextStyle,
         sheetContent: {
             padding: isSmallPhone ? 12 : isTablet ? 24 : 16
         } as ViewStyle,
         addButtonSize: isSmallPhone ? 26 : isTablet ? 36 : 30
-    }), [width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet]);
+    }), [width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet, colors]);
 
     // Bottom sheet snap points - responsive
     const snapPoints = useMemo(() => {
@@ -205,7 +225,7 @@ const CalendarView: React.FC = () => {
     // Loading state
     if (isLoading) {
         return (
-            <View style={styles.centered}>
+            <View style={[styles.centered, { backgroundColor: colors.background }]}>
                 <ActivityIndicator
                     size="large"
                     color="#2ecc71"
@@ -217,14 +237,14 @@ const CalendarView: React.FC = () => {
     // Error state
     if (error) {
         return (
-            <View style={styles.centered}>
+            <View style={[styles.centered, { backgroundColor: colors.background }]}>
                 <Text style={styles.errorText}>{error}</Text>
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
+        <View style={dynamicStyles.container}>
             {/* Header */}
             <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
                 <View style={styles.headerLeft}>
@@ -251,6 +271,7 @@ const CalendarView: React.FC = () => {
                                 index={monthOffset}
                                 onSelectDate={handleSelectDate}
                                 events={events as CalendarEvent[]}
+                                isDark={isDark}
                             />
                         </View>
                     );

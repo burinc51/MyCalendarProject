@@ -1,9 +1,10 @@
 /**
  * NoteList Component
  * Displays notes in grid or list layout with search and sort options
+ * Supports dark/light theme
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -16,6 +17,7 @@ import {
 } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import NoteCard from './NoteCard';
+import { useTheme } from '@/components/ThemeProvider';
 import type { Note, NoteViewMode, NoteSortOption } from '@/types/note';
 
 interface NoteListProps {
@@ -49,7 +51,89 @@ const NoteList: React.FC<NoteListProps> = ({
     sortBy,
     onSortChange
 }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const isGridView = viewMode === 'grid';
+
+    // Theme colors
+    const colors = useMemo(() => ({
+        background: isDark ? '#171717' : '#f8f9fa',
+        surface: isDark ? '#262626' : '#fff',
+        inputBg: isDark ? '#404040' : '#f5f5f5',
+        border: isDark ? '#404040' : '#f0f0f0',
+        text: isDark ? '#e5e5e5' : '#333',
+        textSecondary: isDark ? '#a3a3a3' : '#666',
+        textMuted: isDark ? '#737373' : '#999',
+        activeButton: isDark ? '#1a3a2a' : '#e8f5e9'
+    }), [isDark]);
+
+    // Dynamic styles based on theme
+    const dynamicStyles = useMemo(() => ({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background
+        },
+        searchContainer: {
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            backgroundColor: colors.surface,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border
+        },
+        searchInputContainer: {
+            flexDirection: 'row' as const,
+            alignItems: 'center' as const,
+            backgroundColor: colors.inputBg,
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 10
+        },
+        searchInput: {
+            flex: 1,
+            fontFamily: 'Kanit-Regular',
+            fontSize: 15,
+            color: colors.text,
+            marginLeft: 8
+        },
+        toolbar: {
+            flexDirection: 'row' as const,
+            justifyContent: 'space-between' as const,
+            alignItems: 'center' as const,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            backgroundColor: colors.surface
+        },
+        sortButton: {
+            paddingHorizontal: 14,
+            paddingVertical: 6,
+            borderRadius: 16,
+            backgroundColor: colors.inputBg
+        },
+        sortButtonActive: {
+            backgroundColor: colors.activeButton
+        },
+        sortButtonText: {
+            fontFamily: 'Kanit-Regular',
+            fontSize: 13,
+            color: colors.textSecondary
+        },
+        viewModeButtonActive: {
+            backgroundColor: colors.activeButton
+        },
+        emptyTitle: {
+            fontFamily: 'Kanit-Bold',
+            fontSize: 18,
+            color: colors.textSecondary,
+            marginBottom: 8
+        },
+        emptySubtitle: {
+            fontFamily: 'Kanit-Regular',
+            fontSize: 14,
+            color: colors.textMuted,
+            textAlign: 'center' as const,
+            paddingHorizontal: 40
+        }
+    }), [colors]);
 
     // Render empty state
     const renderEmptyState = useCallback(() => {
@@ -64,8 +148,8 @@ const NoteList: React.FC<NoteListProps> = ({
         return (
             <View style={styles.emptyContainer}>
                 <Text style={styles.emptyIcon}>📝</Text>
-                <Text style={styles.emptyTitle}>No notes yet</Text>
-                <Text style={styles.emptySubtitle}>
+                <Text style={dynamicStyles.emptyTitle}>No notes yet</Text>
+                <Text style={dynamicStyles.emptySubtitle}>
                     {searchQuery
                         ? 'Try a different search term'
                         : 'Tap the + button to create your first note'
@@ -73,7 +157,7 @@ const NoteList: React.FC<NoteListProps> = ({
                 </Text>
             </View>
         );
-    }, [isLoading, searchQuery]);
+    }, [isLoading, searchQuery, dynamicStyles]);
 
     // Render note item
     const renderNote = useCallback(({ item }: { item: Note }) => (
@@ -83,45 +167,46 @@ const NoteList: React.FC<NoteListProps> = ({
             onPress={onNotePress}
             onLongPress={onNoteLongPress}
             onTogglePin={onTogglePin}
+            isDark={isDark}
         />
-    ), [viewMode, onNotePress, onNoteLongPress, onTogglePin]);
+    ), [viewMode, onNotePress, onNoteLongPress, onTogglePin, isDark]);
 
     // Key extractor
     const keyExtractor = useCallback((item: Note) => item.id.toString(), []);
 
     return (
-        <View style={styles.container}>
+        <View style={dynamicStyles.container}>
             {/* Search Bar */}
-            <View style={styles.searchContainer}>
-                <View style={styles.searchInputContainer}>
-                    <Feather name="search" size={18} color="#999" />
+            <View style={dynamicStyles.searchContainer}>
+                <View style={dynamicStyles.searchInputContainer}>
+                    <Feather name="search" size={18} color={colors.textMuted} />
                     <TextInput
-                        style={styles.searchInput}
+                        style={dynamicStyles.searchInput}
                         value={searchQuery}
                         onChangeText={onSearchChange}
                         placeholder="Search notes..."
-                        placeholderTextColor="#999"
+                        placeholderTextColor={colors.textMuted}
                     />
                     {searchQuery.length > 0 && (
                         <TouchableOpacity onPress={() => onSearchChange('')}>
-                            <Feather name="x" size={18} color="#999" />
+                            <Feather name="x" size={18} color={colors.textMuted} />
                         </TouchableOpacity>
                     )}
                 </View>
             </View>
 
             {/* Toolbar */}
-            <View style={styles.toolbar}>
+            <View style={dynamicStyles.toolbar}>
                 <View style={styles.sortContainer}>
                     <TouchableOpacity
                         style={[
-                            styles.sortButton,
-                            sortBy === 'updatedAt' && styles.sortButtonActive
+                            dynamicStyles.sortButton,
+                            sortBy === 'updatedAt' && dynamicStyles.sortButtonActive
                         ]}
                         onPress={() => onSortChange('updatedAt')}
                     >
                         <Text style={[
-                            styles.sortButtonText,
+                            dynamicStyles.sortButtonText,
                             sortBy === 'updatedAt' && styles.sortButtonTextActive
                         ]}>
                             Recent
@@ -129,13 +214,13 @@ const NoteList: React.FC<NoteListProps> = ({
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[
-                            styles.sortButton,
-                            sortBy === 'title' && styles.sortButtonActive
+                            dynamicStyles.sortButton,
+                            sortBy === 'title' && dynamicStyles.sortButtonActive
                         ]}
                         onPress={() => onSortChange('title')}
                     >
                         <Text style={[
-                            styles.sortButtonText,
+                            dynamicStyles.sortButtonText,
                             sortBy === 'title' && styles.sortButtonTextActive
                         ]}>
                             Title
@@ -147,27 +232,27 @@ const NoteList: React.FC<NoteListProps> = ({
                     <TouchableOpacity
                         style={[
                             styles.viewModeButton,
-                            viewMode === 'grid' && styles.viewModeButtonActive
+                            viewMode === 'grid' && dynamicStyles.viewModeButtonActive
                         ]}
                         onPress={() => onViewModeChange('grid')}
                     >
                         <MaterialIcons
                             name="grid-view"
                             size={20}
-                            color={viewMode === 'grid' ? '#2ecc71' : '#999'}
+                            color={viewMode === 'grid' ? '#2ecc71' : colors.textMuted}
                         />
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[
                             styles.viewModeButton,
-                            viewMode === 'list' && styles.viewModeButtonActive
+                            viewMode === 'list' && dynamicStyles.viewModeButtonActive
                         ]}
                         onPress={() => onViewModeChange('list')}
                     >
                         <MaterialIcons
                             name="view-list"
                             size={20}
-                            color={viewMode === 'list' ? '#2ecc71' : '#999'}
+                            color={viewMode === 'list' ? '#2ecc71' : colors.textMuted}
                         />
                     </TouchableOpacity>
                 </View>
@@ -210,57 +295,9 @@ const NoteList: React.FC<NoteListProps> = ({
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f8f9fa'
-    },
-    searchContainer: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0'
-    },
-    searchInputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 10
-    },
-    searchInput: {
-        flex: 1,
-        fontFamily: 'Kanit-Regular',
-        fontSize: 15,
-        color: '#333',
-        marginLeft: 8
-    },
-    toolbar: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#fff'
-    },
     sortContainer: {
         flexDirection: 'row',
         gap: 8
-    },
-    sortButton: {
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        borderRadius: 16,
-        backgroundColor: '#f5f5f5'
-    },
-    sortButtonActive: {
-        backgroundColor: '#e8f5e9'
-    },
-    sortButtonText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 13,
-        color: '#666'
     },
     sortButtonTextActive: {
         color: '#2ecc71',
@@ -273,9 +310,6 @@ const styles = StyleSheet.create({
     viewModeButton: {
         padding: 8,
         borderRadius: 8
-    },
-    viewModeButtonActive: {
-        backgroundColor: '#e8f5e9'
     },
     listContent: {
         padding: 16
@@ -296,19 +330,6 @@ const styles = StyleSheet.create({
         fontSize: 64,
         marginBottom: 16,
         opacity: 0.6
-    },
-    emptyTitle: {
-        fontFamily: 'Kanit-Bold',
-        fontSize: 18,
-        color: '#666',
-        marginBottom: 8
-    },
-    emptySubtitle: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 14,
-        color: '#999',
-        textAlign: 'center',
-        paddingHorizontal: 40
     },
     fab: {
         position: 'absolute',

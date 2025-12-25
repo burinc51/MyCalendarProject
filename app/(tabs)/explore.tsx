@@ -19,6 +19,7 @@ import { Feather } from '@expo/vector-icons';
 
 // Components
 import { NoteList, NoteEditor, FolderList } from '@/components/Note';
+import { useTheme } from '@/components/ThemeProvider';
 
 // Hooks
 import { useNotes } from '@/hooks/useNotes';
@@ -30,6 +31,9 @@ const { width } = Dimensions.get('window');
 const DRAWER_WIDTH = width * 0.75;
 
 const NotesScreen = () => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
     const [showFolderDrawer, setShowFolderDrawer] = useState(false);
 
     const {
@@ -123,21 +127,67 @@ const NotesScreen = () => {
         return folder?.name || 'All Notes';
     }, [selectedFolderId, folders]);
 
+    // Dynamic styles based on theme
+    const dynamicStyles = {
+        container: {
+            flex: 1,
+            backgroundColor: isDark ? '#171717' : '#f8f9fa'
+        },
+        header: {
+            backgroundColor: isDark ? '#262626' : '#fff',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: isDark ? '#404040' : '#f0f0f0'
+        },
+        folderButton: {
+            flexDirection: 'row' as const,
+            alignItems: 'center' as const,
+            backgroundColor: isDark ? '#404040' : '#f5f5f5',
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            borderRadius: 12,
+            gap: 8
+        },
+        folderButtonText: {
+            fontFamily: 'Kanit-Bold',
+            fontSize: 15,
+            color: isDark ? '#e5e5e5' : '#2c3e50',
+            flex: 1
+        },
+        drawerContent: {
+            width: DRAWER_WIDTH,
+            backgroundColor: isDark ? '#262626' : '#f8f9fa',
+            position: 'absolute' as const,
+            left: 0,
+            top: 0,
+            bottom: 0,
+            shadowColor: '#000',
+            shadowOffset: { width: 2, height: 0 },
+            shadowOpacity: 0.2,
+            shadowRadius: 10,
+            elevation: 10
+        }
+    };
+
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+        <SafeAreaView style={dynamicStyles.container}>
+            <StatusBar
+                barStyle={isDark ? 'light-content' : 'dark-content'}
+                backgroundColor={isDark ? '#171717' : '#f8f9fa'}
+            />
 
             {/* Header with Folder Toggle */}
-            <View style={styles.header}>
+            <View style={dynamicStyles.header}>
                 <TouchableOpacity
-                    style={styles.folderButton}
+                    style={dynamicStyles.folderButton}
                     onPress={() => setShowFolderDrawer(true)}
                 >
-                    <Feather name="folder" size={20} color="#2c3e50" />
-                    <Text style={styles.folderButtonText} numberOfLines={1}>
+                    <Feather name="folder" size={20} color={isDark ? '#e5e5e5' : '#2c3e50'} />
+                    <Text style={dynamicStyles.folderButtonText} numberOfLines={1}>
                         {getSelectedFolderName()}
                     </Text>
-                    <Feather name="chevron-down" size={16} color="#999" />
+                    <Feather name="chevron-down" size={16} color={isDark ? '#a3a3a3' : '#999'} />
                 </TouchableOpacity>
             </View>
 
@@ -187,7 +237,7 @@ const NotesScreen = () => {
                         activeOpacity={1}
                         onPress={() => setShowFolderDrawer(false)}
                     />
-                    <View style={styles.drawerContent}>
+                    <View style={dynamicStyles.drawerContent}>
                         <FolderList
                             folders={folders}
                             selectedFolderId={selectedFolderId}
@@ -209,32 +259,6 @@ const NotesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f8f9fa'
-    },
-    header: {
-        backgroundColor: '#fff',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0'
-    },
-    folderButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 12,
-        gap: 8
-    },
-    folderButtonText: {
-        fontFamily: 'Kanit-Bold',
-        fontSize: 15,
-        color: '#2c3e50',
-        flex: 1
-    },
     drawerOverlay: {
         flex: 1,
         flexDirection: 'row'
@@ -242,19 +266,6 @@ const styles = StyleSheet.create({
     drawerBackdrop: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.4)'
-    },
-    drawerContent: {
-        width: DRAWER_WIDTH,
-        backgroundColor: '#f8f9fa',
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        shadowColor: '#000',
-        shadowOffset: { width: 2, height: 0 },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-        elevation: 10
     }
 });
 

@@ -1,11 +1,19 @@
-import { View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
 import { Calendar } from '@/components/Calendar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useTheme } from '@/components/ThemeProvider';
 
 export default function HomeScreen() {
-    console.log('HomeScreen');
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
+    const containerStyle = useMemo(() => ({
+        flex: 1,
+        backgroundColor: isDark ? '#171717' : '#ffffff'
+    }), [isDark]);
+
     return (
-        <View className="flex-1 bg-white ">
+        <View style={containerStyle}>
             <Calendar />
         </View>
     );

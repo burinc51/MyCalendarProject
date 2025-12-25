@@ -3,23 +3,48 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import 'react-native-gesture-handler';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import '../global.css';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ThemeProvider } from '@/components/ThemeProvider';
+import { ThemeProvider, useTheme } from '@/components/ThemeProvider';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { ThemeProvider as NavigationThemeProvider, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { LogBox } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 LogBox.ignoreLogs([
     'SafeAreaView has been deprecated',
 ]);
 
+// Inner component that uses theme context
+function ThemedApp() {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
+    // Create navigation theme based on our theme context
+    const navigationTheme = isDark ? DarkTheme : DefaultTheme;
+
+    return (
+        <NavigationThemeProvider value={navigationTheme}>
+            <SafeAreaView
+                style={{ flex: 1, backgroundColor: isDark ? '#171717' : '#ffffff' }}
+                edges={['top', 'left', 'right']}
+            >
+                <Stack>
+                    <Stack.Screen
+                        name="(tabs)"
+                        options={{ headerShown: false }}
+                    />
+                    <Stack.Screen name="+not-found" />
+                </Stack>
+            </SafeAreaView>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+        </NavigationThemeProvider>
+    );
+}
+
 export default function RootLayout() {
-    const colorScheme = useColorScheme();
     const [loaded, error] = useFonts({
         'Kanit-Regular': require('../assets/fonts/Kanit-Regular.ttf'),
         'Kanit-Bold': require('../assets/fonts/Kanit-Bold.ttf'),
@@ -31,30 +56,13 @@ export default function RootLayout() {
         return null;
     }
 
-    // Create navigation theme based on color scheme
-    const navigationTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
-
     return (
         <QueryClientProvider client={queryClient}>
             <GestureHandlerRootView style={{ flex: 1 }}>
-
                 <ThemeProvider>
-                    <NavigationThemeProvider value={navigationTheme}>
-                        <SafeAreaView style={{ flex: 1 }}>
-                            <Stack>
-                                <Stack.Screen
-                                    name="(tabs)"
-                                    options={{ headerShown: false }}
-                                />
-                                <Stack.Screen name="+not-found" />
-                            </Stack>
-                        </SafeAreaView>
-                        <StatusBar style="auto" />
-                    </NavigationThemeProvider>
+                    <ThemedApp />
                 </ThemeProvider>
-
             </GestureHandlerRootView>
         </QueryClientProvider>
     );
 }
-
