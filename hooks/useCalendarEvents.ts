@@ -46,7 +46,6 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
         setError(null);
         try {
             const response = await getEventsAll();
-
             if (response.data && response.data.content) {
                 const mappedEvents = response.data.content.map(mapApiEventToCalendar);
                 setEvents(mappedEvents);

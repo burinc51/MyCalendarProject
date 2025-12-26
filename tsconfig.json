@@ -1,9 +1,10 @@
 {
-    "extends": "expo/tsconfig.base",
+    "extends": "expo/tsconfig.base.json",
     "compilerOptions": {
         "strict": false,
         "types": [
-            "nativewind/types"
+            "nativewind/types",
+            "react"
         ],
         "jsx": "react-jsx",
         "paths": {

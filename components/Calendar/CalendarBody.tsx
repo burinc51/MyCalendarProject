@@ -1,41 +1,131 @@
+/**
+ * CalendarBody Component
+ * Responsive calendar grid with dynamic dimensions
+ * Supports all device sizes and orientations
+ */
+
 import React, { useMemo, useCallback } from 'react';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle, TextStyle } from 'react-native';
 import getDateFromIndex from '@/utils/get-date-from-index';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import type { CalendarEvent } from '@/types/event';
 
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
-const { width, height } = Dimensions.get('window');
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-// Static dimensions
-const HEADER_HEIGHT = 63.5;
-const NAVBAR_HEIGHT = 48.6;
-const WEEKDAY_HEADER_HEIGHT = 30;
-const AVAILABLE_HEIGHT = height - HEADER_HEIGHT - NAVBAR_HEIGHT - WEEKDAY_HEADER_HEIGHT;
-const WEEKS_TO_DISPLAY = 6;
-const DAY_CELL_HEIGHT = AVAILABLE_HEIGHT / WEEKS_TO_DISPLAY;
-const DAY_CELL_WIDTH = width / 7;
-
-// Static styles
-const TODAY_STYLE = { backgroundColor: '#f7e6e6' };
-const OUTSIDE_MONTH_STYLE = { backgroundColor: '#f9f9f9' };
 
 interface Props {
     index: number;
     onSelectDate: (date: string) => void;
     events: CalendarEvent[];
+    isDark?: boolean;
 }
 
-const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
+const CalendarBody = React.memo(({ index, onSelectDate, events, isDark = false }: Props) => {
+    // Theme colors
+    const colors = useMemo(() => ({
+        background: isDark ? '#171717' : 'white',
+        weekRowBg: isDark ? '#262626' : '#fafafa',
+        weekDayText: isDark ? '#a3a3a3' : '#666',
+        borderColor: isDark ? '#404040' : '#e5e5e5',
+        dateText: isDark ? '#e5e5e5' : '#333',
+        outsideMonthText: isDark ? '#525252' : '#bbb',
+        outsideMonthBg: isDark ? '#1f1f1f' : '#fafafa',
+        todayCellBg: isDark ? '#3f1f1f' : '#fff5f5'
+    }), [isDark]);
+    // Get responsive dimensions
+    const {
+        width,
+        dayCellHeight,
+        dayCellWidth,
+        weekdayHeaderHeight,
+        smallFontSize,
+        eventHeight,
+        eventFontSize,
+        eventTopOffset,
+        eventRowHeight,
+        todayIndicatorSize,
+        isSmallPhone,
+        isTablet
+    } = useResponsiveDimensions();
+
     const { year, month } = getDateFromIndex(index);
     const today = useMemo(() => dayjs().format('YYYY-MM-DD'), []);
+
+    // Dynamic styles based on responsive dimensions
+    const dynamicStyles = useMemo(() => ({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+            width: '100%'
+        } as ViewStyle,
+        weekRow: {
+            height: weekdayHeaderHeight,
+            paddingVertical: isSmallPhone ? 3 : 5,
+            backgroundColor: colors.weekRowBg,
+            borderBottomColor: colors.borderColor
+        } as ViewStyle,
+        weekDay: {
+            flex: 1,
+            fontSize: smallFontSize,
+            color: colors.weekDayText,
+            borderRightColor: colors.borderColor
+        } as TextStyle,
+        weekContainer: {
+            height: dayCellHeight
+        } as ViewStyle,
+        dayCell: {
+            flex: 1,
+            height: dayCellHeight,
+            paddingTop: isSmallPhone ? 4 : isTablet ? 8 : 6,
+            borderBottomColor: colors.borderColor,
+            borderRightColor: colors.borderColor
+        } as ViewStyle,
+        dateText: {
+            fontSize: smallFontSize,
+            color: colors.dateText
+        } as TextStyle,
+        todayText: {
+            width: todayIndicatorSize,
+            height: todayIndicatorSize,
+            borderRadius: todayIndicatorSize / 2,
+            lineHeight: todayIndicatorSize,
+            fontSize: smallFontSize
+        } as TextStyle,
+        outsideMonthCell: {
+            backgroundColor: colors.outsideMonthBg
+        } as ViewStyle,
+        outsideMonthText: {
+            color: colors.outsideMonthText
+        } as TextStyle,
+        todayCell: {
+            backgroundColor: colors.todayCellBg
+        } as ViewStyle,
+        multiDayEvent: {
+            height: eventHeight
+        } as ViewStyle,
+        eventLabelText: {
+            fontSize: eventFontSize,
+            paddingHorizontal: isSmallPhone ? 2 : 4
+        } as TextStyle
+    }), [
+        weekdayHeaderHeight,
+        dayCellWidth,
+        dayCellHeight,
+        smallFontSize,
+        todayIndicatorSize,
+        eventHeight,
+        eventFontSize,
+        isSmallPhone,
+        isTablet,
+        colors
+    ]);
 
     // Memoized days in month calculation
     const getDaysInMonth = useCallback((y: number, m: number) => {
@@ -175,7 +265,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
         return result;
     }, [calendarWeeks, events]);
 
-    // Render day
+    // Render day with responsive styling
     const renderDay = useCallback(
         (dateObj: dayjs.Dayjs, weekIndex: number, dayIndex: number) => {
             const dateString = dateObj.format('YYYY-MM-DD');
@@ -185,48 +275,67 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
             return (
                 <TouchableOpacity
                     key={`day-${weekIndex}-${dayIndex}`}
-                    style={[styles.dayCell, isToday && TODAY_STYLE, !isCurrentMonth && OUTSIDE_MONTH_STYLE]}
+                    style={[
+                        styles.dayCell,
+                        dynamicStyles.dayCell,
+                        isToday && dynamicStyles.todayCell,
+                        !isCurrentMonth && dynamicStyles.outsideMonthCell
+                    ]}
                     onPress={() => onSelectDate(dateString)}
+                    activeOpacity={0.7}
                 >
-                    <Text style={[styles.dateText, !isCurrentMonth && styles.outsideMonthText, isToday && styles.todayText]}>{dateObj.date()}</Text>
+                    <Text
+                        style={[
+                            styles.dateText,
+                            dynamicStyles.dateText,
+                            !isCurrentMonth && dynamicStyles.outsideMonthText,
+                            isToday && [styles.todayText, dynamicStyles.todayText]
+                        ]}
+                    >
+                        {dateObj.date()}
+                    </Text>
                 </TouchableOpacity>
             );
         },
-        [today, month, onSelectDate]
+        [today, month, onSelectDate, dynamicStyles]
     );
 
-    // Render events
+    // Render events with responsive positioning
     const renderEvents = useCallback(
         (weekIndex: number) => {
             if (!processedEvents[weekIndex]) return null;
 
             return Object.entries(processedEvents[weekIndex]).flatMap(([dayIndexStr, dayEvents]) => {
-                const dayIndex = parseInt(dayIndexStr);
-                const events = dayEvents as CalendarEvent[];
+                const dayIndex = parseInt(dayIndexStr, 10);
+                const eventsArr = dayEvents as CalendarEvent[];
 
-                return events.map((event, eventIndex) => {
+                return eventsArr.map((event, eventIndex) => {
                     const leftPosition = (dayIndex / 7) * 100;
-                    const width = (event.weekSpan / 7) * 100;
+                    const eventWidth = (event.weekSpan / 7) * 100;
+                    const borderRadius = isSmallPhone ? 3 : 4;
 
                     return (
                         <View
                             key={`event-${weekIndex}-${dayIndex}-${eventIndex}`}
                             style={[
                                 styles.multiDayEvent,
+                                dynamicStyles.multiDayEvent,
                                 {
                                     left: `${leftPosition}%`,
-                                    width: `${width}%`,
+                                    width: `${eventWidth}%`,
                                     backgroundColor: event.color || '#e74c3c',
-                                    top: 26 + event.slot * 18,
-                                    borderBottomLeftRadius: event.isStartOfEvent ? 4 : 0,
-                                    borderTopRightRadius: event.isEndOfEvent ? 4 : 0,
-                                    borderBottomRightRadius: event.isEndOfEvent ? 4 : 0
+                                    top: eventTopOffset + event.slot * eventRowHeight,
+                                    borderTopLeftRadius: event.isStartOfEvent ? borderRadius : 0,
+                                    borderBottomLeftRadius: event.isStartOfEvent ? borderRadius : 0,
+                                    borderTopRightRadius: event.isEndOfEvent ? borderRadius : 0,
+                                    borderBottomRightRadius: event.isEndOfEvent ? borderRadius : 0
                                 }
                             ]}
                         >
                             <Text
-                                style={styles.eventLabelText}
+                                style={[styles.eventLabelText, dynamicStyles.eventLabelText]}
                                 numberOfLines={1}
+                                ellipsizeMode="tail"
                             >
                                 {event.title}
                             </Text>
@@ -235,29 +344,34 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
                 });
             });
         },
-        [processedEvents]
+        [processedEvents, dynamicStyles, eventTopOffset, eventRowHeight, isSmallPhone]
     );
 
     return (
-        <View style={styles.container}>
-            <View style={styles.weekRow}>
+        <View style={dynamicStyles.container}>
+            {/* Weekday Header Row */}
+            <View style={[styles.weekRow, dynamicStyles.weekRow]}>
                 {DAYS_OF_WEEK.map((day) => (
                     <Text
                         key={day}
-                        style={styles.weekDay}
+                        style={[styles.weekDay, dynamicStyles.weekDay]}
                     >
                         {day}
                     </Text>
                 ))}
             </View>
+
+            {/* Calendar Grid */}
             <View style={styles.calendarContainer}>
                 {calendarWeeks.map((week, weekIndex) => (
                     <View
                         key={`week-${weekIndex}`}
-                        style={styles.weekContainer}
+                        style={[styles.weekContainer, dynamicStyles.weekContainer]}
                     >
                         {week.map((dateObj, dayIndex) => renderDay(dateObj, weekIndex, dayIndex))}
-                        <View style={[styles.eventsOverlay, { pointerEvents: 'none' }]}>{renderEvents(weekIndex)}</View>
+                        <View style={styles.eventsOverlay}>
+                            {renderEvents(weekIndex)}
+                        </View>
                     </View>
                 ))}
             </View>
@@ -265,6 +379,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events }: Props) => {
     );
 });
 
+// Base styles (static)
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -273,72 +388,73 @@ const styles = StyleSheet.create({
     },
     weekRow: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        paddingVertical: 5,
-        height: WEEKDAY_HEADER_HEIGHT,
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0'
+        borderBottomColor: '#e5e5e5',
+        backgroundColor: '#fafafa'
     },
     weekDay: {
-        width: DAY_CELL_WIDTH,
         textAlign: 'center',
-        color: '#333',
-        fontSize: 12,
-        fontFamily: 'Kanit-Regular'
+        color: '#666',
+        fontFamily: 'Kanit-Regular',
+        borderRightWidth: 1,
+        borderRightColor: '#e5e5e5'
     },
     calendarContainer: {
+        flex: 1,
         flexDirection: 'column'
     },
     weekContainer: {
         flexDirection: 'row',
         width: '100%',
-        height: DAY_CELL_HEIGHT,
         position: 'relative'
     },
     dayCell: {
-        width: DAY_CELL_WIDTH,
-        height: DAY_CELL_HEIGHT,
         justifyContent: 'flex-start',
         alignItems: 'center',
-        paddingTop: 6,
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0'
+        borderBottomColor: '#e5e5e5',
+        borderRightWidth: 1,
+        borderRightColor: '#e5e5e5'
+    },
+    todayCell: {
+        backgroundColor: '#fff5f5'
+    },
+    outsideMonthCell: {
+        backgroundColor: '#fafafa'
     },
     dateText: {
-        fontSize: 11,
         color: '#333',
         fontFamily: 'Kanit-Regular'
     },
     todayText: {
-        top: -0.5,
         color: '#fff',
         backgroundColor: '#e74c3c',
-        width: 18,
-        height: 18,
-        borderRadius: 12,
-        lineHeight: 18,
         textAlign: 'center',
         overflow: 'hidden',
         fontFamily: 'Kanit-Bold'
     },
     outsideMonthText: {
-        color: '#ccc'
+        color: '#bbb'
     },
     eventsOverlay: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0
+        bottom: 0,
+        pointerEvents: 'none'
     },
     multiDayEvent: {
         position: 'absolute',
-        height: 16,
-        justifyContent: 'center'
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.15,
+        shadowRadius: 2,
+        elevation: 2
     },
     eventLabelText: {
         color: 'white',
-        fontSize: 10,
         textAlign: 'center',
         fontFamily: 'Kanit-Bold'
     }

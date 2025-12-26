@@ -26,22 +26,21 @@ export const useEvents = () => {
             queryClient.invalidateQueries({ queryKey: ['events'] });
             Alert.alert('Success', 'Event created successfully!');
         },
-        onError: (error) => {
-            console.error('Create event error:', error);
+        onError: (err) => {
+            console.error('Create event error:', err);
             Alert.alert('Error', 'Failed to create event');
         }
     });
 
     // Update event mutation
     const updateEventMutation = useMutation({
-        mutationFn: ({ eventId, userId, eventData }: { eventId: number; userId: number; eventData: FormData }) =>
-            updateEvent(eventId, userId, eventData),
+        mutationFn: ({ eventId, userId, eventData }: { eventId: number; userId: number; eventData: FormData }) => updateEvent(eventId, userId, eventData),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['events'] });
             Alert.alert('Success', 'Event updated successfully!');
         },
-        onError: (error) => {
-            console.error('Update event error:', error);
+        onError: (err) => {
+            console.error('Update event error:', err);
             Alert.alert('Error', 'Failed to update event');
         }
     });
@@ -53,8 +52,8 @@ export const useEvents = () => {
             queryClient.invalidateQueries({ queryKey: ['events'] });
             Alert.alert('Success', 'Event deleted successfully!');
         },
-        onError: (error) => {
-            console.error('Delete event error:', error);
+        onError: (err) => {
+            console.error('Delete event error:', err);
             Alert.alert('Error', 'Failed to delete event');
         }
     });

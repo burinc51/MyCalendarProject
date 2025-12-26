@@ -1,7 +1,19 @@
-import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, Platform, ScrollView } from 'react-native';
 import React, { useEffect } from 'react';
-import { GoogleSignin, GoogleSigninButton } from '@react-native-google-signin/google-signin';
+import { ThemeSettings } from '@/components/ThemeSettings';
+import { useTheme } from '@/components/ThemeProvider';
 import { sendTestNotification, testScheduledNotification } from '@/services/notificationService';
+
+let GoogleSignin: any = null;
+let GoogleSigninButton: any = null;
+
+try {
+    const googleSigninModule = require('@react-native-google-signin/google-signin');
+    GoogleSignin = googleSigninModule.GoogleSignin;
+    GoogleSigninButton = googleSigninModule.GoogleSigninButton;
+} catch (e) {
+    console.log('GoogleSignin module not available (likely running in Expo Go)');
+}
 
 type User = {
     email: string;
@@ -9,23 +21,36 @@ type User = {
     imageUrl: string;
 };
 
-export default function HomeScreen() {
+export default function SettingsScreen() {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
     const webClientId = process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
+    const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || 'http://172.29.176.1:9001';
+
     const [loading, setLoading] = React.useState(false);
     const [isSignedIn, setIsSignedIn] = React.useState(false);
     const [userInfo, setUserInfo] = React.useState<User | null>(null);
+    const [isGoogleAvailable, setIsGoogleAvailable] = React.useState(false);
 
     useEffect(() => {
-        GoogleSignin.configure({
-            webClientId: webClientId,
-            offlineAccess: true,
-            forceCodeForRefreshToken: true
-        });
-
-        checkIfSignedIn();
+        if (GoogleSignin) {
+            try {
+                GoogleSignin.configure({
+                    webClientId: webClientId,
+                    offlineAccess: true,
+                    forceCodeForRefreshToken: true
+                });
+                setIsGoogleAvailable(true);
+                checkIfSignedIn();
+            } catch (err) {
+                console.log('GoogleSignin configure error:', err);
+            }
+        }
     }, []);
 
     const checkIfSignedIn = async () => {
+        if (!GoogleSignin) return;
         try {
             const currentUser = await GoogleSignin.getCurrentUser();
             if (currentUser) {
@@ -37,20 +62,27 @@ export default function HomeScreen() {
     };
 
     const signInWithGoogle = async () => {
+        if (!GoogleSignin) {
+            Alert.alert(
+                'Not Supported',
+                'Google Sign-In requires a Development Build or Native App. It is not supported in Expo Go.'
+            );
+            return;
+        }
+
         try {
             setLoading(true);
             await GoogleSignin.hasPlayServices();
-            const userInfo = await GoogleSignin.signIn();
-            console.log('userInfo: ', userInfo);
+            const signInResult = await GoogleSignin.signIn();
+            console.log('signInResult: ', signInResult);
 
             setIsSignedIn(true);
 
-            // ✅ ส่ง idToken ไปยัง backend
-            const idToken = await GoogleSignin.getTokens().then((tokens) => tokens.idToken);
-
+            // Send idToken to backend
+            const idToken = await GoogleSignin.getTokens().then((tokens: any) => tokens.idToken);
             console.log('idToken: ', idToken);
 
-            const response = await fetch('http://172.29.176.1:9001/v1/auth/google-sign-in', {
+            const response = await fetch(`${SERVER_URL}/v1/auth/google-sign-in`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -70,6 +102,7 @@ export default function HomeScreen() {
     };
 
     const signOut = async () => {
+        if (!GoogleSignin) return;
         try {
             setLoading(true);
             await GoogleSignin.signOut();
@@ -84,43 +117,117 @@ export default function HomeScreen() {
         }
     };
 
-    return (
-        <View className="flex-1 justify-center items-center p-5">
-            {!isSignedIn ? (
+    const renderSignInButton = () => {
+        if (GoogleSigninButton && isGoogleAvailable) {
+            return (
                 <GoogleSigninButton
-                    size={GoogleSigninButton.Size.Wide}
-                    color={GoogleSigninButton.Color.Dark}
+                    size={GoogleSigninButton.Size?.Wide || 1}
+                    color={GoogleSigninButton.Color?.Dark || 1}
                     onPress={signInWithGoogle}
                     disabled={loading}
                 />
-            ) : (
-                <View className="items-center p-5">
-                    {userInfo?.imageUrl && (
-                        <Image
-                            source={{ uri: userInfo.imageUrl }}
-                            className="w-24 h-24 rounded-full mb-5 border-2 border-gray-300"
-                        />
-                    )}
+            );
+        }
 
-                    <Text className="text-2xl font-bold mb-2 text-center">Welcome, {userInfo?.name || 'User'}!</Text>
-                    <Text className="text-base text-gray-600 mb-8 text-center">{userInfo?.email}</Text>
-
-                    <TouchableOpacity
-                        className="bg-red-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg min-w-30"
-                        onPress={signOut}
-                        disabled={loading}
-                    >
-                        {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold text-base">Sign Out</Text>}
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            <TouchableOpacity onPress={() => testScheduledNotification(60)}>
-                <Text>🔔 ทดสอบ Notification (1 นาที)</Text>
+        return (
+            <TouchableOpacity
+                className="bg-blue-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg"
+                onPress={signInWithGoogle}
+                disabled={loading}
+            >
+                <Text className="text-white font-semibold text-base">
+                    {isGoogleAvailable ? "Sign in with Google" : "Google Sign-In (Dev Build Only)"}
+                </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => sendTestNotification()}>
-                <Text>🔔 ทดสอบ Notification (ทันที)</Text>
-            </TouchableOpacity>
-        </View>
+        );
+    };
+
+    return (
+        <ScrollView
+            className={`flex-1 ${isDark ? 'bg-neutral-900' : 'bg-white'}`}
+            contentContainerStyle={{ padding: 20 }}
+        >
+            {/* Settings Title */}
+            <Text
+                className={`text-2xl font-bold mb-6 ${isDark ? 'text-neutral-100' : 'text-neutral-800'
+                    }`}
+            >
+                ⚙️ Settings
+            </Text>
+
+            {/* Theme Settings Section */}
+            <View className="mb-8">
+                <ThemeSettings />
+            </View>
+
+            {/* Divider */}
+            <View
+                className={`h-px mb-6 ${isDark ? 'bg-neutral-700' : 'bg-neutral-200'}`}
+            />
+
+            {/* Account Section */}
+            <View className="mb-3 px-1">
+                <Text
+                    className={`text-base font-semibold ${isDark ? 'text-neutral-200' : 'text-neutral-700'
+                        }`}
+                >
+                    👤 Account
+                </Text>
+            </View>
+
+            <View
+                className={`rounded-2xl overflow-hidden p-4 ${isDark ? 'bg-neutral-800' : 'bg-neutral-100'
+                    }`}
+            >
+                {!isSignedIn ? (
+                    <View className="items-center py-4">
+                        {renderSignInButton()}
+                    </View>
+                ) : (
+                    <View className="items-center p-4">
+                        {userInfo?.imageUrl && (
+                            <Image
+                                source={{ uri: userInfo.imageUrl }}
+                                className="w-20 h-20 rounded-full mb-4 border-2 border-gray-300"
+                            />
+                        )}
+
+                        <Text
+                            className={`text-xl font-bold mb-1 text-center ${isDark ? 'text-neutral-100' : 'text-neutral-800'
+                                }`}
+                        >
+                            {userInfo?.name || 'User'}
+                        </Text>
+                        <Text
+                            className={`text-sm mb-6 text-center ${isDark ? 'text-neutral-400' : 'text-neutral-600'
+                                }`}
+                        >
+                            {userInfo?.email}
+                        </Text>
+
+                        <TouchableOpacity
+                            className="bg-red-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg"
+                            onPress={signOut}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text className="text-white font-semibold text-base">
+                                    Sign Out
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                <TouchableOpacity onPress={() => testScheduledNotification(60)}>
+                    <Text>🔔 ทดสอบ Notification (1 นาที)</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => sendTestNotification()}>
+                    <Text>🔔 ทดสอบ Notification (ทันที)</Text>
+                </TouchableOpacity>
+            </View>
+        </ScrollView>
     );
 }
