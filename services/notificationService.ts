@@ -166,31 +166,32 @@ export async function testScheduledNotification(seconds: number = 60): Promise<s
             vibrationPattern: [0, 250, 250, 250],
             sound: 'default',
             enableLights: true,
-            enableVibrate: true
+            enableVibrate: true,
+            bypassDnd: true // ข้าม Do Not Disturb
         });
     }
 
-    const fakeEventId = 999; // ค่าหลอก
-    const triggerDate = new Date(Date.now() + seconds * 1000);
+    const fakeEventId = 999;
 
-    const trigger: Notifications.DateTriggerInput = {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: triggerDate
-    };
-
+    // ใช้ TimeInterval แทน Date (แม่นยำกว่าบน Android)
     const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
             title: `📅 Test Reminder`,
-            body: `This notification was scheduled ${seconds} seconds ago!`,
+            body: `Notification after ${seconds} seconds!`,
             data: { eventId: fakeEventId, type: 'test_reminder' },
             sound: true,
             priority: Notifications.AndroidNotificationPriority.MAX,
             ...(Platform.OS === 'android' && { channelId: 'reminders' })
         },
-        trigger
+        trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: seconds,
+            repeats: false
+        }
     });
 
-    console.log(`✅ Notification scheduled for ${triggerDate.toLocaleTimeString()}`);
+    const expectedTime = new Date(Date.now() + seconds * 1000);
+    console.log(`✅ Notification scheduled for ${expectedTime.toLocaleTimeString()}`);
     console.log(`📝 Notification ID: ${notificationId}`);
 
     return notificationId;
