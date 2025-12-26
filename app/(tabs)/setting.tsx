@@ -1,6 +1,5 @@
-import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, Platform, ScrollView } from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
 import React, { useEffect } from 'react';
-import { ThemeSettings } from '@/components/ThemeSettings';
 import { useTheme } from '@/components/ThemeProvider';
 import { sendTestNotification, testScheduledNotification } from '@/services/notificationService';
 
@@ -82,7 +81,7 @@ export default function SettingsScreen() {
             const idToken = await GoogleSignin.getTokens().then((tokens: any) => tokens.idToken);
             console.log('idToken: ', idToken);
 
-            const response = await fetch(`${SERVER_URL}/v1/auth/google-sign-in`, {
+            const response = await fetch(`${SERVER_URL}/api/v1/auth/google-sign-in`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -155,16 +154,6 @@ export default function SettingsScreen() {
                 ⚙️ Settings
             </Text>
 
-            {/* Theme Settings Section */}
-            <View className="mb-8">
-                <ThemeSettings />
-            </View>
-
-            {/* Divider */}
-            <View
-                className={`h-px mb-6 ${isDark ? 'bg-neutral-700' : 'bg-neutral-200'}`}
-            />
-
             {/* Account Section */}
             <View className="mb-3 px-1">
                 <Text
@@ -220,14 +209,46 @@ export default function SettingsScreen() {
                         </TouchableOpacity>
                     </View>
                 )}
+            </View>
 
-                <TouchableOpacity onPress={() => testScheduledNotification(60)}>
-                    <Text>🔔 ทดสอบ Notification (1 นาที)</Text>
+            {/* Divider */}
+            <View
+                className={`h-px my-6 ${isDark ? 'bg-neutral-700' : 'bg-neutral-200'}`}
+            />
+
+            {/* Notification Test Section */}
+            <View className="mb-3 px-1">
+                <Text
+                    className={`text-base font-semibold ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}
+                >
+                    🔔 Notifications
+                </Text>
+            </View>
+
+            <View
+                className={`rounded-2xl overflow-hidden p-4 ${isDark ? 'bg-neutral-800' : 'bg-neutral-100'}`}
+            >
+                <TouchableOpacity
+                    className={`py-3 px-4 rounded-xl mb-3 ${isDark ? 'bg-neutral-700 active:bg-neutral-600' : 'bg-neutral-200 active:bg-neutral-300'}`}
+                    onPress={() => testScheduledNotification(60)}
+                >
+                    <Text className={`text-center font-medium ${isDark ? 'text-neutral-100' : 'text-neutral-800'}`}>
+                        🕐 ทดสอบ Notification (1 นาที)
+                    </Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => sendTestNotification()}>
-                    <Text>🔔 ทดสอบ Notification (ทันที)</Text>
+
+                <TouchableOpacity
+                    className={`py-3 px-4 rounded-xl ${isDark ? 'bg-neutral-700 active:bg-neutral-600' : 'bg-neutral-200 active:bg-neutral-300'}`}
+                    onPress={() => sendTestNotification()}
+                >
+                    <Text className={`text-center font-medium ${isDark ? 'text-neutral-100' : 'text-neutral-800'}`}>
+                        ⚡ ทดสอบ Notification (ทันที)
+                    </Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Bottom Spacing */}
+            <View className="h-8" />
         </ScrollView>
     );
 }
