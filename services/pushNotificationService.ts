@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import httpClient from '@/lib/httpClient';
 
 /**
  * Push Notification Service
@@ -69,29 +70,17 @@ export async function getExpoPushToken(): Promise<string | null> {
  */
 export async function registerPushToken(token: string, userId: number): Promise<boolean> {
     try {
-        // TODO: เปลี่ยน URL เป็น Backend API ของคุณ
-        const response = await fetch('YOUR_BACKEND_URL/api/push-tokens', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                token: token,
-                userId: userId,
-                platform: Platform.OS,
-                deviceName: Device.deviceName
-            })
+        await httpClient.post('/api/v1/push-tokens', {
+            token: token,
+            userId: userId,
+            platform: Platform.OS,
+            deviceName: Device.deviceName
         });
 
-        if (response.ok) {
-            console.log('✅ Push token registered successfully');
-            return true;
-        } else {
-            console.error('❌ Failed to register push token');
-            return false;
-        }
+        console.log('✅ Push token registered successfully');
+        return true;
     } catch (error) {
-        console.error('Error registering push token:', error);
+        console.error('❌ Error registering push token:', error);
         return false;
     }
 }
@@ -103,101 +92,37 @@ export async function registerPushToken(token: string, userId: number): Promise<
  */
 export async function unregisterPushToken(token: string): Promise<boolean> {
     try {
-        // TODO: เปลี่ยน URL เป็น Backend API ของคุณ
-        const response = await fetch('YOUR_BACKEND_URL/api/push-tokens', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ token })
+        await httpClient.delete('/api/v1/push-tokens', {
+            data: { token }
         });
 
-        if (response.ok) {
-            console.log('✅ Push token unregistered');
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error('Error unregistering push token:', error);
-        return false;
-    }
-}
-
-/**
- * ==========================================
- * ตัวอย่าง Backend API สำหรับส่ง Push Notification
- * (ใช้ Expo Push API)
- * ==========================================
- * 
- * // Node.js/Express Example:
- * 
- * const { Expo } = require('expo-server-sdk');
- * const expo = new Expo();
- * 
- * app.post('/api/send-notification', async (req, res) => {
- *     const { pushToken, title, body, data } = req.body;
- *     
- *     if (!Expo.isExpoPushToken(pushToken)) {
- *         return res.status(400).json({ error: 'Invalid push token' });
- *     }
- *     
- *     const message = {
- *         to: pushToken,
- *         sound: 'default',
- *         title: title,
- *         body: body,
- *         data: data,
- *         priority: 'high',
- *         channelId: 'default'
- *     };
- *     
- *     try {
- *         const ticket = await expo.sendPushNotificationsAsync([message]);
- *         res.json({ success: true, ticket });
- *     } catch (error) {
- *         res.status(500).json({ error: error.message });
- *     }
- * });
- * 
- * ==========================================
- */
-
-/**
- * ทดสอบ Push Notification โดยส่งผ่าน Expo Push API โดยตรง
- * (ใช้สำหรับทดสอบเท่านั้น ปกติควรส่งจาก Backend)
- */
-export async function testPushNotification(): Promise<boolean> {
-    const token = await getExpoPushToken();
-
-    if (!token) {
-        console.warn('No push token available');
-        return false;
-    }
-
-    try {
-        const response = await fetch('https://exp.host/--/api/v2/push/send', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Accept-Encoding': 'gzip, deflate'
-            },
-            body: JSON.stringify({
-                to: token,
-                sound: 'default',
-                title: '🔔 Push Notification Test',
-                body: 'This is a push notification from server!',
-                data: { type: 'test_push' },
-                priority: 'high',
-                channelId: 'default'
-            })
-        });
-
-        const result = await response.json();
-        console.log('Push notification result:', result);
+        console.log('✅ Push token unregistered');
         return true;
     } catch (error) {
-        console.error('Error sending push notification:', error);
+        console.error('❌ Error unregistering push token:', error);
         return false;
     }
 }
+
+/**
+ * Trigger Notification Job บน Backend แบบ manual
+ * ใช้สำหรับทดสอบว่า notification ถูกส่งถูกต้องหรือไม่
+ * โดยไม่ต้องรอ Quartz Scheduler (ปกติทำงานทุก 1 นาที)
+ * 
+ * เงื่อนไขการส่ง notification:
+ * - Event มี notificationType = 'PUSH' หรือ 'EMAIL'
+ * - Event มี notificationTime <= เวลาปัจจุบัน
+ * - Event มี startDate > เวลาปัจจุบัน (ยังไม่เริ่ม)
+ * - User ที่ assign อยู่ใน event มี push token ลงทะเบียนไว้
+ */
+export async function triggerNotificationJob(): Promise<boolean> {
+    try {
+        await httpClient.post('/api/v1/push-tokens/test-job');
+        console.log('✅ Notification job triggered successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Error triggering notification job:', error);
+        return false;
+    }
+}
+

@@ -17,7 +17,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.gotzila.MyCalendarProject"
+      "package": "com.gotzila.MyCalendarProject",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -63,9 +64,7 @@
       }
     },
     "owner": "gotzila",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/4b12d89a-d8f0-44eb-b817-7f4640458ad5"
     }
