@@ -41,3 +41,4 @@ app-example
 .yarn/*
 credentials.json
 .env
+google-services.json
