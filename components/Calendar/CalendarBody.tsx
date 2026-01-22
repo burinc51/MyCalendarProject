@@ -283,6 +283,9 @@ const CalendarBody = React.memo(({ index, onSelectDate, events, isDark = false }
                     ]}
                     onPress={() => onSelectDate(dateString)}
                     activeOpacity={0.7}
+                    accessibilityLabel={dateObj.format('dddd, MMMM D, YYYY')}
+                    accessibilityHint="Double tap to select this date"
+                    accessibilityRole="button"
                 >
                     <Text
                         style={[

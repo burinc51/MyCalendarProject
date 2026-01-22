@@ -5,7 +5,7 @@
 
 import dayjs from 'dayjs';
 import type { ApiEvent, CalendarEvent, EventPriority } from '@/types/event';
-import { COLOR_NAME_TO_HEX, HEX_TO_COLOR_NAME, API_PRIORITY_MAP, PRIORITY_TO_API_MAP } from '@/constants/Calendar';
+import { COLOR_NAME_TO_HEX, HEX_TO_COLOR_NAME, API_PRIORITY_MAP, PRIORITY_TO_API_MAP, DEFAULT_USER_ID } from '@/constants/Calendar';
 
 /**
  * Maps API priority ("1", "2", "3") to component's priority
@@ -74,7 +74,7 @@ export const buildEventFormData = (
         priority: EventPriority;
         reminder: number;
     },
-    userId = 2
+    userId = DEFAULT_USER_ID
 ): FormData => {
     const bodyData = {
         title: formData.title.trim(),

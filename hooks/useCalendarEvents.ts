@@ -5,9 +5,10 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
+import dayjs from 'dayjs';
 import { getEventsAll, createEvent, updateEvent, deleteEvent } from '@/services/eventService';
 import { mapApiEventToCalendar, buildEventFormData } from '@/utils/calendar-helpers';
-import { DEFAULT_EVENT_FORM } from '@/constants/Calendar';
+import { DEFAULT_EVENT_FORM, DEFAULT_USER_ID } from '@/constants/Calendar';
 import type { CalendarEvent, EventFormData } from '@/types/event';
 
 interface UseCalendarEventsReturn {
@@ -85,7 +86,6 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
 
     // Handle edit event - populate form
     const handleEditEvent = useCallback((event: CalendarEvent) => {
-        const dayjs = require('dayjs');
         setEditingEvent(event);
         setFormData({
             title: event.title,
@@ -112,10 +112,10 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
         }
 
         try {
-            const formDataToSend = buildEventFormData(formData, editingEvent?.userId || 2);
+            const formDataToSend = buildEventFormData(formData, editingEvent?.userId || DEFAULT_USER_ID);
 
             if (editingEvent) {
-                const userId = editingEvent.userId || 2;
+                const userId = editingEvent.userId || DEFAULT_USER_ID;
                 await updateEvent(editingEvent.id, userId, formDataToSend as unknown as FormData);
                 Alert.alert('Success', 'Event updated!');
             } else {
