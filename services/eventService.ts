@@ -15,8 +15,9 @@ export const getEventbyId = async (eventId: number) => httpClient.get(`/api/v1/e
 export const createEvent = async (event: FormData) => httpClient.post('/api/v1/event/create', event);
 
 export const updateEvent = async (eventId: number, userId: number, event: FormData) => {
-    const updatedEvent = { ...event, userId };
-    return httpClient.put(`/api/event/${eventId}`, updatedEvent);
+    event.append('id', String(eventId));
+    event.append('userId', String(userId));
+    return httpClient.put(`/api/v1/event/${eventId}`, event);
 };
 
 export const deleteEvent = async (eventId: number) => httpClient.delete(`/api/v1/event/${eventId}`);
