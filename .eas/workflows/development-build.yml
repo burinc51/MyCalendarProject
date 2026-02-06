@@ -1,4 +1,7 @@
-name: Android Dev Build (Yarn 4.9.1)
+name: Android Dev Build (Standard Yarn)
+
+on:
+  workflow_dispatch:
 
 jobs:
   build_android:
@@ -9,10 +12,11 @@ jobs:
     project_archive:
       type: git
     env:
-      NODE_VERSION: 22
+      NODE_VERSION: "22"
       YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
+      EXPO_USE_YARN_COREPACK: "1"
     steps:
-      - run: corepack enable
-      - run: corepack prepare yarn@4.9.1 --activate
-      - run: yarn set version 4.9.1
-      - run: yarn install --inline-builds
+      - name: Install dependencies
+        run: yarn install --inline-builds
+      - name: Build Android
+        uses: eas/build

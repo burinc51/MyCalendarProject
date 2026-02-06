@@ -1,14 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-type ThemeMode = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
     theme: 'light' | 'dark';
-    themeMode: ThemeMode;
-    setThemeMode: (mode: ThemeMode) => void;
-    toggleTheme: () => void;
+    isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -19,58 +14,11 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const systemColorScheme = useColorScheme();
-    const [themeMode, setThemeMode] = useState<ThemeMode>('system');
-    const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
-    // Load saved theme preference
-    useEffect(() => {
-        loadThemePreference();
-    }, []);
-
-    // Update theme when mode or system preference changes
-    useEffect(() => {
-        const newTheme = themeMode === 'system' ? systemColorScheme || 'light' : themeMode;
-        setTheme(newTheme);
-    }, [themeMode, systemColorScheme]);
-
-    const loadThemePreference = async () => {
-        try {
-            const savedMode = await AsyncStorage.getItem('theme-mode');
-            if (savedMode && ['light', 'dark', 'system'].includes(savedMode)) {
-                setThemeMode(savedMode as ThemeMode);
-            }
-        } catch (error) {
-            console.error('Error loading theme preference:', error);
-        }
-    };
-
-    const saveThemePreference = async (mode: ThemeMode) => {
-        try {
-            await AsyncStorage.setItem('theme-mode', mode);
-        } catch (error) {
-            console.error('Error saving theme preference:', error);
-        }
-    };
-
-    const handleSetThemeMode = (mode: ThemeMode) => {
-        setThemeMode(mode);
-        saveThemePreference(mode);
-    };
-
-    const toggleTheme = () => {
-        const newMode = theme === 'light' ? 'dark' : 'light';
-        handleSetThemeMode(newMode);
-    };
+    const theme = systemColorScheme || 'light';
+    const isDark = theme === 'dark';
 
     return (
-        <ThemeContext.Provider
-            value={{
-                theme,
-                themeMode,
-                setThemeMode: handleSetThemeMode,
-                toggleTheme,
-            }}
-        >
+        <ThemeContext.Provider value={{ theme, isDark }}>
             {children}
         </ThemeContext.Provider>
     );

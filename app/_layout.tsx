@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import 'react-native-gesture-handler';
@@ -12,6 +13,9 @@ import { queryClient } from '@/lib/queryClient';
 import { ThemeProvider as NavigationThemeProvider, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { LogBox } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
+import { setupNotificationHandler, registerForPushNotificationsAsync } from '@/services/notificationService';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 
 LogBox.ignoreLogs([
     'SafeAreaView has been deprecated',
@@ -45,6 +49,42 @@ function ThemedApp() {
 }
 
 export default function RootLayout() {
+    const { loadNotifications } = useNotificationStore();
+    const router = useRouter();
+    const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
+    const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
+
+    // Setup notifications on app start
+    useEffect(() => {
+        setupNotificationHandler();
+        registerForPushNotificationsAsync();
+        loadNotifications();
+
+        // Listen for incoming notifications while app is foregrounded
+        notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+            console.log('📬 Notification received:', notification.request.content.title);
+        });
+
+        // Listen for user tapping on notification
+        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+            const data = response.notification.request.content.data;
+            const eventId = data?.eventId;
+            const type = data?.type;
+
+            console.log('👆 Notification tapped:', { eventId, type });
+
+            if (eventId && type === 'event_reminder') {
+                router.push('/(tabs)');
+            }
+        });
+
+        // Cleanup
+        return () => {
+            notificationListener.current?.remove();
+            responseListener.current?.remove();
+        };
+    }, []);
+
     const [loaded, error] = useFonts({
         'Kanit-Regular': require('../assets/fonts/Kanit-Regular.ttf'),
         'Kanit-Bold': require('../assets/fonts/Kanit-Bold.ttf'),

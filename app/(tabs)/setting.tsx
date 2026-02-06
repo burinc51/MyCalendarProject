@@ -1,7 +1,8 @@
-import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, Platform, ScrollView } from 'react-native';
-import React, { useEffect } from 'react';
-import { ThemeSettings } from '@/components/ThemeSettings';
+import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
+import { sendTestNotification, testScheduledNotification } from '@/services/notificationService';
+import { getExpoPushToken, registerPushToken, triggerNotificationJob } from '@/services/pushNotificationService';
 
 let GoogleSignin: any = null;
 let GoogleSigninButton: any = null;
@@ -31,6 +32,7 @@ export default function SettingsScreen() {
     const [isSignedIn, setIsSignedIn] = React.useState(false);
     const [userInfo, setUserInfo] = React.useState<User | null>(null);
     const [isGoogleAvailable, setIsGoogleAvailable] = React.useState(false);
+    const [pushTokenLoading, setPushTokenLoading] = useState(false);
 
     useEffect(() => {
         if (GoogleSignin) {
@@ -81,7 +83,7 @@ export default function SettingsScreen() {
             const idToken = await GoogleSignin.getTokens().then((tokens: any) => tokens.idToken);
             console.log('idToken: ', idToken);
 
-            const response = await fetch(`${SERVER_URL}/v1/auth/google-sign-in`, {
+            const response = await fetch(`${SERVER_URL}/api/v1/auth/google-sign-in`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -154,16 +156,6 @@ export default function SettingsScreen() {
                 ⚙️ Settings
             </Text>
 
-            {/* Theme Settings Section */}
-            <View className="mb-8">
-                <ThemeSettings />
-            </View>
-
-            {/* Divider */}
-            <View
-                className={`h-px mb-6 ${isDark ? 'bg-neutral-700' : 'bg-neutral-200'}`}
-            />
-
             {/* Account Section */}
             <View className="mb-3 px-1">
                 <Text
@@ -220,6 +212,128 @@ export default function SettingsScreen() {
                     </View>
                 )}
             </View>
+
+            {/* Divider */}
+            <View
+                className={`h-px my-6 ${isDark ? 'bg-neutral-700' : 'bg-neutral-200'}`}
+            />
+
+            {/* Notification Test Section */}
+            <View className="mb-3 px-1">
+                <Text
+                    className={`text-base font-semibold ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}
+                >
+                    🔔 Notifications
+                </Text>
+            </View>
+
+            <View
+                className={`rounded-2xl overflow-hidden p-4 ${isDark ? 'bg-neutral-800' : 'bg-neutral-100'}`}
+            >
+                <TouchableOpacity
+                    className={`py-3 px-4 rounded-xl mb-3 ${isDark ? 'bg-neutral-700 active:bg-neutral-600' : 'bg-neutral-200 active:bg-neutral-300'}`}
+                    onPress={() => testScheduledNotification(60)}
+                >
+                    <Text className={`text-center font-medium ${isDark ? 'text-neutral-100' : 'text-neutral-800'}`}>
+                        🕐 ทดสอบ Notification (1 นาที)
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    className={`py-3 px-4 rounded-xl ${isDark ? 'bg-neutral-700 active:bg-neutral-600' : 'bg-neutral-200 active:bg-neutral-300'}`}
+                    onPress={() => sendTestNotification()}
+                >
+                    <Text className={`text-center font-medium ${isDark ? 'text-neutral-100' : 'text-neutral-800'}`}>
+                        ⚡ ทดสอบ Notification (ทันที)
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Push Token Section */}
+                <View className={`h-px my-3 ${isDark ? 'bg-neutral-600' : 'bg-neutral-300'}`} />
+
+                <TouchableOpacity
+                    className={`py-3 px-4 rounded-xl mb-3 ${isDark ? 'bg-purple-600 active:bg-purple-700' : 'bg-purple-500 active:bg-purple-600'}`}
+                    onPress={async () => {
+                        try {
+                            const token = await getExpoPushToken();
+                            if (token) {
+                                Alert.alert(
+                                    '📱 Expo Push Token',
+                                    token,
+                                    [{ text: 'Copy', onPress: () => console.log(token) }, { text: 'OK' }]
+                                );
+                            } else {
+                                Alert.alert('❌ ไม่พบ Token', 'Push Notification ใช้ได้เฉพาะบนเครื่องจริงเท่านั้น');
+                            }
+                        } catch (error) {
+                            Alert.alert('❌ Error', String(error));
+                        }
+                    }}
+                >
+                    <Text className="text-center font-medium text-white">
+                        🔑 ดู Expo Push Token
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    className={`py-3 px-4 rounded-xl ${isDark ? 'bg-blue-600 active:bg-blue-700' : 'bg-blue-500 active:bg-blue-600'}`}
+                    onPress={async () => {
+                        setPushTokenLoading(true);
+                        try {
+                            const token = await getExpoPushToken();
+                            if (token) {
+                                // TODO: เปลี่ยน userId เป็น userId ของ user ที่ login อยู่
+                                const success = await registerPushToken(token, 1);
+                                Alert.alert(
+                                    success ? '✅ สำเร็จ' : '❌ ผิดพลาด',
+                                    success
+                                        ? `Push Token ลงทะเบียนแล้ว\n\nToken: ${token.substring(0, 30)}...`
+                                        : 'ไม่สามารถลงทะเบียน Push Token ได้'
+                                );
+                            } else {
+                                Alert.alert('❌ ไม่พบ Token', 'Push Notification ใช้ได้เฉพาะบนเครื่องจริงเท่านั้น');
+                            }
+                        } catch (error) {
+                            Alert.alert('❌ Error', String(error));
+                        } finally {
+                            setPushTokenLoading(false);
+                        }
+                    }}
+                    disabled={pushTokenLoading}
+                >
+                    {pushTokenLoading ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text className="text-center font-medium text-white">
+                            📤 ลงทะเบียน Push Token
+                        </Text>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    className={`py-3 px-4 rounded-xl mt-3 ${isDark ? 'bg-green-600 active:bg-green-700' : 'bg-green-500 active:bg-green-600'}`}
+                    onPress={async () => {
+                        try {
+                            const success = await triggerNotificationJob();
+                            Alert.alert(
+                                success ? '✅ Job Triggered' : '❌ ผิดพลาด',
+                                success
+                                    ? 'Notification Job ทำงานแล้ว! ตรวจสอบ logs ที่ backend'
+                                    : 'ไม่สามารถ trigger job ได้'
+                            );
+                        } catch (error) {
+                            Alert.alert('❌ Error', String(error));
+                        }
+                    }}
+                >
+                    <Text className="text-center font-medium text-white">
+                        🚀 Trigger Notification Job
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Bottom Spacing */}
+            <View className="h-8" />
         </ScrollView>
     );
 }
