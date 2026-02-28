@@ -234,15 +234,6 @@ const CalendarView: React.FC = () => {
         );
     }
 
-    // Error state
-    if (error) {
-        return (
-            <View style={[styles.centered, { backgroundColor: colors.background }]}>
-                <Text style={styles.errorText}>{error}</Text>
-            </View>
-        );
-    }
-
     return (
         <View style={dynamicStyles.container}>
             {/* Header */}
