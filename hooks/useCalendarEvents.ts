@@ -51,9 +51,8 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
                 setEvents(mappedEvents);
             }
         } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : String(err);
             console.error('Failed to fetch events:', err);
-            setError(`Could not load events. Reason: ${errorMessage}. Please try again later.`);
+            // Don't set error state - let the calendar UI render normally with empty events
         } finally {
             setIsLoading(false);
         }
