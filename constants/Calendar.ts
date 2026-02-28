@@ -78,3 +78,5 @@ export const PRIORITY_TO_API_MAP = {
     medium: '2',
     low: '3'
 } as const;
+
+export const DEFAULT_USER_ID = 2;
