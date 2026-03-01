@@ -1,8 +1,7 @@
 /**
  * CalendarView Component
- * Main calendar view with pager-based navigation and event management
- * Fully responsive across all device sizes and orientations
- * Uses react-native-pager-view for SDK 54 compatibility
+ * Multi-view calendar: Day, Week, Month, Year
+ * Header: tappable month/year picker + view-mode toggle button
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -13,6 +12,8 @@ import {
     BackHandler,
     TouchableOpacity,
     ActivityIndicator,
+    Modal,
+    Animated,
     ViewStyle,
     TextStyle
 } from 'react-native';
@@ -25,6 +26,10 @@ import { AntDesign } from '@expo/vector-icons';
 import CalendarBody from '@/components/Calendar/CalendarBody';
 import EventList from '@/components/Calendar/EventList';
 import EventForm from '@/components/Calendar/EventForm';
+import CalendarDayView from '@/components/Calendar/CalendarDayView';
+import CalendarWeekView from '@/components/Calendar/CalendarWeekView';
+import CalendarYearView from '@/components/Calendar/CalendarYearView';
+import MonthYearPicker, { THAI_MONTHS } from '@/components/Calendar/MonthYearPicker';
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 import { useTheme } from '@/components/ThemeProvider';
 
@@ -37,47 +42,53 @@ import type { CalendarEvent } from '@/types/event';
 
 dayjs.extend(isBetween);
 
-// Virtual infinite scrolling: 5 years before and after current date (120 months total)
-const MONTHS_RANGE = 60; // 5 years in each direction
-const TOTAL_PAGES = MONTHS_RANGE * 2 + 1; // 121 pages total
-const INITIAL_PAGE = MONTHS_RANGE; // Start at center (current month)
+const MONTHS_RANGE = 60;
+const TOTAL_PAGES = MONTHS_RANGE * 2 + 1;
+const INITIAL_PAGE = MONTHS_RANGE;
+
+export type ViewMode = 'month' | 'week' | 'day' | 'year';
+
+const VIEW_MODES: { label: string; value: ViewMode; icon: string }[] = [
+    { label: 'วัน', value: 'day', icon: 'calendar' },
+    { label: 'สัปดาห์', value: 'week', icon: 'bars' },
+    { label: 'เดือน', value: 'month', icon: 'table' },
+    { label: 'ปี', value: 'year', icon: 'database' }
+];
 
 const CalendarView: React.FC = () => {
-    // Get theme
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-
-    // Get responsive dimensions
-    const {
-        width,
-        headerHeight,
-        horizontalPadding,
-        titleFontSize,
-        isSmallPhone,
-        isTablet
-    } = useResponsiveDimensions();
+    const { width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet } =
+        useResponsiveDimensions();
 
     const baseDate = useMemo(() => dayjs(), []);
     const [currentPage, setCurrentPage] = useState(INITIAL_PAGE);
-    const [month, setMonth] = useState<string>(baseDate.format('MMMM YYYY'));
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const sheetRef = useRef<CustomBottomSheetModalRef>(null);
     const pagerRef = useRef<PagerView>(null);
 
-    // Theme colors
+    // Multi-view state
+    const [viewMode, setViewMode] = useState<ViewMode>('month');
+    const [focusDate, setFocusDate] = useState(dayjs().format('YYYY-MM-DD'));
+    const [showPicker, setShowPicker] = useState(false);
+    const [showViewMenu, setShowViewMenu] = useState(false);
+    const arrowAnim = useRef(new Animated.Value(0)).current;
+
     const colors = useMemo(() => ({
         background: isDark ? '#171717' : '#f8f9fa',
         headerBg: isDark ? '#262626' : '#fff',
         headerText: isDark ? '#e5e5e5' : '#2c3e50',
-        modalText: isDark ? '#e5e5e5' : '#2c3e50'
+        modalText: isDark ? '#e5e5e5' : '#2c3e50',
+        menuBg: isDark ? '#1e1e1e' : '#fff',
+        menuBorder: isDark ? '#333' : '#e0e0e0',
+        menuText: isDark ? '#e5e5e5' : '#333',
+        menuActiveBg: isDark ? '#2ecc7120' : '#2ecc7115',
+        menuActiveText: '#2ecc71',
+        menuDivider: isDark ? '#2a2a2a' : '#f0f0f0'
     }), [isDark]);
 
-    // Dynamic styles based on responsive dimensions
     const dynamicStyles = useMemo(() => ({
-        container: {
-            flex: 1,
-            backgroundColor: colors.background
-        } as ViewStyle,
+        container: { flex: 1, backgroundColor: colors.background } as ViewStyle,
         headerContainer: {
             height: headerHeight,
             paddingHorizontal: horizontalPadding,
@@ -88,59 +99,105 @@ const CalendarView: React.FC = () => {
             color: colors.headerText
         } as TextStyle,
         redDot: {
-            width: isSmallPhone ? 8 : 10,
-            height: isSmallPhone ? 8 : 10,
-            borderRadius: isSmallPhone ? 4 : 5,
-            marginRight: isSmallPhone ? 10 : 12
+            width: isSmallPhone ? 8 : 10, height: isSmallPhone ? 8 : 10,
+            borderRadius: isSmallPhone ? 4 : 5, marginRight: isSmallPhone ? 10 : 12
         } as ViewStyle,
-        pageContainer: {
-            width
-        } as ViewStyle,
+        pageContainer: { width } as ViewStyle,
         modalHeaderText: {
             fontSize: isSmallPhone ? 18 : isTablet ? 26 : titleFontSize,
             color: colors.modalText
         } as TextStyle,
-        sheetContent: {
-            padding: isSmallPhone ? 12 : isTablet ? 24 : 16
-        } as ViewStyle,
+        sheetContent: { padding: isSmallPhone ? 12 : isTablet ? 24 : 16 } as ViewStyle,
         addButtonSize: isSmallPhone ? 26 : isTablet ? 36 : 30
     }), [width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet, colors]);
 
-    // Bottom sheet snap points - responsive
-    const snapPoints = useMemo(() => {
-        if (isTablet) {
-            return ['70%', '100%'];
-        }
-        return ['100%'];
-    }, [isTablet]);
+    const snapPoints = useMemo(() => (isTablet ? ['70%', '100%'] : ['100%']), [isTablet]);
 
-    // Use custom hook for all event operations
+    // Hook for events
     const {
-        events,
-        isLoading,
-        error,
-        formData,
-        editingEvent,
-        showAddForm,
-        setShowAddForm,
-        setEditingEvent,
-        updateFormData,
-        resetForm,
-        handleSaveEvent,
-        handleDeleteEvent,
-        handleEditEvent,
-        initFormForDate
+        events, isLoading, formData, editingEvent, showAddForm,
+        setShowAddForm, setEditingEvent, updateFormData, resetForm,
+        handleSaveEvent, handleDeleteEvent, handleEditEvent, initFormForDate
     } = useCalendarEvents();
 
-    // Handle date selection
+    // ----- Display month/year derived from current view -----
+    const getDateFromPageIndex = useCallback((pageIndex: number) => {
+        const offset = pageIndex - INITIAL_PAGE;
+        const d = baseDate.add(offset, 'month');
+        return { year: d.year(), month: d.month() };
+    }, [baseDate]);
+
+    const { year: displayYear, month: displayMonth } = useMemo(() => {
+        if (viewMode === 'month') return getDateFromPageIndex(currentPage);
+        const fd = dayjs(focusDate);
+        return { year: fd.year(), month: fd.month() };
+    }, [viewMode, currentPage, focusDate, getDateFromPageIndex]);
+
+    const headerTitle = useMemo(
+        () => `${THAI_MONTHS[displayMonth]} ${displayYear}`,
+        [displayMonth, displayYear]
+    );
+
+    // Toggle picker arrow animation
+    const togglePicker = useCallback(() => {
+        const toValue = showPicker ? 0 : 1;
+        setShowPicker(v => !v);
+        Animated.timing(arrowAnim, { toValue, duration: 200, useNativeDriver: true }).start();
+    }, [showPicker, arrowAnim]);
+
+    const arrowRotate = arrowAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
+
+    // Navigate Month view to specific year/month
+    const navigateToMonthYear = useCallback((year: number, month: number) => {
+        const targetDate = dayjs(`${year}-${month + 1}-01`);
+        const diff = targetDate.diff(baseDate.startOf('month'), 'month');
+        const targetPage = INITIAL_PAGE + diff;
+        pagerRef.current?.setPage(targetPage);
+        setCurrentPage(targetPage);
+    }, [baseDate]);
+
+    // Picker select handler
+    const handlePickerSelect = useCallback((year: number, month: number) => {
+        if (viewMode === 'month') {
+            navigateToMonthYear(year, month);
+        } else if (viewMode === 'year') {
+            setFocusDate(dayjs(`${year}-${month + 1}-01`).format('YYYY-MM-DD'));
+        } else {
+            setFocusDate(dayjs(`${year}-${month + 1}-01`).format('YYYY-MM-DD'));
+        }
+    }, [viewMode, navigateToMonthYear]);
+
+    // View mode switch
+    const handleSwitchMode = useCallback((mode: ViewMode) => {
+        setShowViewMenu(false);
+        if (mode === viewMode) return;
+        if (mode !== 'month') {
+            setFocusDate(selectedDate || dayjs().format('YYYY-MM-DD'));
+        }
+        setViewMode(mode);
+    }, [viewMode, selectedDate]);
+
+    // Year view: tap a month → switch to month view
+    const handleSelectMonthFromYear = useCallback((month: number) => {
+        const fd = dayjs(focusDate);
+        navigateToMonthYear(fd.year(), month);
+        setViewMode('month');
+    }, [focusDate, navigateToMonthYear]);
+
+    // Page change (month view)
+    const handlePageSelected = useCallback((e: { nativeEvent: { position: number } }) => {
+        setCurrentPage(e.nativeEvent.position);
+    }, []);
+
+    // Date selection (month/week view)
     const handleSelectDate = useCallback((date: string) => {
         sheetRef?.current?.present();
         setSelectedDate(date);
         setShowAddForm(false);
         setEditingEvent(null);
-    }, [setShowAddForm, setEditingEvent]);
+        if (viewMode !== 'month') setFocusDate(date);
+    }, [setShowAddForm, setEditingEvent, viewMode]);
 
-    // Close panel
     const closePanel = useCallback(() => {
         sheetRef?.current?.dismiss();
         setSelectedDate(null);
@@ -149,183 +206,239 @@ const CalendarView: React.FC = () => {
         resetForm();
     }, [setShowAddForm, setEditingEvent, resetForm]);
 
-    // Handle hardware back button
     useEffect(() => {
-        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            if (sheetRef.current) {
-                closePanel();
-                return true;
-            }
+        const h = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (sheetRef.current) { closePanel(); return true; }
             return false;
         });
-        return () => backHandler.remove();
+        return () => h.remove();
     }, [closePanel]);
 
-    // Convert page index to month offset (relative to baseDate)
-    const getMonthOffset = useCallback((pageIndex: number) => {
-        return pageIndex - INITIAL_PAGE;
-    }, []);
-
-    // Get date from page index
-    const getDateFromPageIndex = useCallback(
-        (pageIndex: number) => {
-            const offset = getMonthOffset(pageIndex);
-            const newDate = baseDate.add(offset, 'month');
-            return { year: newDate.year(), month: newDate.month() };
-        },
-        [baseDate, getMonthOffset]
-    );
-
-    // Handle page change from PagerView
-    const handlePageSelected = useCallback(
-        (e: { nativeEvent: { position: number } }) => {
-            const pageIndex = e.nativeEvent.position;
-            setCurrentPage(pageIndex);
-            const { year, month: monthNum } = getDateFromPageIndex(pageIndex);
-            setMonth(dayjs(`${year}-${monthNum + 1}-01`).format('MMMM YYYY'));
-        },
-        [getDateFromPageIndex]
-    );
-
-    // Filter events for selected date
     const selectedDateEvents = useMemo(() => {
         if (!selectedDate) return [];
-        const selectedDay = dayjs(selectedDate);
-        return events.filter((event) => {
-            const start = dayjs(event.startDate);
-            const end = dayjs(event.endDate);
-            return selectedDay.isBetween(start, end, 'day', '[]');
-        });
+        const day = dayjs(selectedDate);
+        return events.filter(event =>
+            day.isBetween(dayjs(event.startDate), dayjs(event.endDate), 'day', '[]')
+        );
     }, [selectedDate, events]);
 
-    // Show add form
     const handleAddEvent = useCallback(() => {
         if (!selectedDate) return;
         initFormForDate(selectedDate);
         setShowAddForm(true);
     }, [selectedDate, initFormForDate, setShowAddForm]);
 
-    // Format selected date for header
-    const formattedDate = useMemo(() => {
-        return selectedDate ? dayjs(selectedDate).format('dddd D MMMM') : 'No Date Selected';
-    }, [selectedDate]);
+    const formattedDate = useMemo(
+        () => selectedDate ? dayjs(selectedDate).format('dddd D MMMM') : 'No Date Selected',
+        [selectedDate]
+    );
 
-    // Handle form cancel
     const handleFormCancel = useCallback(() => {
         setShowAddForm(false);
         setEditingEvent(null);
         resetForm();
     }, [setShowAddForm, setEditingEvent, resetForm]);
 
-    // Generate pages array for rendering
-    const pages = useMemo(() => {
-        return Array.from({ length: TOTAL_PAGES }, (_, i) => i);
+    const pages = useMemo(() => Array.from({ length: TOTAL_PAGES }, (_, i) => i), []);
+
+    // Week view: day header tap → Day view
+    const handleWeekDaySelect = useCallback((date: string) => {
+        setFocusDate(date);
+        setViewMode('day');
     }, []);
 
-    // Loading state
     if (isLoading) {
         return (
             <View style={[styles.centered, { backgroundColor: colors.background }]}>
-                <ActivityIndicator
-                    size="large"
-                    color="#2ecc71"
-                />
+                <ActivityIndicator size="large" color="#2ecc71" />
             </View>
         );
     }
 
+    const currentViewMode = VIEW_MODES.find(m => m.value === viewMode)!;
+
     return (
         <View style={dynamicStyles.container}>
-            {/* Header */}
+            {/* ── Header ── */}
             <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
-                <View style={styles.headerLeft}>
+                {/* Left: red dot + tappable month/year + arrow */}
+                <TouchableOpacity style={styles.headerLeft} onPress={togglePicker} activeOpacity={0.7}>
                     <View style={[styles.redDot, dynamicStyles.redDot]} />
                     <Text style={[styles.headerMonthText, dynamicStyles.headerMonthText]}>
-                        {month}
+                        {headerTitle}
                     </Text>
-                </View>
+                    <Animated.View style={{ transform: [{ rotate: arrowRotate }], marginLeft: 4 }}>
+                        <AntDesign name="caret-down" size={12} color={colors.headerText} />
+                    </Animated.View>
+                </TouchableOpacity>
+
+                {/* Right: view mode toggle button */}
+                <TouchableOpacity
+                    style={[styles.viewModeBtn, { borderColor: colors.menuBorder }]}
+                    onPress={() => setShowViewMenu(v => !v)}
+                    activeOpacity={0.7}
+                >
+                    <AntDesign name={currentViewMode.icon as any} size={14} color="#2ecc71" />
+                    <Text style={[styles.viewModeBtnText, { color: colors.headerText }]}>
+                        {currentViewMode.label}
+                    </Text>
+                    <AntDesign name="down" size={10} color={colors.headerText} style={{ marginLeft: 2 }} />
+                </TouchableOpacity>
             </View>
 
-            {/* Calendar with PagerView */}
-            <PagerView
-                ref={pagerRef}
-                style={styles.pagerView}
-                initialPage={INITIAL_PAGE}
-                onPageSelected={handlePageSelected}
-                offscreenPageLimit={3}
-            >
-                {pages.map((pageIndex) => {
-                    const monthOffset = getMonthOffset(pageIndex);
-                    return (
-                        <View key={pageIndex} style={[styles.pageContainer, dynamicStyles.pageContainer]}>
-                            <CalendarBody
-                                index={monthOffset}
-                                onSelectDate={handleSelectDate}
-                                events={events as CalendarEvent[]}
-                                isDark={isDark}
-                            />
-                        </View>
-                    );
-                })}
-            </PagerView>
+            {/* MonthYearPicker overlay */}
+            <MonthYearPicker
+                visible={showPicker}
+                currentYear={displayYear}
+                currentMonth={displayMonth}
+                isDark={isDark}
+                onSelect={handlePickerSelect}
+                onDismiss={() => { setShowPicker(false); Animated.timing(arrowAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(); }}
+            />
 
-            {/* Bottom Sheet Modal */}
-            <CustomBottomSheetModal
-                ref={sheetRef}
-                snapPoints={snapPoints}
-            >
-                <View
-                    style={[styles.sheetContent, dynamicStyles.sheetContent]}
-                >
-                    {!showAddForm ? (
-                        <>
-                            <View style={styles.modalHeader}>
-                                <Text style={[styles.modalHeaderText, dynamicStyles.modalHeaderText]}>
-                                    {formattedDate}
-                                </Text>
+            {/* View mode dropdown menu */}
+            <Modal transparent visible={showViewMenu} animationType="fade" onRequestClose={() => setShowViewMenu(false)}>
+                <TouchableOpacity style={styles.menuBackdrop} activeOpacity={1} onPress={() => setShowViewMenu(false)}>
+                    <View style={[styles.viewMenu, {
+                        backgroundColor: colors.menuBg,
+                        borderColor: colors.menuBorder,
+                        right: horizontalPadding
+                    }]}>
+                        {VIEW_MODES.map((m, i) => {
+                            const isActive = m.value === viewMode;
+                            return (
                                 <TouchableOpacity
-                                    onPress={handleAddEvent}
-                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                    key={m.value}
+                                    style={[
+                                        styles.menuItem,
+                                        isActive && { backgroundColor: colors.menuActiveBg },
+                                        i < VIEW_MODES.length - 1 && [styles.menuItemBorder, { borderBottomColor: colors.menuDivider }]
+                                    ]}
+                                    onPress={() => handleSwitchMode(m.value)}
                                     activeOpacity={0.7}
                                 >
                                     <AntDesign
-                                        name="plus-circle"
-                                        size={dynamicStyles.addButtonSize}
-                                        color="#2ecc71"
+                                        name={m.icon as any}
+                                        size={16}
+                                        color={isActive ? '#2ecc71' : colors.menuText}
+                                        style={{ marginRight: 10 }}
                                     />
+                                    <Text style={[styles.menuItemText, {
+                                        color: isActive ? colors.menuActiveText : colors.menuText,
+                                        fontFamily: isActive ? 'Kanit-Bold' : 'Kanit-Regular'
+                                    }]}>
+                                        {m.label}
+                                    </Text>
+                                    {isActive && (
+                                        <AntDesign name="check" size={14} color="#2ecc71" style={{ marginLeft: 'auto' }} />
+                                    )}
                                 </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* ── Body: route by viewMode ── */}
+            {viewMode === 'month' && (
+                <PagerView
+                    ref={pagerRef}
+                    style={styles.pagerView}
+                    initialPage={INITIAL_PAGE}
+                    onPageSelected={handlePageSelected}
+                    offscreenPageLimit={3}
+                >
+                    {pages.map((pageIndex) => {
+                        const offset = pageIndex - INITIAL_PAGE;
+                        return (
+                            <View key={pageIndex} style={[styles.pageContainer, dynamicStyles.pageContainer]}>
+                                <CalendarBody
+                                    index={offset}
+                                    onSelectDate={handleSelectDate}
+                                    events={events as CalendarEvent[]}
+                                    isDark={isDark}
+                                />
                             </View>
-                            <EventList
-                                events={selectedDateEvents}
-                                onEdit={handleEditEvent}
-                                onDelete={handleDeleteEvent}
+                        );
+                    })}
+                </PagerView>
+            )}
+
+            {viewMode === 'day' && (
+                <CalendarDayView
+                    date={focusDate}
+                    events={events}
+                    isDark={isDark}
+                />
+            )}
+
+            {viewMode === 'week' && (
+                <CalendarWeekView
+                    focusDate={focusDate}
+                    events={events}
+                    isDark={isDark}
+                    onSelectDate={handleWeekDaySelect}
+                />
+            )}
+
+            {viewMode === 'year' && (
+                <CalendarYearView
+                    year={displayYear}
+                    events={events}
+                    isDark={isDark}
+                    onSelectMonth={handleSelectMonthFromYear}
+                />
+            )}
+
+            {/* Bottom Sheet (month view only) */}
+            {viewMode === 'month' && (
+                <CustomBottomSheetModal ref={sheetRef} snapPoints={snapPoints}>
+                    <View style={[styles.sheetContent, dynamicStyles.sheetContent]}>
+                        {!showAddForm ? (
+                            <>
+                                <View style={styles.modalHeader}>
+                                    <Text style={[styles.modalHeaderText, dynamicStyles.modalHeaderText]}>
+                                        {formattedDate}
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={handleAddEvent}
+                                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <AntDesign
+                                            name="plus-circle"
+                                            size={dynamicStyles.addButtonSize}
+                                            color="#2ecc71"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                                <EventList
+                                    events={selectedDateEvents}
+                                    onEdit={handleEditEvent}
+                                    onDelete={handleDeleteEvent}
+                                />
+                            </>
+                        ) : (
+                            <EventForm
+                                formData={formData}
+                                isEditing={!!editingEvent}
+                                onUpdateField={updateFormData}
+                                onSave={handleSaveEvent}
+                                onCancel={handleFormCancel}
                             />
-                        </>
-                    ) : (
-                        <EventForm
-                            formData={formData}
-                            isEditing={!!editingEvent}
-                            onUpdateField={updateFormData}
-                            onSave={handleSaveEvent}
-                            onCancel={handleFormCancel}
-                        />
-                    )}
-                </View>
-            </CustomBottomSheetModal>
+                        )}
+                    </View>
+                </CustomBottomSheetModal>
+            )}
         </View>
     );
 };
 
-// Base styles (static)
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f8f9fa'
-    },
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        justifyContent: 'space-between',
         borderBottomWidth: 0,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -335,7 +448,8 @@ const styles = StyleSheet.create({
     },
     headerLeft: {
         flexDirection: 'row',
-        alignItems: 'center'
+        alignItems: 'center',
+        flex: 1
     },
     redDot: {
         backgroundColor: '#e74c3c',
@@ -350,23 +464,53 @@ const styles = StyleSheet.create({
         color: '#2c3e50',
         letterSpacing: 0.5
     },
-    pagerView: {
-        flex: 1
+    viewModeBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        gap: 4
     },
-    pageContainer: {
-        flex: 1
+    viewModeBtnText: {
+        fontSize: 13,
+        fontFamily: 'Kanit-Regular'
     },
-    sheetContent: {
-        flexGrow: 1
+    menuBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.2)'
     },
+    viewMenu: {
+        position: 'absolute',
+        top: 58,
+        width: 160,
+        borderRadius: 12,
+        borderWidth: 1,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 8
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12
+    },
+    menuItemBorder: { borderBottomWidth: 1 },
+    menuItemText: { fontSize: 14 },
+    pagerView: { flex: 1 },
+    pageContainer: { flex: 1 },
+    sheetContent: { flexGrow: 1 },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottomWidth: 0,
         marginBottom: 20,
-        paddingBottom: 16,
-        backgroundColor: 'transparent'
+        paddingBottom: 16
     },
     modalHeaderText: {
         fontFamily: 'Kanit-Bold',
@@ -375,8 +519,7 @@ const styles = StyleSheet.create({
     centered: {
         flex: 1,
         justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#f8f9fa'
+        alignItems: 'center'
     },
     errorText: {
         color: '#e74c3c',
