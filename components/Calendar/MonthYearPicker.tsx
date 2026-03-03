@@ -13,11 +13,7 @@ import {
     Pressable
 } from 'react-native';
 
-export const THAI_MONTHS = [
-    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
-    'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
-    'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-];
+import { monthNames } from '@/utils/month-names';
 
 const THIS_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 21 }, (_, i) => THIS_YEAR - 10 + i);
@@ -116,7 +112,7 @@ const MonthYearPicker: React.FC<Props> = ({
                     <View style={styles.cols}>
                         <FlatList
                             ref={monthRef}
-                            data={THAI_MONTHS}
+                            data={monthNames.en}
                             keyExtractor={(_, i) => `m${i}`}
                             renderItem={renderMonth}
                             style={styles.col}

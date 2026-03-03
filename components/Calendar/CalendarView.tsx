@@ -29,9 +29,10 @@ import EventForm from '@/components/Calendar/EventForm';
 import CalendarDayView from '@/components/Calendar/CalendarDayView';
 import CalendarWeekView from '@/components/Calendar/CalendarWeekView';
 import CalendarYearView from '@/components/Calendar/CalendarYearView';
-import MonthYearPicker, { THAI_MONTHS } from '@/components/Calendar/MonthYearPicker';
+import MonthYearPicker from '@/components/Calendar/MonthYearPicker';
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 import { useTheme } from '@/components/ThemeProvider';
+import { monthNames } from '@/utils/month-names';
 
 // Hooks
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -49,10 +50,10 @@ const INITIAL_PAGE = MONTHS_RANGE;
 export type ViewMode = 'month' | 'week' | 'day' | 'year';
 
 const VIEW_MODES: { label: string; value: ViewMode; icon: string }[] = [
-    { label: 'วัน', value: 'day', icon: 'calendar' },
-    { label: 'สัปดาห์', value: 'week', icon: 'bars' },
-    { label: 'เดือน', value: 'month', icon: 'table' },
-    { label: 'ปี', value: 'year', icon: 'database' }
+    { label: 'Day', value: 'day', icon: 'calendar' },
+    { label: 'Week', value: 'week', icon: 'bars' },
+    { label: 'Month', value: 'month', icon: 'table' },
+    { label: 'Year', value: 'year', icon: 'database' }
 ];
 
 const CalendarView: React.FC = () => {
@@ -134,7 +135,7 @@ const CalendarView: React.FC = () => {
     }, [viewMode, currentPage, focusDate, getDateFromPageIndex]);
 
     const headerTitle = useMemo(
-        () => `${THAI_MONTHS[displayMonth]} ${displayYear}`,
+        () => `${monthNames.en[displayMonth]} ${displayYear}`,
         [displayMonth, displayYear]
     );
 

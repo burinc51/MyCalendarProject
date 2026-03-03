@@ -6,13 +6,8 @@ import React, { useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import dayjs from 'dayjs';
 import type { CalendarEvent } from '@/types/event';
+import { monthNamesShort, miniDays } from '@/utils/month-names';
 
-const THAI_SHORT_MONTHS = [
-    'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.',
-    'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.',
-    'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
-];
-const MINI_DAYS = ['อ', 'จ', 'อ', 'พ', 'พ', 'ศ', 'ส'];
 
 interface Props {
     year: number;
@@ -73,10 +68,10 @@ const MiniMonth: React.FC<MiniMonthProps> = ({ year, monthIndex, events, isDark,
             activeOpacity={0.75}
         >
             <Text style={[styles.miniTitle, { color: colors.title }]}>
-                {THAI_SHORT_MONTHS[monthIndex]}
+                {monthNamesShort.en[monthIndex]}
             </Text>
             <View style={styles.miniDayRow}>
-                {MINI_DAYS.map((d, i) => (
+                {miniDays.en.map((d, i) => (
                     <Text key={i} style={[styles.miniDayLabel, { color: colors.dayLabel }]}>{d}</Text>
                 ))}
             </View>
