@@ -149,12 +149,13 @@ const CalendarView: React.FC = () => {
     const arrowRotate = arrowAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
 
     // Navigate Month view to specific year/month
+    // PagerView is always mounted so pagerRef is always available
     const navigateToMonthYear = useCallback((year: number, month: number) => {
         const targetDate = dayjs(`${year}-${month + 1}-01`);
         const diff = targetDate.diff(baseDate.startOf('month'), 'month');
         const targetPage = INITIAL_PAGE + diff;
-        pagerRef.current?.setPage(targetPage);
         setCurrentPage(targetPage);
+        pagerRef.current?.setPageWithoutAnimation(targetPage);
     }, [baseDate]);
 
     // Picker select handler
@@ -340,30 +341,28 @@ const CalendarView: React.FC = () => {
                 </TouchableOpacity>
             </Modal>
 
-            {/* ── Body: route by viewMode ── */}
-            {viewMode === 'month' && (
-                <PagerView
-                    ref={pagerRef}
-                    style={styles.pagerView}
-                    initialPage={INITIAL_PAGE}
-                    onPageSelected={handlePageSelected}
-                    offscreenPageLimit={3}
-                >
-                    {pages.map((pageIndex) => {
-                        const offset = pageIndex - INITIAL_PAGE;
-                        return (
-                            <View key={pageIndex} style={[styles.pageContainer, dynamicStyles.pageContainer]}>
-                                <CalendarBody
-                                    index={offset}
-                                    onSelectDate={handleSelectDate}
-                                    events={events as CalendarEvent[]}
-                                    isDark={isDark}
-                                />
-                            </View>
-                        );
-                    })}
-                </PagerView>
-            )}
+            {/* ── Body: PagerView always mounted, hidden when not in month view ── */}
+            <PagerView
+                ref={pagerRef}
+                style={[styles.pagerView, viewMode !== 'month' && styles.hidden]}
+                initialPage={INITIAL_PAGE}
+                onPageSelected={handlePageSelected}
+                offscreenPageLimit={3}
+            >
+                {pages.map((pageIndex) => {
+                    const offset = pageIndex - INITIAL_PAGE;
+                    return (
+                        <View key={pageIndex} style={[styles.pageContainer, dynamicStyles.pageContainer]}>
+                            <CalendarBody
+                                index={offset}
+                                onSelectDate={handleSelectDate}
+                                events={events as CalendarEvent[]}
+                                isDark={isDark}
+                            />
+                        </View>
+                    );
+                })}
+            </PagerView>
 
             {viewMode === 'day' && (
                 <CalendarDayView
@@ -504,6 +503,7 @@ const styles = StyleSheet.create({
     menuItemBorder: { borderBottomWidth: 1 },
     menuItemText: { fontSize: 14 },
     pagerView: { flex: 1 },
+    hidden: { display: 'none' },
     pageContainer: { flex: 1 },
     sheetContent: { flexGrow: 1 },
     modalHeader: {

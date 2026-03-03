@@ -6,10 +6,10 @@ import React, { useMemo, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import dayjs from 'dayjs';
 import type { CalendarEvent } from '@/types/event';
+import { miniDays } from '@/utils/month-names';
 
 const HOUR_HEIGHT = 54;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const THAI_SHORT = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 
 interface Props {
     focusDate: string;  // any date in target week (YYYY-MM-DD)
@@ -84,7 +84,7 @@ const CalendarWeekView: React.FC<Props> = ({ focusDate, events, isDark = false, 
                             activeOpacity={0.7}
                         >
                             <Text style={[styles.dayName, { color: colors.dayName }]}>
-                                {THAI_SHORT[d.day()]}
+                                {miniDays.en[d.day()]}
                             </Text>
                             <View style={[styles.dayNumWrap, isToday && styles.todayCircle]}>
                                 <Text style={[styles.dayNum, { color: isToday ? '#fff' : colors.dayNum }]}>
