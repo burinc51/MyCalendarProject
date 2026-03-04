@@ -43,9 +43,12 @@ import type { CalendarEvent } from '@/types/event';
 
 dayjs.extend(isBetween);
 
-const MONTHS_RANGE = 60;
+// 2 years in each direction = 49 pages (was 60 = 121 pages)
+const MONTHS_RANGE = 24;
 const TOTAL_PAGES = MONTHS_RANGE * 2 + 1;
 const INITIAL_PAGE = MONTHS_RANGE;
+// Number of pages around currentPage to render actual content (rest are empty Views)
+const RENDER_WINDOW = 8;
 
 export type ViewMode = 'month' | 'week' | 'day' | 'year';
 
@@ -67,6 +70,7 @@ const CalendarView: React.FC = () => {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const sheetRef = useRef<CustomBottomSheetModalRef>(null);
     const pagerRef = useRef<PagerView>(null);
+    const pendingMonthNav = useRef<{ page: number } | null>(null);
 
     // Multi-view state
     const [viewMode, setViewMode] = useState<ViewMode>('month');
@@ -180,11 +184,29 @@ const CalendarView: React.FC = () => {
     }, [viewMode, selectedDate]);
 
     // Year view: tap a month → switch to month view
+    // PagerView has display:none while in year view, so setPageWithoutAnimation won't work immediately.
+    // Fix: switch viewMode first, then navigate via useEffect after PagerView becomes visible.
     const handleSelectMonthFromYear = useCallback((month: number) => {
         const fd = dayjs(focusDate);
-        navigateToMonthYear(fd.year(), month);
+        const targetDate = dayjs(`${fd.year()}-${month + 1}-01`);
+        const diff = targetDate.diff(baseDate.startOf('month'), 'month');
+        const targetPage = INITIAL_PAGE + diff;
+        pendingMonthNav.current = { page: targetPage };
+        setCurrentPage(targetPage);
         setViewMode('month');
-    }, [focusDate, navigateToMonthYear]);
+    }, [focusDate, baseDate]);
+
+    // When viewMode changes to 'month' and there is a pending navigation → apply it to the PagerView
+    useEffect(() => {
+        if (viewMode === 'month' && pendingMonthNav.current !== null) {
+            const { page } = pendingMonthNav.current;
+            pendingMonthNav.current = null;
+            // Wait one frame for PagerView to become visible before navigating
+            requestAnimationFrame(() => {
+                pagerRef.current?.setPageWithoutAnimation(page);
+            });
+        }
+    }, [viewMode]);
 
     // Page change (month view)
     const handlePageSelected = useCallback((e: { nativeEvent: { position: number } }) => {
@@ -351,14 +373,19 @@ const CalendarView: React.FC = () => {
             >
                 {pages.map((pageIndex) => {
                     const offset = pageIndex - INITIAL_PAGE;
+                    // Only mount CalendarBody within ±RENDER_WINDOW of the current page
+                    // Pages outside the window render as empty Views (much cheaper)
+                    const inWindow = Math.abs(pageIndex - currentPage) <= RENDER_WINDOW;
                     return (
                         <View key={pageIndex} style={[styles.pageContainer, dynamicStyles.pageContainer]}>
-                            <CalendarBody
-                                index={offset}
-                                onSelectDate={handleSelectDate}
-                                events={events as CalendarEvent[]}
-                                isDark={isDark}
-                            />
+                            {inWindow && (
+                                <CalendarBody
+                                    index={offset}
+                                    onSelectDate={handleSelectDate}
+                                    events={events as CalendarEvent[]}
+                                    isDark={isDark}
+                                />
+                            )}
                         </View>
                     );
                 })}
