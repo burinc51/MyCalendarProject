@@ -29,7 +29,7 @@ import EventForm from '@/components/Calendar/EventForm';
 import CalendarDayView from '@/components/Calendar/CalendarDayView';
 import CalendarWeekView from '@/components/Calendar/CalendarWeekView';
 import CalendarYearView from '@/components/Calendar/CalendarYearView';
-import MonthYearPicker from '@/components/Calendar/MonthYearPicker';
+import MonthYearPicker, { PickerMode } from '@/components/Calendar/MonthYearPicker';
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 import { useTheme } from '@/components/ThemeProvider';
 import { monthNames } from '@/utils/month-names';
@@ -138,10 +138,15 @@ const CalendarView: React.FC = () => {
         return { year: fd.year(), month: fd.month() };
     }, [viewMode, currentPage, focusDate, getDateFromPageIndex]);
 
-    const headerTitle = useMemo(
-        () => `${monthNames.en[displayMonth]} ${displayYear}`,
-        [displayMonth, displayYear]
-    );
+    const headerTitle = useMemo(() => {
+        if (viewMode === 'year') {
+            return `${displayYear}`;
+        }
+        if (viewMode === 'day') {
+            return dayjs(focusDate).format('D MMM YYYY');
+        }
+        return `${monthNames.en[displayMonth]} ${displayYear}`;
+    }, [viewMode, displayMonth, displayYear, focusDate]);
 
     // Toggle picker arrow animation
     const togglePicker = useCallback(() => {
@@ -162,13 +167,25 @@ const CalendarView: React.FC = () => {
         pagerRef.current?.setPageWithoutAnimation(targetPage);
     }, [baseDate]);
 
+    // Picker mode adapts to active view
+    const pickerMode: PickerMode = useMemo(() => {
+        if (viewMode === 'year') return 'yearOnly';
+        if (viewMode === 'day') return 'dayMonthYear';
+        return 'monthYear'; // month & week views
+    }, [viewMode]);
+
+    // Current day for the picker (used in Day view)
+    const currentDay = useMemo(() => dayjs(focusDate).date(), [focusDate]);
+
     // Picker select handler
-    const handlePickerSelect = useCallback((year: number, month: number) => {
+    const handlePickerSelect = useCallback((year: number, month: number, day?: number) => {
         if (viewMode === 'month') {
             navigateToMonthYear(year, month);
-        } else if (viewMode === 'year') {
-            setFocusDate(dayjs(`${year}-${month + 1}-01`).format('YYYY-MM-DD'));
+        } else if (viewMode === 'day' && day !== undefined) {
+            // Navigate to the specific day selected
+            setFocusDate(dayjs(`${year}-${month + 1}-${day}`).format('YYYY-MM-DD'));
         } else {
+            // week / year views — jump to the selected month/year
             setFocusDate(dayjs(`${year}-${month + 1}-01`).format('YYYY-MM-DD'));
         }
     }, [viewMode, navigateToMonthYear]);
@@ -271,13 +288,13 @@ const CalendarView: React.FC = () => {
         setViewMode('day');
     }, []);
 
-    if (isLoading) {
-        return (
-            <View style={[styles.centered, { backgroundColor: colors.background }]}>
-                <ActivityIndicator size="large" color="#2ecc71" />
-            </View>
-        );
-    }
+    // if (isLoading) {
+    //     return (
+    //         <View style={[styles.centered, { backgroundColor: colors.background }]}>
+    //             <ActivityIndicator size="large" color="#2ecc71" />
+    //         </View>
+    //     );
+    // }
 
     const currentViewMode = VIEW_MODES.find(m => m.value === viewMode)!;
 
@@ -310,11 +327,13 @@ const CalendarView: React.FC = () => {
                 </TouchableOpacity>
             </View>
 
-            {/* MonthYearPicker overlay */}
+            {/* MonthYearPicker overlay — columns adapt to current view mode */}
             <MonthYearPicker
                 visible={showPicker}
+                mode={pickerMode}
                 currentYear={displayYear}
                 currentMonth={displayMonth}
+                currentDay={currentDay}
                 isDark={isDark}
                 onSelect={handlePickerSelect}
                 onDismiss={() => { setShowPicker(false); Animated.timing(arrowAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(); }}
