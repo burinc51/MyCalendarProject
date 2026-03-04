@@ -1,9 +1,14 @@
 /**
  * CalendarWeekView
  * 7-column × 24-hour scrollable grid
+ * All-day events span multiple columns as continuous bars.
  */
-import React, { useMemo, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
+import {
+    View, Text, ScrollView, StyleSheet,
+    TouchableOpacity, LayoutChangeEvent
+} from 'react-native';
+import { AntDesign } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import type { CalendarEvent } from '@/types/event';
 import { miniDays } from '@/utils/month-names';
@@ -11,20 +16,39 @@ import { miniDays } from '@/utils/month-names';
 const HOUR_HEIGHT = 54;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
+const ALL_DAY_ROW_H = 22;   // height of each all-day event row
+const ALL_DAY_GAP = 3;      // vertical gap between rows
+const MAX_ROWS = 2;          // rows visible before overflow
+
+interface SpanEvent {
+    event: CalendarEvent;
+    startCol: number; // 0 = Sun … 6 = Sat (clamped to visible week)
+    endCol: number;   // inclusive
+    row: number;
+}
+
 interface Props {
-    focusDate: string;  // any date in target week (YYYY-MM-DD)
+    focusDate: string;
     events: CalendarEvent[];
     isDark?: boolean;
     onSelectDate?: (date: string) => void;
 }
 
-const CalendarWeekView: React.FC<Props> = ({ focusDate, events, isDark = false, onSelectDate }) => {
+const CalendarWeekView: React.FC<Props> = ({
+    focusDate, events, isDark = false, onSelectDate
+}) => {
     const scrollRef = useRef<ScrollView>(null);
     const now = dayjs();
     const focus = dayjs(focusDate);
     const weekStart = focus.startOf('week');
     const weekDays = Array.from({ length: 7 }, (_, i) => weekStart.add(i, 'day'));
     const todayStr = now.format('YYYY-MM-DD');
+
+    const [expanded, setExpanded] = useState(false);
+    const [gridWidth, setGridWidth] = useState(0);
+
+    // Reset expanded state when the week changes
+    useEffect(() => { setExpanded(false); }, [focusDate]);
 
     const colors = useMemo(() => ({
         bg: isDark ? '#171717' : '#f8f9fa',
@@ -34,7 +58,8 @@ const CalendarWeekView: React.FC<Props> = ({ focusDate, events, isDark = false, 
         dayName: isDark ? '#888' : '#999',
         dayNum: isDark ? '#e5e5e5' : '#333',
         colBorder: isDark ? '#252525' : '#f0f0f0',
-        todayHighlight: isDark ? '#1f1a1a' : '#fff9f9'
+        todayHighlight: isDark ? '#1f1a1a' : '#fff9f9',
+        overflowText: isDark ? '#aaa' : '#666',
     }), [isDark]);
 
     useEffect(() => {
@@ -44,51 +69,93 @@ const CalendarWeekView: React.FC<Props> = ({ focusDate, events, isDark = false, 
         }, 100);
     }, [focusDate]);
 
-    // Separate all-day vs timed events per day
-    const { allDayByDay, timedByDay } = useMemo(() => {
-        const allDay: { [d: string]: CalendarEvent[] } = {};
+    // ── Compute span events + timed events ──────────────────────────────────
+    const { spanEvents, timedByDay, totalRows } = useMemo(() => {
         const timed: { [d: string]: { event: CalendarEvent; top: number; height: number }[] } = {};
-        weekDays.forEach(d => {
-            const ds = d.format('YYYY-MM-DD');
-            allDay[ds] = [];
-            timed[ds] = [];
-        });
+        weekDays.forEach(d => { timed[d.format('YYYY-MM-DD')] = []; });
+
+        const allDayRaw: CalendarEvent[] = [];
+        const weekEnd = weekStart.add(6, 'day');
 
         events.forEach(event => {
             const s = dayjs(event.startDate);
             const e = dayjs(event.endDate);
-            weekDays.forEach(d => {
-                const ds = d.format('YYYY-MM-DD');
-                if (!d.isBefore(s, 'day') && !d.isAfter(e, 'day')) {
-                    if (event.isAllDay) {
-                        allDay[ds].push(event);
-                    } else {
+
+            if (event.isAllDay) {
+                if (!weekEnd.isBefore(s, 'day') && !weekStart.isAfter(e, 'day')) {
+                    allDayRaw.push(event);
+                }
+            } else {
+                weekDays.forEach(d => {
+                    const ds = d.format('YYYY-MM-DD');
+                    if (!d.isBefore(s, 'day') && !d.isAfter(e, 'day')) {
                         const sm = d.isSame(s, 'day') ? s.hour() * 60 + s.minute() : 0;
                         const em = d.isSame(e, 'day') ? e.hour() * 60 + e.minute() : 24 * 60;
-                        const dur = Math.max(em - sm, 30);
                         timed[ds].push({
                             event,
                             top: (sm / 60) * HOUR_HEIGHT,
-                            height: Math.max((dur / 60) * HOUR_HEIGHT, HOUR_HEIGHT * 0.4)
+                            height: Math.max((Math.max(em - sm, 30) / 60) * HOUR_HEIGHT, HOUR_HEIGHT * 0.4)
                         });
                     }
-                }
-            });
+                });
+            }
         });
-        return { allDayByDay: allDay, timedByDay: timed };
+
+        // Sort: start asc, then span length desc (longer bars claim rows first)
+        allDayRaw.sort((a, b) => {
+            const as = dayjs(a.startDate), bs = dayjs(b.startDate);
+            if (as.isBefore(bs, 'day')) return -1;
+            if (as.isAfter(bs, 'day')) return 1;
+            return dayjs(b.endDate).diff(dayjs(b.startDate), 'day')
+                - dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
+        });
+
+        // Greedy row assignment — no two events on the same row may overlap columns
+        const rowRanges: Array<Array<[number, number]>> = [];
+        const spans: SpanEvent[] = [];
+
+        allDayRaw.forEach(event => {
+            const s = dayjs(event.startDate);
+            const e = dayjs(event.endDate);
+            const startCol = Math.max(0, s.diff(weekStart, 'day'));
+            const endCol = Math.min(6, e.diff(weekStart, 'day'));
+            if (startCol > 6 || endCol < 0) return;
+
+            let row = 0;
+            while (true) {
+                const occupied = rowRanges[row] || [];
+                const conflict = occupied.some(([sc, ec]) => startCol <= ec && endCol >= sc);
+                if (!conflict) break;
+                row++;
+            }
+            if (!rowRanges[row]) rowRanges[row] = [];
+            rowRanges[row].push([startCol, endCol]);
+            spans.push({ event, startCol, endCol, row });
+        });
+
+        const total = spans.length > 0 ? Math.max(...spans.map(sp => sp.row)) + 1 : 0;
+        return { spanEvents: spans, timedByDay: timed, totalRows: total };
     }, [events, focusDate]);
 
-    // Whether any day in the week has all-day events
-    const hasAllDayEvents = useMemo(
-        () => weekDays.some(d => (allDayByDay[d.format('YYYY-MM-DD')] ?? []).length > 0),
-        [allDayByDay]
-    );
+    const hasOverflow = totalRows > MAX_ROWS;
+    const visibleRows = expanded ? totalRows : Math.min(totalRows, MAX_ROWS);
+    const visibleSpans = spanEvents.filter(sp => sp.row < visibleRows);
+
+    const colWidth = gridWidth > 0 ? gridWidth / 7 : 0;
+
+    // Section height: rows + gap + optional overflow row
+    const sectionH = visibleRows * (ALL_DAY_ROW_H + ALL_DAY_GAP) + (hasOverflow ? 24 : 6);
+
+    const handleGridLayout = useCallback((e: LayoutChangeEvent) => {
+        setGridWidth(e.nativeEvent.layout.width);
+    }, []);
 
     const nowY = (now.hour() * 60 + now.minute()) / 60 * HOUR_HEIGHT;
 
     return (
         <View style={[styles.container, { backgroundColor: colors.bg }]}>
-            {/* Fixed day header */}
+
+            {/* ── Fixed day header ── */}
             <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.line }]}>
                 <View style={styles.gutter} />
                 {weekDays.map((d, i) => {
@@ -112,34 +179,67 @@ const CalendarWeekView: React.FC<Props> = ({ focusDate, events, isDark = false, 
                 })}
             </View>
 
-            {/* All-day events strip */}
-            {hasAllDayEvents && (
-                <View style={[styles.allDayRow, { backgroundColor: colors.headerBg, borderBottomColor: colors.line }]}>
+            {/* ── All-day span bars ── */}
+            {totalRows > 0 && (
+                <View style={[
+                    styles.allDaySection,
+                    { backgroundColor: colors.headerBg, borderBottomColor: colors.line, height: sectionH }
+                ]}>
+                    {/* Gutter label */}
                     <View style={styles.gutter}>
-                        <Text style={[styles.allDayLabel, { color: colors.timeText }]}>ทั้งวัน</Text>
+                        <Text style={[styles.allDayLabel, { color: colors.timeText }]}>All Day</Text>
                     </View>
-                    {weekDays.map((d, i) => {
-                        const ds = d.format('YYYY-MM-DD');
-                        const dayAllDayEvents = allDayByDay[ds] ?? [];
-                        return (
-                            <View key={i} style={styles.allDayCol}>
-                                {dayAllDayEvents.map(event => (
-                                    <View
-                                        key={event.id}
-                                        style={[styles.allDayChip, { backgroundColor: event.color || '#2ecc71' }]}
-                                    >
-                                        <Text style={styles.allDayChipText} numberOfLines={1}>
-                                            {event.title}
-                                        </Text>
-                                    </View>
-                                ))}
+
+                    {/* Span grid */}
+                    <View style={styles.allDayGrid} onLayout={handleGridLayout}>
+                        {colWidth > 0 && visibleSpans.map(({ event, startCol, endCol, row }) => (
+                            <View
+                                key={event.id}
+                                style={[
+                                    styles.spanBar,
+                                    {
+                                        left: startCol * colWidth + 2,
+                                        width: (endCol - startCol + 1) * colWidth - 4,
+                                        top: row * (ALL_DAY_ROW_H + ALL_DAY_GAP),
+                                        height: ALL_DAY_ROW_H,
+                                        backgroundColor: event.color || '#5C6BC0',
+                                    }
+                                ]}
+                            >
+                                <Text style={styles.spanBarText} numberOfLines={1}>
+                                    {event.title}
+                                </Text>
                             </View>
-                        );
-                    })}
+                        ))}
+
+                        {/* Expand / collapse button */}
+                        {hasOverflow && (
+                            <TouchableOpacity
+                                style={[
+                                    styles.overflowBtn,
+                                    { top: visibleRows * (ALL_DAY_ROW_H + ALL_DAY_GAP) }
+                                ]}
+                                onPress={() => setExpanded(v => !v)}
+                                activeOpacity={0.7}
+                            >
+                                <AntDesign
+                                    name={expanded ? 'up' : 'down'}
+                                    size={10}
+                                    color={colors.overflowText}
+                                    style={{ marginRight: 4 }}
+                                />
+                                {!expanded && (
+                                    <Text style={[styles.overflowText, { color: colors.overflowText }]}>
+                                        +{totalRows - MAX_ROWS} more
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
             )}
 
-            {/* Scrollable time grid */}
+            {/* ── Scrollable time grid ── */}
             <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
                 <View style={styles.grid}>
                     {/* Time gutter */}
@@ -197,23 +297,49 @@ const styles = StyleSheet.create({
     dayNumWrap: { width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
     todayCircle: { backgroundColor: '#e74c3c' },
     dayNum: { fontSize: 13, fontFamily: 'Kanit-Bold' },
-    // All-day strip
-    allDayRow: {
+
+    // All-day section
+    allDaySection: {
         flexDirection: 'row',
         borderBottomWidth: 1,
-        paddingVertical: 4,
-        minHeight: 28
+        overflow: 'hidden',
+        paddingTop: 4,
     },
     allDayLabel: {
-        fontSize: 9, fontFamily: 'Kanit-Regular',
-        textAlign: 'center', marginTop: 4
+        fontSize: 9,
+        fontFamily: 'Kanit-Regular',
+        textAlign: 'center',
+        marginTop: 4,
     },
-    allDayCol: { flex: 1, paddingHorizontal: 1, gap: 2 },
-    allDayChip: {
-        borderRadius: 3, paddingHorizontal: 3, paddingVertical: 2, marginBottom: 1
+    allDayGrid: {
+        flex: 1,
+        position: 'relative',
     },
-    allDayChipText: { color: '#fff', fontSize: 8, fontFamily: 'Kanit-Bold' },
-    // Grid
+    spanBar: {
+        position: 'absolute',
+        borderRadius: 3,
+        paddingHorizontal: 4,
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    spanBarText: {
+        color: '#fff',
+        fontSize: 10,
+        fontFamily: 'Kanit-Bold',
+    },
+    overflowBtn: {
+        position: 'absolute',
+        left: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 2,
+    },
+    overflowText: {
+        fontSize: 10,
+        fontFamily: 'Kanit-Regular',
+    },
+
+    // Time grid
     grid: { flexDirection: 'row', paddingBottom: 20 },
     hourCell: { borderTopWidth: 1, justifyContent: 'flex-start' },
     hourText: { fontSize: 9, fontFamily: 'Kanit-Regular', textAlign: 'center', marginTop: -6 },
@@ -221,7 +347,7 @@ const styles = StyleSheet.create({
     eventBlock: { position: 'absolute', left: 1, right: 1, borderRadius: 4, padding: 2, overflow: 'hidden' },
     eventText: { fontSize: 9, fontFamily: 'Kanit-Bold', color: '#fff' },
     nowLine: { position: 'absolute', left: 0, right: 0, borderTopWidth: 1.5 },
-    nowDot: { width: 6, height: 6, borderRadius: 3, position: 'absolute', left: -3, top: -3 }
+    nowDot: { width: 6, height: 6, borderRadius: 3, position: 'absolute', left: -3, top: -3 },
 });
 
 export default CalendarWeekView;
