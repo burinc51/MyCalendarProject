@@ -176,7 +176,7 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     // Day header (same design as WeekView)
-    header: { flexDirection: 'row', borderBottomWidth: 1, paddingVertical: 8 },
+    header: { flexDirection: 'row', borderBottomWidth: 1, },
     gutter: { width: 44 },
     dayHead: { alignItems: 'center', paddingLeft: 4 },
     dayName: { fontSize: 10, fontFamily: 'Kanit-Regular' },

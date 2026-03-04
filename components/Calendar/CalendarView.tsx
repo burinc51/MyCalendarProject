@@ -54,6 +54,12 @@ const DAY_TOTAL_PAGES = DAYS_RANGE * 2 + 1;
 const DAY_INITIAL_PAGE = DAYS_RANGE;
 const DAY_RENDER_WINDOW = 3;
 
+// Week view pager: 2 years (104 weeks) in each direction
+const WEEKS_RANGE = 104;
+const WEEK_TOTAL_PAGES = WEEKS_RANGE * 2 + 1;
+const WEEK_INITIAL_PAGE = WEEKS_RANGE;
+const WEEK_RENDER_WINDOW = 3;
+
 export type ViewMode = 'month' | 'week' | 'day' | 'year';
 
 const VIEW_MODES: { label: string; value: ViewMode; icon: string }[] = [
@@ -82,6 +88,11 @@ const CalendarView: React.FC = () => {
     const dayPagerRef = useRef<PagerView>(null);
     const [dayCurrentPage, setDayCurrentPage] = useState(DAY_INITIAL_PAGE);
     const dayCurrentPageRef = useRef(DAY_INITIAL_PAGE);
+
+    // Week view pager
+    const weekPagerRef = useRef<PagerView>(null);
+    const [weekCurrentPage, setWeekCurrentPage] = useState(WEEK_INITIAL_PAGE);
+    const weekCurrentPageRef = useRef(WEEK_INITIAL_PAGE);
 
     // Multi-view state
     const [viewMode, setViewMode] = useState<ViewMode>('month');
@@ -155,6 +166,20 @@ const CalendarView: React.FC = () => {
     }, [baseDate]);
 
     const dayPages = useMemo(() => Array.from({ length: DAY_TOTAL_PAGES }, (_, i) => i), []);
+
+    // Week pager helpers
+    const getDateFromWeekPage = useCallback((page: number) => {
+        const offset = page - WEEK_INITIAL_PAGE;
+        return baseDate.startOf('week').add(offset, 'week').format('YYYY-MM-DD');
+    }, [baseDate]);
+
+    const getWeekPageFromDate = useCallback((dateStr: string) => {
+        const weekOf = dayjs(dateStr).startOf('week');
+        const diff = weekOf.diff(baseDate.startOf('week'), 'week');
+        return WEEK_INITIAL_PAGE + diff;
+    }, [baseDate]);
+
+    const weekPages = useMemo(() => Array.from({ length: WEEK_TOTAL_PAGES }, (_, i) => i), []);
 
     const { year: displayYear, month: displayMonth } = useMemo(() => {
         if (viewMode === 'month') return getDateFromPageIndex(currentPage);
@@ -284,6 +309,25 @@ const CalendarView: React.FC = () => {
         setDayCurrentPage(page);
         setFocusDate(getDateFromDayPage(page));
     }, [getDateFromDayPage]);
+
+    // Week pager: sync to focusDate when entering week view
+    useEffect(() => {
+        if (viewMode !== 'week') return;
+        const targetPage = getWeekPageFromDate(focusDate);
+        weekCurrentPageRef.current = targetPage;
+        setWeekCurrentPage(targetPage);
+        requestAnimationFrame(() => {
+            weekPagerRef.current?.setPageWithoutAnimation(targetPage);
+        });
+    }, [viewMode]); // focusDate intentionally omitted — only sync on view switch
+
+    // Week pager: update focusDate when the user swipes
+    const handleWeekPageSelected = useCallback((e: { nativeEvent: { position: number } }) => {
+        const page = e.nativeEvent.position;
+        weekCurrentPageRef.current = page;
+        setWeekCurrentPage(page);
+        setFocusDate(getDateFromWeekPage(page));
+    }, [getDateFromWeekPage]);
 
     // Date selection (month/week view)
     const handleSelectDate = useCallback((date: string) => {
@@ -491,13 +535,31 @@ const CalendarView: React.FC = () => {
                 </PagerView>
             )}
 
+            {/* Week view — PagerView for left/right swipe between weeks */}
             {viewMode === 'week' && (
-                <CalendarWeekView
-                    focusDate={focusDate}
-                    events={events}
-                    isDark={isDark}
-                    onSelectDate={handleWeekDaySelect}
-                />
+                <PagerView
+                    ref={weekPagerRef}
+                    style={styles.pagerView}
+                    initialPage={WEEK_INITIAL_PAGE}
+                    onPageSelected={handleWeekPageSelected}
+                    offscreenPageLimit={2}
+                >
+                    {weekPages.map((pageIndex) => {
+                        const inWindow = Math.abs(pageIndex - weekCurrentPage) <= WEEK_RENDER_WINDOW;
+                        return (
+                            <View key={pageIndex} style={styles.pageContainer}>
+                                {inWindow && (
+                                    <CalendarWeekView
+                                        focusDate={getDateFromWeekPage(pageIndex)}
+                                        events={events}
+                                        isDark={isDark}
+                                        onSelectDate={handleWeekDaySelect}
+                                    />
+                                )}
+                            </View>
+                        );
+                    })}
+                </PagerView>
             )}
 
             {viewMode === 'year' && (

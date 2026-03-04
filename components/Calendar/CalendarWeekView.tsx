@@ -143,8 +143,16 @@ const CalendarWeekView: React.FC<Props> = ({
 
     const colWidth = gridWidth > 0 ? gridWidth / 7 : 0;
 
-    // Section height: rows + gap + optional overflow row
-    const sectionH = visibleRows * (ALL_DAY_ROW_H + ALL_DAY_GAP) + (hasOverflow ? 24 : 6);
+    // Per-column overflow: how many hidden span events cover each column
+    const colOverflow = useMemo(() =>
+        Array.from({ length: 7 }, (_, col) =>
+            spanEvents.filter(sp => sp.row >= MAX_ROWS && sp.startCol <= col && sp.endCol >= col).length
+        )
+        , [spanEvents]);
+
+    // Section height: rows + optional overflow row
+    const OVERFLOW_ROW_H = 20;
+    const sectionH = 4 + visibleRows * (ALL_DAY_ROW_H + ALL_DAY_GAP) + (hasOverflow ? OVERFLOW_ROW_H : 4);
 
     const handleGridLayout = useCallback((e: LayoutChangeEvent) => {
         setGridWidth(e.nativeEvent.layout.width);
@@ -185,9 +193,25 @@ const CalendarWeekView: React.FC<Props> = ({
                     styles.allDaySection,
                     { backgroundColor: colors.headerBg, borderBottomColor: colors.line, height: sectionH }
                 ]}>
-                    {/* Gutter label */}
-                    <View style={styles.gutter}>
+                    {/* Gutter: "All Day" label + chevron at overflow row */}
+                    <View style={[styles.gutter, { position: 'relative' }]}>
                         <Text style={[styles.allDayLabel, { color: colors.timeText }]}>All Day</Text>
+                        {hasOverflow && (
+                            <TouchableOpacity
+                                style={[
+                                    styles.gutterChevron,
+                                    { top: 4 + visibleRows * (ALL_DAY_ROW_H + ALL_DAY_GAP) }
+                                ]}
+                                onPress={() => setExpanded(v => !v)}
+                                activeOpacity={0.7}
+                            >
+                                <AntDesign
+                                    name={expanded ? 'up' : 'down'}
+                                    size={12}
+                                    color={colors.overflowText}
+                                />
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                     {/* Span grid */}
@@ -200,7 +224,7 @@ const CalendarWeekView: React.FC<Props> = ({
                                     {
                                         left: startCol * colWidth + 2,
                                         width: (endCol - startCol + 1) * colWidth - 4,
-                                        top: row * (ALL_DAY_ROW_H + ALL_DAY_GAP),
+                                        top: 4 + row * (ALL_DAY_ROW_H + ALL_DAY_GAP),
                                         height: ALL_DAY_ROW_H,
                                         backgroundColor: event.color || '#5C6BC0',
                                     }
@@ -212,27 +236,25 @@ const CalendarWeekView: React.FC<Props> = ({
                             </View>
                         ))}
 
-                        {/* Expand / collapse button */}
-                        {hasOverflow && (
+                        {/* Per-column overflow counts row */}
+                        {hasOverflow && !expanded && colWidth > 0 && (
                             <TouchableOpacity
                                 style={[
-                                    styles.overflowBtn,
-                                    { top: visibleRows * (ALL_DAY_ROW_H + ALL_DAY_GAP) }
+                                    styles.overflowRow,
+                                    { top: 4 + visibleRows * (ALL_DAY_ROW_H + ALL_DAY_GAP) }
                                 ]}
                                 onPress={() => setExpanded(v => !v)}
                                 activeOpacity={0.7}
                             >
-                                <AntDesign
-                                    name={expanded ? 'up' : 'down'}
-                                    size={10}
-                                    color={colors.overflowText}
-                                    style={{ marginRight: 4 }}
-                                />
-                                {!expanded && (
-                                    <Text style={[styles.overflowText, { color: colors.overflowText }]}>
-                                        +{totalRows - MAX_ROWS} more
-                                    </Text>
-                                )}
+                                {colOverflow.map((count, col) => (
+                                    <View key={col} style={{ width: colWidth, alignItems: 'flex-start', paddingLeft: 3 }}>
+                                        {count > 0 && (
+                                            <Text style={[styles.overflowColText, { color: colors.overflowText }]}>
+                                                +{count}
+                                            </Text>
+                                        )}
+                                    </View>
+                                ))}
                             </TouchableOpacity>
                         )}
                     </View>
@@ -290,7 +312,7 @@ const CalendarWeekView: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    header: { flexDirection: 'row', borderBottomWidth: 1, paddingVertical: 8 },
+    header: { flexDirection: 'row', borderBottomWidth: 1, },
     gutter: { width: 44 },
     dayHead: { flex: 1, alignItems: 'center' },
     dayName: { fontSize: 10, fontFamily: 'Kanit-Regular' },
@@ -303,7 +325,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         borderBottomWidth: 1,
         overflow: 'hidden',
-        paddingTop: 4,
     },
     allDayLabel: {
         fontSize: 9,
@@ -327,15 +348,24 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontFamily: 'Kanit-Bold',
     },
-    overflowBtn: {
+    gutterChevron: {
         position: 'absolute',
-        left: 2,
+        left: 0,
+        right: 0,
+        height: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    overflowRow: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 20,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 2,
     },
-    overflowText: {
-        fontSize: 10,
+    overflowColText: {
+        fontSize: 12,
         fontFamily: 'Kanit-Regular',
     },
 
