@@ -44,9 +44,15 @@ const CalendarWeekView: React.FC<Props> = ({ focusDate, events, isDark = false, 
         }, 100);
     }, [focusDate]);
 
-    const eventsByDay = useMemo(() => {
-        const map: { [d: string]: { event: CalendarEvent; top: number; height: number }[] } = {};
-        weekDays.forEach(d => { map[d.format('YYYY-MM-DD')] = []; });
+    // Separate all-day vs timed events per day
+    const { allDayByDay, timedByDay } = useMemo(() => {
+        const allDay: { [d: string]: CalendarEvent[] } = {};
+        const timed: { [d: string]: { event: CalendarEvent; top: number; height: number }[] } = {};
+        weekDays.forEach(d => {
+            const ds = d.format('YYYY-MM-DD');
+            allDay[ds] = [];
+            timed[ds] = [];
+        });
 
         events.forEach(event => {
             const s = dayjs(event.startDate);
@@ -54,19 +60,29 @@ const CalendarWeekView: React.FC<Props> = ({ focusDate, events, isDark = false, 
             weekDays.forEach(d => {
                 const ds = d.format('YYYY-MM-DD');
                 if (!d.isBefore(s, 'day') && !d.isAfter(e, 'day')) {
-                    const sm = d.isSame(s, 'day') ? s.hour() * 60 + s.minute() : 0;
-                    const em = d.isSame(e, 'day') ? e.hour() * 60 + e.minute() : 24 * 60;
-                    const dur = Math.max(em - sm, 30);
-                    map[ds].push({
-                        event,
-                        top: (sm / 60) * HOUR_HEIGHT,
-                        height: Math.max((dur / 60) * HOUR_HEIGHT, HOUR_HEIGHT * 0.4)
-                    });
+                    if (event.isAllDay) {
+                        allDay[ds].push(event);
+                    } else {
+                        const sm = d.isSame(s, 'day') ? s.hour() * 60 + s.minute() : 0;
+                        const em = d.isSame(e, 'day') ? e.hour() * 60 + e.minute() : 24 * 60;
+                        const dur = Math.max(em - sm, 30);
+                        timed[ds].push({
+                            event,
+                            top: (sm / 60) * HOUR_HEIGHT,
+                            height: Math.max((dur / 60) * HOUR_HEIGHT, HOUR_HEIGHT * 0.4)
+                        });
+                    }
                 }
             });
         });
-        return map;
+        return { allDayByDay: allDay, timedByDay: timed };
     }, [events, focusDate]);
+
+    // Whether any day in the week has all-day events
+    const hasAllDayEvents = useMemo(
+        () => weekDays.some(d => (allDayByDay[d.format('YYYY-MM-DD')] ?? []).length > 0),
+        [allDayByDay]
+    );
 
     const nowY = (now.hour() * 60 + now.minute()) / 60 * HOUR_HEIGHT;
 
@@ -96,6 +112,33 @@ const CalendarWeekView: React.FC<Props> = ({ focusDate, events, isDark = false, 
                 })}
             </View>
 
+            {/* All-day events strip */}
+            {hasAllDayEvents && (
+                <View style={[styles.allDayRow, { backgroundColor: colors.headerBg, borderBottomColor: colors.line }]}>
+                    <View style={styles.gutter}>
+                        <Text style={[styles.allDayLabel, { color: colors.timeText }]}>ทั้งวัน</Text>
+                    </View>
+                    {weekDays.map((d, i) => {
+                        const ds = d.format('YYYY-MM-DD');
+                        const dayAllDayEvents = allDayByDay[ds] ?? [];
+                        return (
+                            <View key={i} style={styles.allDayCol}>
+                                {dayAllDayEvents.map(event => (
+                                    <View
+                                        key={event.id}
+                                        style={[styles.allDayChip, { backgroundColor: event.color || '#2ecc71' }]}
+                                    >
+                                        <Text style={styles.allDayChipText} numberOfLines={1}>
+                                            {event.title}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        );
+                    })}
+                </View>
+            )}
+
             {/* Scrollable time grid */}
             <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
                 <View style={styles.grid}>
@@ -114,7 +157,7 @@ const CalendarWeekView: React.FC<Props> = ({ focusDate, events, isDark = false, 
                     {weekDays.map((d, di) => {
                         const ds = d.format('YYYY-MM-DD');
                         const isToday = ds === todayStr;
-                        const dayEvts = eventsByDay[ds] || [];
+                        const dayEvts = timedByDay[ds] || [];
                         return (
                             <View key={di} style={[styles.dayCol, {
                                 borderLeftColor: colors.colBorder,
@@ -154,6 +197,23 @@ const styles = StyleSheet.create({
     dayNumWrap: { width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
     todayCircle: { backgroundColor: '#e74c3c' },
     dayNum: { fontSize: 13, fontFamily: 'Kanit-Bold' },
+    // All-day strip
+    allDayRow: {
+        flexDirection: 'row',
+        borderBottomWidth: 1,
+        paddingVertical: 4,
+        minHeight: 28
+    },
+    allDayLabel: {
+        fontSize: 9, fontFamily: 'Kanit-Regular',
+        textAlign: 'center', marginTop: 4
+    },
+    allDayCol: { flex: 1, paddingHorizontal: 1, gap: 2 },
+    allDayChip: {
+        borderRadius: 3, paddingHorizontal: 3, paddingVertical: 2, marginBottom: 1
+    },
+    allDayChipText: { color: '#fff', fontSize: 8, fontFamily: 'Kanit-Bold' },
+    // Grid
     grid: { flexDirection: 'row', paddingBottom: 20 },
     hourCell: { borderTopWidth: 1, justifyContent: 'flex-start' },
     hourText: { fontSize: 9, fontFamily: 'Kanit-Regular', textAlign: 'center', marginTop: -6 },

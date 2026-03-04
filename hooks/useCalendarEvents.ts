@@ -11,6 +11,85 @@ import { mapApiEventToCalendar, buildEventFormData } from '@/utils/calendar-help
 import { DEFAULT_EVENT_FORM, DEFAULT_USER_ID } from '@/constants/Calendar';
 import type { CalendarEvent, EventFormData } from '@/types/event';
 
+// ---------------------------------------------------------------------------
+// MOCK EVENTS  (for UI testing — remove or comment out before production)
+// ---------------------------------------------------------------------------
+const today = dayjs();
+const fmt = (d: dayjs.Dayjs) => d.format('YYYY-MM-DDTHH:mm:ss');
+
+const MOCK_EVENTS: CalendarEvent[] = [
+    // All-day event spanning 3 days
+    {
+        id: 9001, title: 'ประชุมประจำเดือน', isAllDay: true,
+        startDate: fmt(today.startOf('week').add(1, 'day')),
+        endDate: fmt(today.startOf('week').add(3, 'day')),
+        color: '#3498db', category: 'Work', priority: 'high'
+    },
+    // Today morning meeting
+    {
+        id: 9002, title: 'Stand-up Meeting', isAllDay: false,
+        startDate: fmt(today.hour(9).minute(0)),
+        endDate: fmt(today.hour(9).minute(30)),
+        color: '#2ecc71', category: 'Work', priority: 'medium'
+    },
+    // Today lunch
+    {
+        id: 9003, title: '🍜 พักกินข้าว', isAllDay: false,
+        startDate: fmt(today.hour(12).minute(0)),
+        endDate: fmt(today.hour(13).minute(0)),
+        color: '#f39c12', category: 'Personal', priority: 'low'
+    },
+    // Today afternoon
+    {
+        id: 9004, title: 'Code Review', isAllDay: false,
+        startDate: fmt(today.hour(14).minute(0)),
+        endDate: fmt(today.hour(15).minute(30)),
+        color: '#9b59b6', category: 'Work', priority: 'high'
+    },
+    // Tomorrow
+    {
+        id: 9005, title: 'Design Workshop', isAllDay: false,
+        startDate: fmt(today.add(1, 'day').hour(10).minute(0)),
+        endDate: fmt(today.add(1, 'day').hour(12).minute(0)),
+        color: '#e74c3c', category: 'Work', priority: 'high'
+    },
+    // Day after tomorrow all-day
+    {
+        id: 9006, title: 'วันหยุดพิเศษ 🎉', isAllDay: true,
+        startDate: fmt(today.add(2, 'day').startOf('day')),
+        endDate: fmt(today.add(2, 'day').endOf('day')),
+        color: '#1abc9c', category: 'Holiday', priority: 'low'
+    },
+    // Next week
+    {
+        id: 9007, title: 'Sprint Planning', isAllDay: false,
+        startDate: fmt(today.add(7, 'day').hour(9).minute(0)),
+        endDate: fmt(today.add(7, 'day').hour(11).minute(0)),
+        color: '#2980b9', category: 'Work', priority: 'high'
+    },
+    // End of month
+    {
+        id: 9008, title: 'Monthly Review 📊', isAllDay: false,
+        startDate: fmt(today.endOf('month').subtract(1, 'day').hour(14).minute(0)),
+        endDate: fmt(today.endOf('month').subtract(1, 'day').hour(16).minute(0)),
+        color: '#8e44ad', category: 'Work', priority: 'medium'
+    },
+    // Next month
+    {
+        id: 9009, title: 'Team Outing 🏖️', isAllDay: true,
+        startDate: fmt(today.add(1, 'month').startOf('month').add(4, 'day')),
+        endDate: fmt(today.add(1, 'month').startOf('month').add(4, 'day')),
+        color: '#27ae60', category: 'Personal', priority: 'low'
+    },
+    // Yesterday (to test past events)
+    {
+        id: 9010, title: 'Retrospective', isAllDay: false,
+        startDate: fmt(today.subtract(1, 'day').hour(16).minute(0)),
+        endDate: fmt(today.subtract(1, 'day').hour(17).minute(0)),
+        color: '#c0392b', category: 'Work', priority: 'medium'
+    },
+];
+
 interface UseCalendarEventsReturn {
     // State
     events: CalendarEvent[];
@@ -49,11 +128,15 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
             const response = await getEventsAll();
             if (response.data && response.data.content) {
                 const mappedEvents = response.data.content.map(mapApiEventToCalendar);
-                setEvents(mappedEvents);
+                // Merge real API events with mock events for UI testing
+                setEvents([...MOCK_EVENTS, ...mappedEvents]);
+            } else {
+                setEvents(MOCK_EVENTS);
             }
         } catch (err: unknown) {
             console.error('Failed to fetch events:', err);
-            // Don't set error state - let the calendar UI render normally with empty events
+            // On error, still show mock events so the UI can be tested
+            setEvents(MOCK_EVENTS);
         } finally {
             setIsLoading(false);
         }

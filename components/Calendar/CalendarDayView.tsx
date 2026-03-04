@@ -6,6 +6,7 @@ import React, { useMemo, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import dayjs from 'dayjs';
 import type { CalendarEvent } from '@/types/event';
+import { miniDays } from '@/utils/month-names';
 
 const HOUR_HEIGHT = 64;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -24,6 +25,10 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
 
     const colors = useMemo(() => ({
         bg: isDark ? '#171717' : '#f8f9fa',
+        headerBg: isDark ? '#262626' : '#fff',
+        headerBorder: isDark ? '#2a2a2a' : '#e8e8e8',
+        dayName: isDark ? '#888' : '#999',
+        dayNum: isDark ? '#e5e5e5' : '#333',
         line: isDark ? '#2a2a2a' : '#e8e8e8',
         timeText: isDark ? '#555' : '#bbb',
         allDayBg: isDark ? '#262626' : '#fff',
@@ -69,6 +74,21 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.bg }]}>
+            {/* Fixed day header — same style as WeekView */}
+            <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.headerBorder }]}>
+                <View style={styles.gutter} />
+                <View style={styles.dayHead}>
+                    <Text style={[styles.dayName, { color: colors.dayName }]}>
+                        {miniDays.en[currentDate.day()]}
+                    </Text>
+                    <View style={[styles.dayNumWrap, isToday && styles.todayCircle]}>
+                        <Text style={[styles.dayNum, { color: isToday ? '#fff' : colors.dayNum }]}>
+                            {currentDate.date()}
+                        </Text>
+                    </View>
+                </View>
+            </View>
+
             {allDayEvents.length > 0 && (
                 <View style={[styles.allDayBar, {
                     backgroundColor: colors.allDayBg,
@@ -111,7 +131,6 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
                             left: 64, right: 8
                         }]}>
                             <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-                            <Text style={styles.eventTime}>{startLabel}</Text>
                         </View>
                     ))}
                 </View>
@@ -122,6 +141,15 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
+    // Day header (same design as WeekView)
+    header: { flexDirection: 'row', borderBottomWidth: 1, paddingVertical: 8 },
+    gutter: { width: 44 },
+    dayHead: { alignItems: 'center', paddingLeft: 4 },
+    dayName: { fontSize: 10, fontFamily: 'Kanit-Regular' },
+    dayNumWrap: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
+    todayCircle: { backgroundColor: '#e74c3c' },
+    dayNum: { fontSize: 14, fontFamily: 'Kanit-Bold' },
+    // All-day bar
     allDayBar: {
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1
@@ -130,6 +158,7 @@ const styles = StyleSheet.create({
     allDayChips: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
     chip: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
     chipText: { color: '#fff', fontSize: 11, fontFamily: 'Kanit-Regular' },
+    // Timeline 
     timeline: { position: 'relative', paddingBottom: 20 },
     hourRow: { flexDirection: 'row', alignItems: 'flex-start', borderTopWidth: 1 },
     hourLabel: { width: 56, paddingLeft: 10, fontSize: 11, fontFamily: 'Kanit-Regular', marginTop: -8 },

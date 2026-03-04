@@ -11,7 +11,6 @@ import {
     StyleSheet,
     BackHandler,
     TouchableOpacity,
-    ActivityIndicator,
     Modal,
     Animated,
     ViewStyle,
@@ -22,7 +21,6 @@ import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { AntDesign } from '@expo/vector-icons';
 
-// Components
 import CalendarBody from '@/components/Calendar/CalendarBody';
 import EventList from '@/components/Calendar/EventList';
 import EventForm from '@/components/Calendar/EventForm';
@@ -141,9 +139,6 @@ const CalendarView: React.FC = () => {
     const headerTitle = useMemo(() => {
         if (viewMode === 'year') {
             return `${displayYear}`;
-        }
-        if (viewMode === 'day') {
-            return dayjs(focusDate).format('D MMM YYYY');
         }
         return `${monthNames.en[displayMonth]} ${displayYear}`;
     }, [viewMode, displayMonth, displayYear, focusDate]);
