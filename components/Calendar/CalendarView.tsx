@@ -48,6 +48,12 @@ const INITIAL_PAGE = MONTHS_RANGE;
 // Number of pages around currentPage to render actual content (rest are empty Views)
 const RENDER_WINDOW = 8;
 
+// Day view pager: 1 year in each direction
+const DAYS_RANGE = 365;
+const DAY_TOTAL_PAGES = DAYS_RANGE * 2 + 1;
+const DAY_INITIAL_PAGE = DAYS_RANGE;
+const DAY_RENDER_WINDOW = 3;
+
 export type ViewMode = 'month' | 'week' | 'day' | 'year';
 
 const VIEW_MODES: { label: string; value: ViewMode; icon: string }[] = [
@@ -71,6 +77,11 @@ const CalendarView: React.FC = () => {
     const pendingMonthNav = useRef<{ page: number } | null>(null);
     // Ref that always holds the latest currentPage (avoids stale closure in effects)
     const currentPageRef = useRef(INITIAL_PAGE);
+
+    // Day view pager
+    const dayPagerRef = useRef<PagerView>(null);
+    const [dayCurrentPage, setDayCurrentPage] = useState(DAY_INITIAL_PAGE);
+    const dayCurrentPageRef = useRef(DAY_INITIAL_PAGE);
 
     // Multi-view state
     const [viewMode, setViewMode] = useState<ViewMode>('month');
@@ -131,6 +142,19 @@ const CalendarView: React.FC = () => {
         const d = baseDate.add(offset, 'month');
         return { year: d.year(), month: d.month() };
     }, [baseDate]);
+
+    // Day pager helpers
+    const getDateFromDayPage = useCallback((page: number) => {
+        const offset = page - DAY_INITIAL_PAGE;
+        return baseDate.add(offset, 'day').format('YYYY-MM-DD');
+    }, [baseDate]);
+
+    const getDayPageFromDate = useCallback((dateStr: string) => {
+        const diff = dayjs(dateStr).diff(baseDate.startOf('day'), 'day');
+        return DAY_INITIAL_PAGE + diff;
+    }, [baseDate]);
+
+    const dayPages = useMemo(() => Array.from({ length: DAY_TOTAL_PAGES }, (_, i) => i), []);
 
     const { year: displayYear, month: displayMonth } = useMemo(() => {
         if (viewMode === 'month') return getDateFromPageIndex(currentPage);
@@ -241,6 +265,25 @@ const CalendarView: React.FC = () => {
         if (pendingMonthNav.current !== null) return; // restore in-flight, skip reset event
         setCurrentPage(e.nativeEvent.position);
     }, []);
+
+    // Day pager: sync to focusDate when entering day view
+    useEffect(() => {
+        if (viewMode !== 'day') return;
+        const targetPage = getDayPageFromDate(focusDate);
+        dayCurrentPageRef.current = targetPage;
+        setDayCurrentPage(targetPage);
+        requestAnimationFrame(() => {
+            dayPagerRef.current?.setPageWithoutAnimation(targetPage);
+        });
+    }, [viewMode]); // focusDate intentionally omitted — only sync on view switch, not on every swipe
+
+    // Day pager: update focusDate when the user swipes
+    const handleDayPageSelected = useCallback((e: { nativeEvent: { position: number } }) => {
+        const page = e.nativeEvent.position;
+        dayCurrentPageRef.current = page;
+        setDayCurrentPage(page);
+        setFocusDate(getDateFromDayPage(page));
+    }, [getDateFromDayPage]);
 
     // Date selection (month/week view)
     const handleSelectDate = useCallback((date: string) => {
@@ -422,12 +465,30 @@ const CalendarView: React.FC = () => {
                 })}
             </PagerView>
 
+            {/* Day view — PagerView for left/right swipe between days */}
             {viewMode === 'day' && (
-                <CalendarDayView
-                    date={focusDate}
-                    events={events}
-                    isDark={isDark}
-                />
+                <PagerView
+                    ref={dayPagerRef}
+                    style={styles.pagerView}
+                    initialPage={DAY_INITIAL_PAGE}
+                    onPageSelected={handleDayPageSelected}
+                    offscreenPageLimit={2}
+                >
+                    {dayPages.map((pageIndex) => {
+                        const inWindow = Math.abs(pageIndex - dayCurrentPage) <= DAY_RENDER_WINDOW;
+                        return (
+                            <View key={pageIndex} style={styles.pageContainer}>
+                                {inWindow && (
+                                    <CalendarDayView
+                                        date={getDateFromDayPage(pageIndex)}
+                                        events={events}
+                                        isDark={isDark}
+                                    />
+                                )}
+                            </View>
+                        );
+                    })}
+                </PagerView>
             )}
 
             {viewMode === 'week' && (

@@ -88,6 +88,18 @@ const MOCK_EVENTS: CalendarEvent[] = [
         endDate: fmt(today.subtract(1, 'day').hour(17).minute(0)),
         color: '#c0392b', category: 'Work', priority: 'medium'
     },
+    {
+        id: 9011, title: 'Retrospective', isAllDay: true,
+        startDate: fmt(today.startOf('week').add(1, 'day')),
+        endDate: fmt(today.startOf('week').add(3, 'day')),
+        color: '#c0392b', category: 'Work', priority: 'medium'
+    },
+    {
+        id: 9012, title: 'Retrospective', isAllDay: true,
+        startDate: fmt(today.startOf('week').add(1, 'day')),
+        endDate: fmt(today.startOf('week').add(3, 'day')),
+        color: '#c0392b', category: 'Work', priority: 'high'
+    },
 ];
 
 interface UseCalendarEventsReturn {

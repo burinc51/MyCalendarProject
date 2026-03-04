@@ -2,8 +2,9 @@
  * CalendarDayView
  * 24-hour vertical timeline for a single day
  */
-import React, { useMemo, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { AntDesign } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import type { CalendarEvent } from '@/types/event';
 import { miniDays } from '@/utils/month-names';
@@ -31,9 +32,10 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
         dayNum: isDark ? '#e5e5e5' : '#333',
         line: isDark ? '#2a2a2a' : '#e8e8e8',
         timeText: isDark ? '#555' : '#bbb',
-        allDayBg: isDark ? '#262626' : '#fff',
-        allDayBorder: isDark ? '#333' : '#e8e8e8',
-        allDayLabel: isDark ? '#666' : '#bbb',
+        allDayBg: isDark ? '#1e1e1e' : '#fff',
+        allDayBorder: isDark ? '#2a2a2a' : '#e8e8e8',
+        allDayEventBg: isDark ? '#5C6BC0' : '#7986CB',
+        overflowText: isDark ? '#aaa' : '#666',
         nowLine: '#e74c3c'
     }), [isDark]);
 
@@ -72,38 +74,70 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
         };
     }), [timedEvents]);
 
+    // Expand/collapse for all-day events
+    const [allDayExpanded, setAllDayExpanded] = useState(false);
+
+    // Show max 2 all-day events when collapsed, all when expanded
+    const MAX_VISIBLE_ALL_DAY = 2;
+    const visibleAllDay = allDayExpanded
+        ? allDayEvents
+        : allDayEvents.slice(0, MAX_VISIBLE_ALL_DAY);
+    const overflowCount = allDayEvents.length - MAX_VISIBLE_ALL_DAY;
+    const hasOverflow = overflowCount > 0;
+
     return (
         <View style={[styles.container, { backgroundColor: colors.bg }]}>
-            {/* Fixed day header — same style as WeekView */}
-            <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.headerBorder }]}>
-                <View style={styles.gutter} />
-                <View style={styles.dayHead}>
-                    <Text style={[styles.dayName, { color: colors.dayName }]}>
+            {/* All-day section */}
+            <View style={[styles.allDaySection, {
+                backgroundColor: colors.headerBg,
+                borderBottomColor: colors.allDayBorder
+            }]}>
+                {/* Left: day name + day number */}
+                <View style={styles.allDayLeft}>
+                    <Text style={[styles.allDayDayName, { color: colors.dayName }]}>
                         {miniDays.en[currentDate.day()]}
                     </Text>
-                    <View style={[styles.dayNumWrap, isToday && styles.todayCircle]}>
-                        <Text style={[styles.dayNum, { color: isToday ? '#fff' : colors.dayNum }]}>
+                    <View style={[styles.allDayDayNumWrap, isToday && styles.todayCircle]}>
+                        <Text style={[styles.allDayDayNum, { color: isToday ? '#fff' : colors.dayNum }]}>
                             {currentDate.date()}
                         </Text>
                     </View>
                 </View>
-            </View>
 
-            {allDayEvents.length > 0 && (
-                <View style={[styles.allDayBar, {
-                    backgroundColor: colors.allDayBg,
-                    borderBottomColor: colors.allDayBorder
-                }]}>
-                    <Text style={[styles.allDayLabel, { color: colors.allDayLabel }]}>ทั้งวัน</Text>
-                    <View style={styles.allDayChips}>
-                        {allDayEvents.map(e => (
-                            <View key={e.id} style={[styles.chip, { backgroundColor: e.color || '#2ecc71' }]}>
-                                <Text style={styles.chipText} numberOfLines={1}>{e.title}</Text>
-                            </View>
-                        ))}
-                    </View>
+                {/* Right: event rows */}
+                <View style={styles.allDayRight}>
+                    {visibleAllDay.map(e => (
+                        <View
+                            key={e.id}
+                            style={[styles.allDayEventRow, { backgroundColor: e.color || colors.allDayEventBg }]}
+                        >
+                            <Text style={styles.allDayEventText} numberOfLines={1}>
+                                {e.title}
+                            </Text>
+                        </View>
+                    ))}
+                    {/* Expand / collapse row */}
+                    {hasOverflow && (
+                        <TouchableOpacity
+                            style={styles.overflowRow}
+                            onPress={() => setAllDayExpanded(v => !v)}
+                            activeOpacity={0.7}
+                        >
+                            <AntDesign
+                                name={allDayExpanded ? 'up' : 'down'}
+                                size={12}
+                                color={colors.overflowText}
+                                style={{ marginRight: 6 }}
+                            />
+                            {!allDayExpanded && (
+                                <Text style={[styles.overflowText, { color: colors.overflowText }]}>
+                                    +{overflowCount}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
                 </View>
-            )}
+            </View>
 
             <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
                 <View style={styles.timeline}>
@@ -149,16 +183,64 @@ const styles = StyleSheet.create({
     dayNumWrap: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
     todayCircle: { backgroundColor: '#e74c3c' },
     dayNum: { fontSize: 14, fontFamily: 'Kanit-Bold' },
-    // All-day bar
-    allDayBar: {
-        flexDirection: 'row', alignItems: 'center',
-        paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1
+
+    // All-day section — Google Calendar style
+    allDaySection: {
+        flexDirection: 'row',
+        borderBottomWidth: 1,
+        paddingVertical: 6,
+        minHeight: 40
     },
-    allDayLabel: { fontSize: 11, fontFamily: 'Kanit-Regular', width: 48 },
-    allDayChips: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-    chip: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-    chipText: { color: '#fff', fontSize: 11, fontFamily: 'Kanit-Regular' },
-    // Timeline 
+    allDayLeft: {
+        width: 44,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        paddingTop: 2
+    },
+    allDayDayName: {
+        fontSize: 10,
+        fontFamily: 'Kanit-Regular',
+        textTransform: 'uppercase'
+    },
+    allDayDayNumWrap: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 2
+    },
+    allDayDayNum: {
+        fontSize: 14,
+        fontFamily: 'Kanit-Bold'
+    },
+    allDayRight: {
+        flex: 1,
+        paddingRight: 8,
+        gap: 3
+    },
+    allDayEventRow: {
+        borderRadius: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 4
+    },
+    allDayEventText: {
+        color: '#fff',
+        fontSize: 13,
+        fontFamily: 'Kanit-Regular'
+    },
+    overflowRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4
+    },
+    overflowText: {
+        fontSize: 12,
+        fontFamily: 'Kanit-Regular'
+    },
+
+    // Timeline
     timeline: { position: 'relative', paddingBottom: 20 },
     hourRow: { flexDirection: 'row', alignItems: 'flex-start', borderTopWidth: 1 },
     hourLabel: { width: 56, paddingLeft: 10, fontSize: 11, fontFamily: 'Kanit-Regular', marginTop: -8 },
