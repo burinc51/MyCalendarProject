@@ -606,8 +606,7 @@ const CalendarView: React.FC = () => {
                                         ]}
                                         activeOpacity={0.7}
                                     >
-                                        <AntDesign name="plus" size={16} color="#2ecc71" />
-                                        <Text style={styles.addButtonLabel}>เพิ่ม</Text>
+                                        <AntDesign name="plus" size={18} color="#2ecc71" />
                                     </TouchableOpacity>
                                 </View>
                                 <EventList
@@ -729,18 +728,12 @@ const styles = StyleSheet.create({
         color: '#1a1a2e',
     },
     addButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 20,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         borderWidth: 1,
-    },
-    addButtonLabel: {
-        fontSize: 13,
-        fontFamily: 'Kanit-Bold',
-        color: '#2ecc71',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     centered: {
         flex: 1,

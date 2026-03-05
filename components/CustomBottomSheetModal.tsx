@@ -44,7 +44,7 @@ const CustomBottomSheetModal = forwardRef<CustomBottomSheetModalRef, Props>(
 
         // Calculate height from snapPoints — never exceed safe area
         const getModalHeight = useCallback(() => {
-            const safeMax = SCREEN_HEIGHT - insets.top - 8;
+            const safeMax = SCREEN_HEIGHT - insets.top;
             const firstSnapPoint = snapPoints[0];
             let h: number;
             if (typeof firstSnapPoint === 'string' && firstSnapPoint.endsWith('%')) {

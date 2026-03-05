@@ -1,14 +1,19 @@
 /**
  * EventList Component
- * Displays list of events for a selected date with modern card design
+ * Premium card-style event list for selected date bottom sheet
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ScrollView,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import type { CalendarEvent } from '@/types/event';
-import { PRIORITY_COLORS } from '@/constants/Calendar';
 
 interface EventListProps {
     events: CalendarEvent[];
@@ -17,32 +22,43 @@ interface EventListProps {
     isDark?: boolean;
 }
 
-const EventList: React.FC<EventListProps> = ({ events, onEdit, onDelete, isDark = false }) => {
-    const colors = {
-        cardBg: isDark ? '#262626' : '#ffffff',
-        cardBorder: isDark ? '#333333' : '#f0f0f0',
+const getInitial = (title: string) => title.trim().charAt(0).toUpperCase() || '?';
+
+// Lighten a hex color for softer backgrounds
+const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+};
+
+const EventList: React.FC<EventListProps> = ({ events, onEdit, isDark = false }) => {
+    const c = {
+        pageBg: isDark ? '#141414' : '#f4f6f9',
+        cardBg: isDark ? '#1e1e1e' : '#ffffff',
+        cardBorder: isDark ? '#2a2a2a' : '#eeeeee',
         title: isDark ? '#f0f0f0' : '#1a1a2e',
-        time: isDark ? '#aaaaaa' : '#7f8c8d',
-        tagBg: isDark ? '#333333' : '#f0f3f7',
-        tagText: isDark ? '#cccccc' : '#5a6a7e',
-        desc: isDark ? '#888888' : '#9ba8b5',
-        editBg: isDark ? '#1a2d3d' : '#eaf4fd',
-        deleteBg: isDark ? '#3d1a1a' : '#fdeaea',
-        emptyIcon: isDark ? '#444444' : '#d0d7de',
-        emptyText: isDark ? '#888888' : '#9ba8b5',
+        subtitle: isDark ? '#888' : '#8e9aad',
+        timeBg: isDark ? '#262626' : '#f0f3f7',
+        timeText: isDark ? '#cccccc' : '#4a5568',
+        allDayBg: isDark ? '#1a3028' : '#eafaf1',
+        allDayText: isDark ? '#2ecc71' : '#27ae60',
+        iconMuted: isDark ? '#555' : '#c0c8d4',
+        emptyBg: isDark ? '#1e1e1e' : '#ffffff',
+        emptyText: isDark ? '#555' : '#b0bac5',
     };
 
     if (events.length === 0) {
         return (
-            <View style={styles.emptyStateContainer}>
-                <View style={[styles.emptyIconCircle, { backgroundColor: colors.emptyIcon + '30' }]}>
-                    <MaterialIcons name="event-note" size={40} color={colors.emptyIcon} />
+            <View style={[styles.emptyContainer, { backgroundColor: c.pageBg }]}>
+                <View style={[styles.emptyIconWrap, { backgroundColor: c.emptyBg }]}>
+                    <MaterialIcons name="event-note" size={32} color={c.iconMuted} />
                 </View>
-                <Text style={[styles.noEventsText, { color: colors.emptyText }]}>
-                    ยังไม่มีกำหนดการ
+                <Text style={[styles.emptyTitle, { color: c.emptyText }]}>
+                    No events scheduled
                 </Text>
-                <Text style={[styles.noEventsSubtext, { color: colors.emptyText + 'bb' }]}>
-                    กด + เพื่อเพิ่ม event ใหม่
+                <Text style={[styles.emptySub, { color: c.emptyText + '99' }]}>
+                    Tap + to add your first event
                 </Text>
             </View>
         );
@@ -50,109 +66,149 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit, onDelete, isDark 
 
     return (
         <ScrollView
-            style={styles.eventList}
+            style={[styles.list]}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 16 }}
+            contentContainerStyle={styles.listContent}
         >
-            {events.map((event) => (
-                <View
-                    key={event.id}
-                    style={[
-                        styles.eventItem,
-                        {
-                            backgroundColor: colors.cardBg,
-                            borderColor: colors.cardBorder,
-                        }
-                    ]}
-                >
-                    {/* Left accent bar with event color */}
-                    <View style={[styles.eventColorBar, { backgroundColor: event.color || '#2ecc71' }]} />
+            {events.map((event) => {
+                const accent = event.color || '#2ecc71';
+                const accentBg = hexToRgba(accent, isDark ? 0.15 : 0.08);
+                const initial = getInitial(event.title);
 
-                    <View style={styles.eventMainContent}>
-                        {/* Top row: title + priority badge */}
-                        <View style={styles.eventHeader}>
-                            <Text style={[styles.eventTitle, { color: colors.title }]} numberOfLines={1}>
+                const startLabel = event.isAllDay
+                    ? 'All Day'
+                    : dayjs(event.startDate).format('HH:mm');
+                const endLabel = event.isAllDay
+                    ? null
+                    : dayjs(event.endDate).format('HH:mm');
+
+                return (
+                    <TouchableOpacity
+                        key={event.id}
+                        style={[
+                            styles.card,
+                            {
+                                backgroundColor: c.cardBg,
+                                borderColor: c.cardBorder,
+                            }
+                        ]}
+                        onPress={() => onEdit(event)}
+                        activeOpacity={0.75}
+                    >
+                        {/* Left accent strip */}
+                        <View style={[styles.strip, { backgroundColor: accent }]} />
+
+                        {/* Time block */}
+                        <View style={[styles.timeBlock, { backgroundColor: c.timeBg }]}>
+                            {event.isAllDay ? (
+                                <View style={[styles.allDayPill, { backgroundColor: c.allDayBg }]}>
+                                    <Text style={[styles.allDayText, { color: c.allDayText }]}>
+                                        All{'\n'}Day
+                                    </Text>
+                                </View>
+                            ) : (
+                                <>
+                                    <Text style={[styles.timeMain, { color: c.timeText }]}>
+                                        {startLabel}
+                                    </Text>
+                                    <View style={[styles.timeDivider, { backgroundColor: c.iconMuted }]} />
+                                    <Text style={[styles.timeSub, { color: c.subtitle }]}>
+                                        {endLabel}
+                                    </Text>
+                                </>
+                            )}
+                        </View>
+
+                        {/* Main content */}
+                        <View style={styles.body}>
+                            <Text
+                                style={[styles.title, { color: c.title }]}
+                                numberOfLines={1}
+                            >
                                 {event.title}
                             </Text>
-                            {event.priority && (
-                                <View style={[
-                                    styles.priorityBadge,
-                                    {
-                                        backgroundColor: PRIORITY_COLORS[event.priority].solid + '25',
-                                        borderColor: PRIORITY_COLORS[event.priority].solid + '60'
-                                    }
-                                ]}>
-                                    <View style={[styles.priorityDot, { backgroundColor: PRIORITY_COLORS[event.priority].solid }]} />
-                                    <Text style={[styles.priorityBadgeText, { color: PRIORITY_COLORS[event.priority].solid }]}>
-                                        {event.priority}
-                                    </Text>
-                                </View>
-                            )}
+
+                            <View style={styles.meta}>
+                                {/* Category pill */}
+                                {event.category ? (
+                                    <View style={[styles.catPill, { backgroundColor: accentBg }]}>
+                                        <Text style={[styles.catText, { color: accent }]}>
+                                            {event.category}
+                                        </Text>
+                                    </View>
+                                ) : null}
+
+                                {/* Priority dot */}
+                                {event.priority ? (
+                                    <View style={styles.priorityRow}>
+                                        <View style={[
+                                            styles.priorityDot,
+                                            {
+                                                backgroundColor:
+                                                    event.priority === 'high' ? '#e74c3c' :
+                                                        event.priority === 'medium' ? '#f39c12' :
+                                                            '#2ecc71'
+                                            }
+                                        ]} />
+                                        <Text style={[styles.priorityLabel, { color: c.subtitle }]}>
+                                            {event.priority}
+                                        </Text>
+                                    </View>
+                                ) : null}
+                            </View>
                         </View>
 
-                        {/* Time row */}
-                        <View style={styles.timeRow}>
-                            <MaterialIcons
-                                name={event.isAllDay ? 'wb-sunny' : 'access-time'}
-                                size={13}
-                                color={event.color || '#2ecc71'}
-                                style={{ marginRight: 5 }}
-                            />
-                            <Text style={[styles.eventTime, { color: colors.time }]}>
-                                {event.isAllDay
-                                    ? 'ทั้งวัน'
-                                    : `${dayjs(event.startDate).format('HH:mm')} – ${dayjs(event.endDate).format('HH:mm')}`}
-                            </Text>
+                        {/* Avatar */}
+                        <View style={[styles.avatar, { backgroundColor: accent }]}>
+                            <Text style={styles.avatarText}>{initial}</Text>
                         </View>
-
-                        {/* Tags row */}
-                        <View style={styles.tagsRow}>
-                            {event.category && (
-                                <View style={[styles.eventTag, { backgroundColor: colors.tagBg }]}>
-                                    <Text style={[styles.eventTagText, { color: colors.tagText }]}>
-                                        {event.category}
-                                    </Text>
-                                </View>
-                            )}
-                            {event.description ? (
-                                <Text style={[styles.eventDescription, { color: colors.desc }]} numberOfLines={1}>
-                                    {event.description}
-                                </Text>
-                            ) : null}
-                        </View>
-                    </View>
-
-                    {/* Action buttons */}
-                    <View style={styles.eventActions}>
-                        <TouchableOpacity
-                            onPress={() => onEdit(event)}
-                            style={[styles.actionButton, { backgroundColor: colors.editBg }]}
-                            activeOpacity={0.7}
-                        >
-                            <MaterialIcons name="edit" size={18} color="#3498db" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => onDelete(event.id)}
-                            style={[styles.actionButton, { backgroundColor: colors.deleteBg }]}
-                            activeOpacity={0.7}
-                        >
-                            <MaterialIcons name="delete-outline" size={18} color="#e74c3c" />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            ))}
+                    </TouchableOpacity>
+                );
+            })}
         </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
-    eventList: {
+    list: { flex: 1 },
+    listContent: { paddingVertical: 8, paddingBottom: 24 },
+
+    // ── Empty state ──────────────────────────────────────────
+    emptyContainer: {
         flex: 1,
-        paddingTop: 4,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 56,
     },
-    eventItem: {
+    emptyIconWrap: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 2,
+    },
+    emptyTitle: {
+        fontSize: 15,
+        fontFamily: 'Kanit-Bold',
+    },
+    emptySub: {
+        fontSize: 12,
+        fontFamily: 'Kanit-Regular',
+    },
+
+    // ── Event card ───────────────────────────────────────────
+    card: {
         flexDirection: 'row',
-        marginBottom: 12,
+        alignItems: 'center',
+        marginHorizontal: 2,
+        marginBottom: 10,
         borderRadius: 16,
         borderWidth: 1,
         overflow: 'hidden',
@@ -161,35 +217,83 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 6,
         elevation: 2,
+        minHeight: 72,
     },
-    eventColorBar: {
-        width: 5,
+
+    // Left accent strip
+    strip: {
+        width: 4,
+        alignSelf: 'stretch',
     },
-    eventMainContent: {
+
+    // Time block
+    timeBlock: {
+        width: 58,
+        alignSelf: 'stretch',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 12,
+        gap: 2,
+    },
+    timeMain: {
+        fontSize: 13,
+        fontFamily: 'Kanit-Bold',
+        textAlign: 'center',
+    },
+    timeDivider: {
+        width: 20,
+        height: 1,
+        borderRadius: 1,
+        marginVertical: 2,
+        opacity: 0.4,
+    },
+    timeSub: {
+        fontSize: 11,
+        fontFamily: 'Kanit-Regular',
+        textAlign: 'center',
+    },
+    allDayPill: {
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    allDayText: {
+        fontSize: 10,
+        fontFamily: 'Kanit-Bold',
+        textAlign: 'center',
+        lineHeight: 14,
+    },
+
+    // Body
+    body: {
         flex: 1,
         paddingVertical: 14,
-        paddingLeft: 14,
-        paddingRight: 8,
+        paddingHorizontal: 12,
         gap: 6,
+        justifyContent: 'center',
     },
-    eventHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 8,
-    },
-    eventTitle: {
+    title: {
         fontSize: 15,
         fontFamily: 'Kanit-Bold',
-        flex: 1,
     },
-    priorityBadge: {
+    meta: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    catPill: {
         paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 20,
-        borderWidth: 1,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    catText: {
+        fontSize: 11,
+        fontFamily: 'Kanit-Bold',
+    },
+    priorityRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: 4,
     },
     priorityDot: {
@@ -197,77 +301,31 @@ const styles = StyleSheet.create({
         height: 6,
         borderRadius: 3,
     },
-    priorityBadgeText: {
-        fontSize: 10,
-        fontFamily: 'Kanit-Bold',
-        letterSpacing: 0.3,
+    priorityLabel: {
+        fontSize: 11,
+        fontFamily: 'Kanit-Regular',
         textTransform: 'capitalize',
     },
-    timeRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    eventTime: {
-        fontSize: 12,
-        fontFamily: 'Kanit-Regular',
-    },
-    tagsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        flexWrap: 'wrap',
-    },
-    eventTag: {
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        borderRadius: 8,
-    },
-    eventTagText: {
-        fontSize: 11,
-        fontFamily: 'Kanit-Regular',
-    },
-    eventDescription: {
-        fontSize: 11,
-        fontFamily: 'Kanit-Regular',
-        flex: 1,
-    },
-    eventActions: {
-        flexDirection: 'column',
-        justifyContent: 'center',
-        gap: 8,
-        paddingRight: 12,
-        paddingLeft: 4,
-    },
-    actionButton: {
-        width: 34,
-        height: 34,
-        borderRadius: 10,
+
+    // Avatar
+    avatar: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
         justifyContent: 'center',
         alignItems: 'center',
+        marginRight: 14,
+        marginLeft: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    // Empty state
-    emptyStateContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: 48,
-        gap: 12,
-    },
-    emptyIconCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    noEventsText: {
+    avatarText: {
         fontSize: 16,
         fontFamily: 'Kanit-Bold',
-    },
-    noEventsSubtext: {
-        fontSize: 13,
-        fontFamily: 'Kanit-Regular',
+        color: '#fff',
     },
 });
 
