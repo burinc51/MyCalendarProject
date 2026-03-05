@@ -181,7 +181,7 @@ const EventDetailScreen = () => {
     return (
         <View style={[styles.root, { backgroundColor: bg }]}>
             {/* ── Custom Nav Bar ── */}
-            <View style={[styles.navbar, { backgroundColor: navBg, paddingTop: insets.top + 4 }]}>
+            <View style={[styles.navbar, { backgroundColor: navBg, }]}>
                 <TouchableOpacity onPress={handleBack} style={styles.navBtn} activeOpacity={0.7}>
                     <Feather name="arrow-left" size={22} color={isDark ? '#e5e5e5' : '#2c3e50'} />
                 </TouchableOpacity>
