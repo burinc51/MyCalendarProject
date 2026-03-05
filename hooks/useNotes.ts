@@ -8,6 +8,7 @@ import { Alert } from 'react-native';
 import { useToast } from '@/components/ui/Toast';
 import type { ToastType } from '@/components/ui/Toast';
 import * as noteService from '@/services/note-service';
+import { scheduleNoteReminder, cancelNoteReminder } from '@/services/notification-service';
 import { DEFAULT_NOTE_FORM, DEFAULT_FOLDER_FORM } from '@/types/note';
 import type { Note, Folder, NoteFormData, FolderFormData, NoteSortOption, SortDirection, NoteViewMode } from '@/types/note';
 
@@ -187,7 +188,8 @@ export const useNotes = (): UseNotesReturn => {
                     folderId: note.folderId,
                     color: note.color,
                     isPinned: note.isPinned,
-                    tags: note.tags || []
+                    tags: note.tags || [],
+                    reminderDate: note.reminderDate || null
                 });
                 setEditingNote(note);
             } else {
@@ -205,7 +207,16 @@ export const useNotes = (): UseNotesReturn => {
     // Create new note
     const createNoteAction = useCallback(async () => {
         try {
-            await noteService.createNote(noteFormData);
+            const createdNote = await noteService.createNote(noteFormData);
+
+            // Schedule reminder notification if set
+            if (noteFormData.reminderDate) {
+                const reminderDate = new Date(noteFormData.reminderDate);
+                if (reminderDate > new Date()) {
+                    await scheduleNoteReminder(createdNote.id, noteFormData.title || 'Untitled', reminderDate);
+                }
+            }
+
             showToast('สร้างโน้ตสำเร็จ ✓');
             setShowNoteEditor(false);
             resetNoteForm();
@@ -223,7 +234,16 @@ export const useNotes = (): UseNotesReturn => {
 
         try {
             await noteService.updateNote(editingNote.id, noteFormData);
-            showToast('note updated successfully');
+
+            // Schedule or cancel reminder notification
+            if (noteFormData.reminderDate) {
+                const reminderDate = new Date(noteFormData.reminderDate);
+                if (reminderDate > new Date()) {
+                    await scheduleNoteReminder(editingNote.id, noteFormData.title || 'Untitled', reminderDate);
+                }
+            }
+
+            showToast('อัปเดตโน้ตสำเร็จ ✓');
             setShowNoteEditor(false);
             resetNoteForm();
             fetchNotes();

@@ -9,6 +9,7 @@ export interface Note {
     isPinned: boolean;
     color: string;
     tags?: string[];
+    reminderDate?: string | null; // ISO date string for reminder notification
 }
 
 // Folder interface
@@ -30,6 +31,7 @@ export interface NoteFormData {
     color: string;
     isPinned: boolean;
     tags: string[];
+    reminderDate: string | null; // ISO date string for reminder notification
 }
 
 // Form data for creating/editing folders
@@ -51,6 +53,7 @@ export interface ApiNote {
     pinned: boolean;
     color: string;
     tags: string[] | null;
+    reminderDate: string | null;
 }
 
 export interface ApiFolder {
@@ -96,7 +99,8 @@ export const DEFAULT_NOTE_FORM: NoteFormData = {
     folderId: null,
     color: NOTE_COLORS[0],
     isPinned: false,
-    tags: []
+    tags: [],
+    reminderDate: null
 };
 
 export const DEFAULT_FOLDER_FORM: FolderFormData = {

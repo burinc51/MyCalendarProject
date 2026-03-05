@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
     TextInput, ScrollView, KeyboardAvoidingView, Platform,
@@ -7,6 +7,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
+// Custom date/time picker (pure JS, no native module needed)
+import dayjs from 'dayjs';
 import type { NoteFormData } from '@/types/note';
 import { NOTE_COLORS } from '@/types/note';
 import { useTheme, useThemeColors } from '../ThemeProvider';
@@ -40,6 +42,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         folderId: formData.folderId,
         isPinned: formData.isPinned,
         tags: formData.tags,
+        reminderDate: formData.reminderDate,
     });
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
@@ -49,11 +52,29 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     const [linkTitle, setLinkTitle] = useState('');
     const [linkUrl, setLinkUrl] = useState('');
 
+    // Reminder state
+    const [showReminderModal, setShowReminderModal] = useState(false);
+    const [tempReminderDate, setTempReminderDate] = useState<Date>(
+        formData.reminderDate ? new Date(formData.reminderDate) : new Date(Date.now() + 60 * 60 * 1000)
+    );
+
     const { theme, isDark } = useTheme();
     const colors = useThemeColors();
 
     const editorBgColor = formData.color === '#ffffff' ? colors.background : formData.color;
     const editorTextColor = formData.color === '#ffffff' ? colors.textPrimary : '#333';
+
+    // Formatted reminder date for display
+    const formattedReminder = useMemo(() => {
+        if (!formData.reminderDate) return null;
+        return dayjs(formData.reminderDate).format('DD MMM YYYY HH:mm');
+    }, [formData.reminderDate]);
+
+    // Check if reminder is in the past
+    const isReminderPast = useMemo(() => {
+        if (!formData.reminderDate) return false;
+        return new Date(formData.reminderDate) < new Date();
+    }, [formData.reminderDate]);
 
     useEffect(() => {
         const showSub = Keyboard.addListener(
@@ -76,9 +97,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         const changed =
             formData.title !== initial.title ||
             formData.content !== initial.content ||
-            formData.color !== initial.color;
+            formData.color !== initial.color ||
+            formData.reminderDate !== initial.reminderDate;
         setHasUnsavedChanges(changed);
-    }, [formData.title, formData.content, formData.color]);
+    }, [formData.title, formData.content, formData.color, formData.reminderDate]);
 
     const handleChangeText = useCallback((text: string) => {
         onUpdateField('content', text);
@@ -125,6 +147,75 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         setLinkModalVisible(false);
     }, [linkTitle, linkUrl]);
 
+    // ========== Reminder Handlers ==========
+
+    const handleOpenReminderModal = useCallback(() => {
+        // Initialize temp date from existing reminder or 1 hour from now
+        const initialDate = formData.reminderDate
+            ? new Date(formData.reminderDate)
+            : new Date(Date.now() + 60 * 60 * 1000);
+        setTempReminderDate(initialDate);
+        setShowReminderModal(true);
+    }, [formData.reminderDate]);
+
+    // Custom date/time adjustment helpers
+    const adjustDate = useCallback((days: number) => {
+        setTempReminderDate(prev => {
+            const d = new Date(prev);
+            d.setDate(d.getDate() + days);
+            // Don't allow past dates
+            if (d < new Date()) {
+                const now = new Date();
+                now.setSeconds(0, 0);
+                return now;
+            }
+            return d;
+        });
+    }, []);
+
+    const adjustHour = useCallback((delta: number) => {
+        setTempReminderDate(prev => {
+            const d = new Date(prev);
+            d.setHours(d.getHours() + delta);
+            if (d < new Date()) {
+                const now = new Date();
+                now.setSeconds(0, 0);
+                return now;
+            }
+            return d;
+        });
+    }, []);
+
+    const adjustMinute = useCallback((delta: number) => {
+        setTempReminderDate(prev => {
+            const d = new Date(prev);
+            d.setMinutes(d.getMinutes() + delta);
+            if (d < new Date()) {
+                const now = new Date();
+                now.setSeconds(0, 0);
+                return now;
+            }
+            return d;
+        });
+    }, []);
+
+    const handleConfirmReminder = useCallback(() => {
+        onUpdateField('reminderDate', tempReminderDate.toISOString());
+        setShowReminderModal(false);
+    }, [tempReminderDate, onUpdateField]);
+
+    const handleRemoveReminder = useCallback(() => {
+        onUpdateField('reminderDate', null);
+        setShowReminderModal(false);
+    }, [onUpdateField]);
+
+    // Quick reminder presets
+    const handleQuickReminder = useCallback((minutes: number) => {
+        const reminderDate = new Date(Date.now() + minutes * 60 * 1000);
+        onUpdateField('reminderDate', reminderDate.toISOString());
+        setShowReminderModal(false);
+    }, [onUpdateField]);
+
     return (
         <SafeAreaView
             style={{ flex: 1, backgroundColor: colors.background }}
@@ -142,8 +233,43 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                 >
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
                         <TouchableOpacity onPress={handleCancel}><AntDesign name="left" size={24} color={colors.textPrimary} /></TouchableOpacity>
-                        <TouchableOpacity onPress={onSave}><Ionicons name="checkmark" size={24} color={colors.textPrimary} /></TouchableOpacity>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                            {/* Reminder button in header */}
+                            <TouchableOpacity onPress={handleOpenReminderModal}>
+                                <Ionicons name='notifications' size={24} color={formData.reminderDate ? '#ffffff' : colors.textSecondary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={onSave}><Ionicons name='checkmark' size={24} color={colors.textPrimary} /></TouchableOpacity>
+                        </View>
                     </View>
+
+                    {/* Reminder Badge */}
+                    {formData.reminderDate && (
+                        <TouchableOpacity
+                            onPress={handleOpenReminderModal}
+                            style={[
+                                styles.reminderBadge,
+                                {
+                                    backgroundColor: isReminderPast
+                                        ? (isDark ? 'rgba(231,76,60,0.15)' : 'rgba(231,76,60,0.1)')
+                                        : (isDark ? 'rgba(230,126,34,0.15)' : 'rgba(230,126,34,0.08)')
+                                }
+                            ]}
+                        >
+                            <Ionicons name='notifications' size={16} color={isReminderPast ? '#e74c3c' : '#e67e22'} />
+                            <Text style={[
+                                styles.reminderBadgeText,
+                                { color: isReminderPast ? '#e74c3c' : '#ffffff' }
+                            ]}>
+                                {isReminderPast ? 'เลยกำหนด: ' : ''}{formattedReminder}
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => onUpdateField('reminderDate', null)}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <AntDesign name="close" size={14} color={isReminderPast ? '#e74c3c' : '#e67e22'} />
+                            </TouchableOpacity>
+                        </TouchableOpacity>
+                    )}
 
                     <TouchableOpacity
                         onPress={() => setShowColorPicker(!showColorPicker)}
@@ -213,7 +339,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             </ScrollView>
                         </View>
                     )}
-                    <View className='p-4'>
+                    <View className='p-7'>
                         <View style={{ borderRadius: 10, overflow: 'hidden' }}>
                             <RichEditor
                                 ref={richTextEditorRef}
@@ -225,7 +351,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                     backgroundColor: editorBgColor,
                                     color: editorTextColor,
                                     placeholderColor: colors.textSecondary,
-                                    contentCSSText: 'font-size: 13px; line-height: 1.6; font-family: sans-serif; padding: 10px;',
+                                    contentCSSText: `font-size: 13px; line-height: 1.6; font-family: sans-serif; padding: 10px; hr { border-top: 1px solid ${colors.border}; }`,
                                 }}
                                 useContainer={true}
                                 initialHeight={400}
@@ -259,6 +385,122 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                     </View>
                 )}
             </KeyboardAvoidingView>
+
+            {/* ========== Reminder Modal ========== */}
+            <Modal
+                visible={showReminderModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowReminderModal(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowReminderModal(false)}
+                >
+                    <TouchableOpacity activeOpacity={1} style={[styles.reminderModalContent, { backgroundColor: colors.surface }]}>
+                        {/* Header */}
+                        <View style={styles.reminderModalHeader}>
+                            <Ionicons name="notifications" size={24} color="#e67e22" />
+                            <Text style={[styles.reminderModalTitle, { color: colors.textPrimary }]}>ตั้งเวลาแจ้งเตือน</Text>
+                        </View>
+
+                        {/* Quick presets */}
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary }]}>ตั้งค่าด่วน</Text>
+                        <View style={styles.quickPresetsRow}>
+                            {[
+                                { label: '30 นาที', minutes: 30 },
+                                { label: '1 ชม.', minutes: 60 },
+                                { label: '3 ชม.', minutes: 180 },
+                                { label: 'พรุ่งนี้', minutes: 1440 },
+                            ].map((preset) => (
+                                <TouchableOpacity
+                                    key={preset.minutes}
+                                    style={[styles.quickPresetBtn, { backgroundColor: isDark ? 'rgba(230,126,34,0.15)' : 'rgba(230,126,34,0.1)' }]}
+                                    onPress={() => handleQuickReminder(preset.minutes)}
+                                >
+                                    <Text style={[styles.quickPresetText, { color: '#e67e22' }]}>{preset.label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        {/* Custom date/time picker */}
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>กำหนดเอง</Text>
+
+                        {/* Date picker row */}
+                        <View style={[styles.customPickerRow, { backgroundColor: isDark ? colors.background : '#f8f8f8', borderColor: colors.border }]}>
+                            <AntDesign name="calendar" size={16} color={colors.primary} />
+                            <TouchableOpacity onPress={() => adjustDate(-1)} style={styles.pickerArrow}>
+                                <AntDesign name="left" size={18} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                            <Text style={[styles.pickerValueText, { color: colors.textPrimary }]}>
+                                {dayjs(tempReminderDate).format('DD MMM YYYY')}
+                            </Text>
+                            <TouchableOpacity onPress={() => adjustDate(1)} style={styles.pickerArrow}>
+                                <AntDesign name="right" size={18} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Time picker row */}
+                        <View style={[styles.customPickerRow, { backgroundColor: isDark ? colors.background : '#f8f8f8', borderColor: colors.border, marginTop: 10 }]}>
+                            <AntDesign name="clock-circle" size={16} color={colors.primary} />
+                            {/* Hour */}
+                            <View style={styles.timeUnit}>
+                                <TouchableOpacity onPress={() => adjustHour(1)} style={styles.timeArrow}>
+                                    <AntDesign name="up" size={16} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                                <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>
+                                    {dayjs(tempReminderDate).format('HH')}
+                                </Text>
+                                <TouchableOpacity onPress={() => adjustHour(-1)} style={styles.timeArrow}>
+                                    <AntDesign name="down" size={16} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={[styles.timeSeparator, { color: colors.textPrimary }]}>:</Text>
+                            {/* Minute */}
+                            <View style={styles.timeUnit}>
+                                <TouchableOpacity onPress={() => adjustMinute(1)} style={styles.timeArrow}>
+                                    <AntDesign name="up" size={16} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                                <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>
+                                    {dayjs(tempReminderDate).format('mm')}
+                                </Text>
+                                <TouchableOpacity onPress={() => adjustMinute(-1)} style={styles.timeArrow}>
+                                    <AntDesign name="down" size={16} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Action buttons */}
+                        <View style={styles.reminderActions}>
+                            <TouchableOpacity
+                                style={[styles.reminderConfirmBtn, { backgroundColor: '#e67e22' }]}
+                                onPress={handleConfirmReminder}
+                            >
+                                <Ionicons name="notifications" size={16} color="#fff" style={{ marginRight: 6 }} />
+                                <Text style={styles.reminderConfirmText}>ตั้งเวลาแจ้งเตือน</Text>
+                            </TouchableOpacity>
+
+                            {formData.reminderDate && (
+                                <TouchableOpacity
+                                    style={[styles.reminderRemoveBtn, { borderColor: '#e74c3c' }]}
+                                    onPress={handleRemoveReminder}
+                                >
+                                    <AntDesign name="delete" size={14} color="#e74c3c" style={{ marginRight: 6 }} />
+                                    <Text style={[styles.reminderRemoveText, { color: '#e74c3c' }]}>ลบการแจ้งเตือน</Text>
+                                </TouchableOpacity>
+                            )}
+
+                            <TouchableOpacity
+                                style={styles.reminderCancelBtn}
+                                onPress={() => setShowReminderModal(false)}
+                            >
+                                <Text style={[styles.reminderCancelText, { color: colors.textSecondary }]}>ยกเลิก</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
 
             {/* Unsaved Changes Confirmation Modal */}
             <Modal
@@ -387,6 +629,136 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#e0e0e0',
         backgroundColor: '#f8f8f8',
+    },
+    // Reminder badge
+    reminderBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        marginHorizontal: 16,
+        marginBottom: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        gap: 6,
+    },
+    reminderBadgeText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    // Reminder Modal
+    reminderModalContent: {
+        borderRadius: 20,
+        padding: 24,
+        width: '90%',
+        maxWidth: 400,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    reminderModalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 20,
+    },
+    reminderModalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    reminderSectionLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    quickPresetsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    quickPresetBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+    },
+    quickPresetText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    customPickerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 8,
+    },
+    pickerArrow: {
+        padding: 6,
+    },
+    pickerValueText: {
+        fontSize: 15,
+        fontWeight: '600',
+        minWidth: 120,
+        textAlign: 'center',
+    },
+    timeUnit: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    timeArrow: {
+        padding: 4,
+    },
+    timeValueText: {
+        fontSize: 22,
+        fontWeight: '700',
+        minWidth: 36,
+        textAlign: 'center',
+    },
+    timeSeparator: {
+        fontSize: 22,
+        fontWeight: '700',
+    },
+    reminderActions: {
+        marginTop: 20,
+        gap: 10,
+    },
+    reminderConfirmBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 13,
+        borderRadius: 12,
+    },
+    reminderConfirmText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    reminderRemoveBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 11,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    reminderRemoveText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    reminderCancelBtn: {
+        alignItems: 'center',
+        paddingVertical: 8,
+    },
+    reminderCancelText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     // Unsaved changes modal
     unsavedModalContent: {
@@ -519,5 +891,3 @@ const styles = StyleSheet.create({
 });
 
 export default NoteEditor;
-
-

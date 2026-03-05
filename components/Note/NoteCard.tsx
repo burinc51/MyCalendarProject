@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { Note, NoteViewMode } from '@/types/note';
@@ -81,6 +81,17 @@ const NoteCard: React.FC<NoteCardProps> = ({
         return dayjs(note.updatedAt).fromNow();
     }, [note.updatedAt]);
 
+    // Reminder display
+    const reminderInfo = useMemo(() => {
+        if (!note.reminderDate) return null;
+        const reminderDate = dayjs(note.reminderDate);
+        const isPast = reminderDate.isBefore(dayjs());
+        return {
+            text: reminderDate.format('DD MMM HH:mm'),
+            isPast,
+        };
+    }, [note.reminderDate]);
+
     const isGridView = viewMode === 'grid';
 
     return (
@@ -123,6 +134,27 @@ const NoteCard: React.FC<NoteCardProps> = ({
                 >
                     {contentPreview}
                 </Text>
+            )}
+
+            {/* Reminder Badge */}
+            {reminderInfo && (
+                <View style={[
+                    styles.reminderBadge,
+                    { backgroundColor: reminderInfo.isPast ? 'rgba(231,76,60,0.12)' : 'rgba(230,126,34,0.1)' }
+                ]}>
+                    
+                    <Ionicons
+                        name="notifications"
+                        size={11}
+                        color={reminderInfo.isPast ? '#e74c3c' : '#e67e22'}
+                    />
+                    <Text style={[
+                        styles.reminderText,
+                        { color: reminderInfo.isPast ? '#e74c3c' : '#e67e22' }
+                    ]}>
+                        {reminderInfo.text}
+                    </Text>
+                </View>
             )}
 
             {/* Footer */}
@@ -221,6 +253,21 @@ const styles = StyleSheet.create({
     moreTagsText: {
         fontFamily: 'Kanit-Regular',
         fontSize: 10
+    },
+    reminderBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 12,
+        gap: 4,
+        marginTop: 8
+    },
+    reminderText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 10,
+        fontWeight: '500'
     }
 });
 
