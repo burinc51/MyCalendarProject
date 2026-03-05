@@ -573,30 +573,48 @@ const CalendarView: React.FC = () => {
 
             {/* Bottom Sheet (month view only) */}
             {viewMode === 'month' && (
-                <CustomBottomSheetModal ref={sheetRef} snapPoints={snapPoints}>
+                <CustomBottomSheetModal ref={sheetRef} snapPoints={snapPoints} isDark={isDark}>
                     <View style={[styles.sheetContent, dynamicStyles.sheetContent]}>
                         {!showAddForm ? (
                             <>
-                                <View style={styles.modalHeader}>
-                                    <Text style={[styles.modalHeaderText, dynamicStyles.modalHeaderText]}>
-                                        {formattedDate}
-                                    </Text>
+                                {/* Sheet header */}
+                                <View style={[
+                                    styles.modalHeader,
+                                    { borderBottomColor: isDark ? '#333' : '#f0f0f0' }
+                                ]}>
+                                    <View style={styles.modalHeaderLeft}>
+                                        <View style={[
+                                            styles.modalAccentBar,
+                                            { backgroundColor: '#2ecc71' }
+                                        ]} />
+                                        <Text style={[
+                                            styles.modalHeaderText,
+                                            dynamicStyles.modalHeaderText,
+                                            { color: isDark ? '#f0f0f0' : '#1a1a2e' }
+                                        ]}>
+                                            {formattedDate}
+                                        </Text>
+                                    </View>
                                     <TouchableOpacity
                                         onPress={handleAddEvent}
-                                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                        style={[
+                                            styles.addButton,
+                                            {
+                                                backgroundColor: isDark ? '#1a3d2a' : '#eafaf1',
+                                                borderColor: isDark ? '#2ecc71aa' : '#2ecc7160'
+                                            }
+                                        ]}
                                         activeOpacity={0.7}
                                     >
-                                        <AntDesign
-                                            name="plus-circle"
-                                            size={dynamicStyles.addButtonSize}
-                                            color="#2ecc71"
-                                        />
+                                        <AntDesign name="plus" size={16} color="#2ecc71" />
+                                        <Text style={styles.addButtonLabel}>เพิ่ม</Text>
                                     </TouchableOpacity>
                                 </View>
                                 <EventList
                                     events={selectedDateEvents}
                                     onEdit={handleEditEvent}
                                     onDelete={handleDeleteEvent}
+                                    isDark={isDark}
                                 />
                             </>
                         ) : (
@@ -691,12 +709,38 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
-        paddingBottom: 16
+        marginBottom: 16,
+        paddingBottom: 14,
+        borderBottomWidth: 1,
+    },
+    modalHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
+    },
+    modalAccentBar: {
+        width: 4,
+        height: 22,
+        borderRadius: 2,
     },
     modalHeaderText: {
         fontFamily: 'Kanit-Bold',
-        color: '#2c3e50'
+        color: '#1a1a2e',
+    },
+    addButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+    },
+    addButtonLabel: {
+        fontSize: 13,
+        fontFamily: 'Kanit-Bold',
+        color: '#2ecc71',
     },
     centered: {
         flex: 1,
