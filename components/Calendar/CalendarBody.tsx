@@ -303,21 +303,32 @@ const CalendarBody = React.memo(({ index, onSelectDate, events, isDark = false }
         [today, month, onSelectDate, dynamicStyles]
     );
 
+    const MAX_VISIBLE_SLOTS = 4;
+
     // Render events with responsive positioning
     const renderEvents = useCallback(
         (weekIndex: number) => {
             if (!processedEvents[weekIndex]) return null;
 
-            return Object.entries(processedEvents[weekIndex]).flatMap(([dayIndexStr, dayEvents]) => {
+            // Collect overflow counts per day column (for events with slot >= MAX_VISIBLE_SLOTS)
+            const overflowByDay: { [dayIndex: number]: number } = {};
+
+            const visibleElements = Object.entries(processedEvents[weekIndex]).flatMap(([dayIndexStr, dayEvents]) => {
                 const dayIndex = parseInt(dayIndexStr, 10);
                 const eventsArr = dayEvents as CalendarEvent[];
 
-                return eventsArr.map((event, eventIndex) => {
+                return eventsArr.flatMap((event, eventIndex) => {
+                    // Count hidden events — only at their start column to avoid double-counting
+                    if (event.slot >= MAX_VISIBLE_SLOTS) {
+                        overflowByDay[dayIndex] = (overflowByDay[dayIndex] || 0) + 1;
+                        return [];
+                    }
+
                     const leftPosition = (dayIndex / 7) * 100;
                     const eventWidth = (event.weekSpan / 7) * 100;
                     const borderRadius = isSmallPhone ? 3 : 4;
 
-                    return (
+                    return [
                         <View
                             key={`event-${weekIndex}-${dayIndex}-${eventIndex}`}
                             style={[
@@ -343,11 +354,39 @@ const CalendarBody = React.memo(({ index, onSelectDate, events, isDark = false }
                                 {event.title}
                             </Text>
                         </View>
-                    );
+                    ];
                 });
             });
+
+            // Render overflow indicators for each day that has hidden events
+            const overflowElements = Object.entries(overflowByDay).map(([dayIndexStr, count]) => {
+                const dayIndex = parseInt(dayIndexStr, 10);
+                const leftPosition = (dayIndex / 7) * 100;
+                const colWidth = 100 / 7;
+                const topPosition = eventTopOffset + MAX_VISIBLE_SLOTS * eventRowHeight;
+
+                return (
+                    <View
+                        key={`overflow-${weekIndex}-${dayIndex}`}
+                        style={[
+                            styles.overflowIndicator,
+                            {
+                                left: `${leftPosition}%`,
+                                width: `${colWidth}%`,
+                                top: topPosition,
+                            }
+                        ]}
+                    >
+                        <Text style={[styles.overflowText, { fontSize: eventFontSize }]}>
+                            +{count}
+                        </Text>
+                    </View>
+                );
+            });
+
+            return [...visibleElements, ...overflowElements];
         },
-        [processedEvents, dynamicStyles, eventTopOffset, eventRowHeight, isSmallPhone]
+        [processedEvents, dynamicStyles, eventTopOffset, eventRowHeight, eventFontSize, isSmallPhone]
     );
 
     return (
@@ -460,6 +499,16 @@ const styles = StyleSheet.create({
         color: 'white',
         textAlign: 'center',
         fontFamily: 'Kanit-Bold'
+    },
+    overflowIndicator: {
+        position: 'absolute',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    overflowText: {
+        color: '#e74c3c',
+        fontFamily: 'Kanit-Bold',
+        textAlign: 'center',
     }
 });
 
