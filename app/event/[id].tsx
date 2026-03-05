@@ -48,7 +48,7 @@ const PRIORITY_META_DARK: Record<string, { bg: string }> = {
     low:    { bg: '#0d2b1a' },
 };
 
-// ── Avatar ────────────────────────────────────────────────────────────────────
+// Avatar
 const UserAvatar: React.FC<{ user: EventUser; index: number; size?: number }> = ({ user, index, size = 40 }) => {
     const bg = avatarBg(index);
     const r  = size / 2;
@@ -67,7 +67,51 @@ const avStyle = StyleSheet.create({
     text: { fontFamily: 'Kanit-Bold', color: '#fff' },
 });
 
-// ── Info Row ──────────────────────────────────────────────────────────────────
+// Created By Row
+const CreatedByRow: React.FC<{
+    user: EventUser;
+    isDark: boolean;
+    accent: string;
+}> = ({ user, isDark, accent }) => {
+    const bg     = isDark ? '#1a1a1a' : '#ffffff';
+    const titleC = isDark ? '#e5e5e5' : '#1a1a2e';
+    const subC   = isDark ? '#888'    : '#8e9aad';
+    return (
+        <View style={[cbStyle.wrap, { backgroundColor: bg }]}>
+            <View style={[cbStyle.iconBox, { backgroundColor: hexToRgba(accent, 0.15) }]}>
+                <Feather name="user" size={17} color={accent} />
+            </View>
+            <Text style={[cbStyle.label, { color: subC }]}>CREATED BY</Text>
+            <View style={cbStyle.userRow}>
+                <UserAvatar user={user} index={0} size={34} />
+                <View style={cbStyle.userInfo}>
+                    <Text style={[cbStyle.name, { color: titleC }]}>{user.name || user.username}</Text>
+                    {user.username ? (
+                        <Text style={[cbStyle.username, { color: subC }]}>@{user.username}</Text>
+                    ) : null}
+                </View>
+                <View style={[cbStyle.ownerBadge, { backgroundColor: hexToRgba(accent, 0.18) }]}>
+                    <Feather name="shield" size={11} color={accent} />
+                    <Text style={[cbStyle.ownerText, { color: accent }]}>Owner</Text>
+                </View>
+            </View>
+        </View>
+    );
+};
+const cbStyle = StyleSheet.create({
+    wrap:      { borderRadius: 16, padding: 14, marginBottom: 10, gap: 10, backgroundColor: '#fff',
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+    iconBox:   { width: 38, height: 38, borderRadius: 11, justifyContent: 'center', alignItems: 'center', position: 'absolute', top: 14, right: 14 },
+    label:     { fontSize: 10, fontFamily: 'Kanit-Regular', letterSpacing: 0.8 },
+    userRow:   { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    userInfo:  { flex: 1, gap: 2 },
+    name:      { fontSize: 15, fontFamily: 'Kanit-Bold' },
+    username:  { fontSize: 12, fontFamily: 'Kanit-Regular' },
+    ownerBadge:{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+    ownerText: { fontSize: 11, fontFamily: 'Kanit-Bold' },
+});
+
+// Info Row
 const InfoRow: React.FC<{
     icon: keyof typeof Feather.glyphMap;
     label: string;
@@ -178,6 +222,12 @@ const EventDetailScreen = () => {
     const pmDark = event.priority ? PRIORITY_META_DARK[event.priority] : null;
     const hasUsers = event.assignees && event.assignees.length > 0;
 
+    // ถ้า createdBy อยู่ใน assignees แล้ว → ไม่ต้องโชว์แยก
+    const creatorInAssignees = event.createdBy
+        ? (event.assignees ?? []).some(u => u.userId === event.createdBy!.userId)
+        : false;
+    const showCreatedBySection = !!event.createdBy && !creatorInAssignees;
+
     return (
         <View style={[styles.root, { backgroundColor: bg }]}>
             {/* ── Custom Nav Bar ── */}
@@ -201,11 +251,11 @@ const EventDetailScreen = () => {
                 {/* ── Hero Header ── */}
                 <View style={[styles.hero, { backgroundColor: headerBg }]}>
                     {/* Big color dot / avatar */}
-                    <View style={[styles.heroDot, { backgroundColor: accent, shadowColor: accent }]}>
-                        <Text style={styles.heroDotText}>
-                            {event.title.trim().charAt(0).toUpperCase()}
-                        </Text>
-                    </View>
+                    {/*<View style={[styles.heroDot, { backgroundColor: accent, shadowColor: accent }]}>*/}
+                    {/*    <Text style={styles.heroDotText}>*/}
+                    {/*        {event.title.trim().charAt(0).toUpperCase()}*/}
+                    {/*    </Text>*/}
+                    {/*</View>*/}
 
                     {/* Title */}
                     <Text style={[styles.heroTitle, { color: titleC }]}>{event.title}</Text>
@@ -224,8 +274,22 @@ const EventDetailScreen = () => {
                         ) : null}
                     </View>
 
-                    {/* Accent bar at bottom */}
-                    <View style={[styles.heroAccentBar, { backgroundColor: accent }]} />
+                    {/* Created By — แสดงใต้ category เฉพาะเมื่อไม่อยู่ใน assignees */}
+                    {showCreatedBySection && event.createdBy ? (
+                        <View style={[styles.heroCreatedBy, { backgroundColor: hexToRgba(accent, 0.12) }]}>
+                            <UserAvatar user={event.createdBy} index={0} size={22} />
+                            <Text style={[styles.heroCreatedByText, { color: isDark ? '#ccc' : '#4a5568' }]}>
+                                Created by{' '}
+                                <Text style={{ fontFamily: 'Kanit-Bold', color: accent }}>
+                                    {event.createdBy.name || event.createdBy.username}
+                                </Text>
+                            </Text>
+                            <View style={[styles.heroOwnerBadge, { backgroundColor: hexToRgba(accent, 0.2) }]}>
+                                <Feather name="shield" size={10} color={accent} />
+                                <Text style={[styles.heroOwnerText, { color: accent }]}>Owner</Text>
+                            </View>
+                        </View>
+                    ) : null}
                 </View>
 
                 {/* ── Detail Rows ── */}
@@ -262,23 +326,33 @@ const EventDetailScreen = () => {
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: subC }]}>ASSIGNEES</Text>
                         <View style={[styles.assigneeCard, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-                            {(event.assignees ?? []).map((u, i) => (
-                                <View key={u.userId} style={[
-                                    styles.assigneeRow,
-                                    i < (event.assignees?.length ?? 0) - 1 && { borderBottomWidth: 1, borderBottomColor: divider }
-                                ]}>
-                                    <UserAvatar user={u} index={i} size={40} />
-                                    <View style={styles.assigneeInfo}>
-                                        <Text style={[styles.assigneeName, { color: titleC }]}>
-                                            {u.name || u.username}
-                                        </Text>
-                                        {u.username ? (
-                                            <Text style={[styles.assigneeUsername, { color: subC }]}>@{u.username}</Text>
-                                        ) : null}
+                            {(event.assignees ?? []).map((u, i) => {
+                                const isOwner = event.createdBy?.userId === u.userId;
+                                return (
+                                    <View key={u.userId} style={[
+                                        styles.assigneeRow,
+                                        i < (event.assignees?.length ?? 0) - 1 && { borderBottomWidth: 1, borderBottomColor: divider }
+                                    ]}>
+                                        <UserAvatar user={u} index={i} size={40} />
+                                        <View style={styles.assigneeInfo}>
+                                            <Text style={[styles.assigneeName, { color: titleC }]}>
+                                                {u.name || u.username}
+                                            </Text>
+                                            {u.username ? (
+                                                <Text style={[styles.assigneeUsername, { color: subC }]}>@{u.username}</Text>
+                                            ) : null}
+                                        </View>
+                                        {isOwner ? (
+                                            <View style={[styles.ownerBadge, { backgroundColor: hexToRgba(accent, 0.18) }]}>
+                                                <Feather name="shield" size={11} color={accent} />
+                                                <Text style={[styles.ownerBadgeText, { color: accent }]}>Owner</Text>
+                                            </View>
+                                        ) : (
+                                            <View style={[styles.assigneeDot, { backgroundColor: avatarBg(i) }]} />
+                                        )}
                                     </View>
-                                    <View style={[styles.assigneeDot, { backgroundColor: avatarBg(i) }]} />
-                                </View>
-                            ))}
+                                );
+                            })}
                         </View>
                     </View>
                 )}
@@ -316,7 +390,7 @@ const EventDetailScreen = () => {
             </View>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     root: { flex: 1 },
@@ -363,23 +437,36 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         gap: 12
     },
-    heroDot: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 12,
-        elevation: 10
-    },
-    heroDotText: { fontSize: 32, fontFamily: 'Kanit-Bold', color: '#fff' },
+    // heroDot: {
+    //     width: 80,
+    //     height: 80,
+    //     borderRadius: 40,
+    //     justifyContent: 'center',
+    //     alignItems: 'center',
+    //     shadowOffset: { width: 0, height: 6 },
+    //     shadowOpacity: 0.35,
+    //     shadowRadius: 12,
+    //     elevation: 10
+    // },
+    // heroDotText: { fontSize: 32, fontFamily: 'Kanit-Bold', color: '#fff' },
     heroTitle: { fontSize: 24, fontFamily: 'Kanit-Bold', textAlign: 'center', lineHeight: 32 },
     heroPills: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
     pill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20 },
     pillText: { fontSize: 12, fontFamily: 'Kanit-Bold' },
-    heroAccentBar: { width: 48, height: 4, borderRadius: 2, marginTop: 4 },
+
+    // Created By (in Hero)
+    heroCreatedBy: {
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+        marginTop: 4,
+    },
+    heroCreatedByText: { fontSize: 13, fontFamily: 'Kanit-Regular' },
+    heroOwnerBadge: {
+        flexDirection: 'row', alignItems: 'center', gap: 4,
+        paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12,
+    },
+    heroOwnerText: { fontSize: 10, fontFamily: 'Kanit-Bold' },
+    // heroAccentBar: { width: 48, height: 4, borderRadius: 2, marginTop: 4 },
 
     // Sections
     section: { marginBottom: 20 },
@@ -425,6 +512,11 @@ const styles = StyleSheet.create({
     assigneeName: { fontSize: 15, fontFamily: 'Kanit-Bold' },
     assigneeUsername: { fontSize: 12, fontFamily: 'Kanit-Regular' },
     assigneeDot: { width: 8, height: 8, borderRadius: 4 },
+    ownerBadge: {
+        flexDirection: 'row', alignItems: 'center', gap: 4,
+        paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
+    },
+    ownerBadgeText: { fontSize: 11, fontFamily: 'Kanit-Bold' },
 
     // Bottom bar
     bottomBar: {

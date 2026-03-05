@@ -45,6 +45,7 @@ export interface CalendarEvent {
     reminder?: number; // minutes before
     priority?: 'low' | 'medium' | 'high';
     assignees?: EventUser[];  // users associated with this event
+    createdBy?: EventUser;   // user who created this event
     // Extended fields for calendar rendering
     weekSpan?: number;
     isStartOfEvent?: boolean;
