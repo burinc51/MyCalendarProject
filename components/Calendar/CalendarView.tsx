@@ -36,6 +36,9 @@ import { monthNames } from '@/utils/month-names';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 
+// Stores
+import { useEventActionStore } from '@/stores/useEventActionStore';
+
 // Types
 import type { CalendarEvent } from '@/types/event';
 
@@ -146,6 +149,22 @@ const CalendarView: React.FC = () => {
         setShowAddForm, setEditingEvent, updateFormData, resetForm,
         handleSaveEvent, handleDeleteEvent, handleEditEvent, initFormForDate
     } = useCalendarEvents();
+
+    // Subscribe to edit/delete actions triggered from EventDetailScreen
+    const { pendingAction, pendingEvent, clearAction } = useEventActionStore();
+    useEffect(() => {
+        if (!pendingAction || !pendingEvent) return;
+        if (pendingAction === 'edit') {
+            // Open the bottom sheet on the event's date, then open the edit form
+            const dateStr = dayjs(pendingEvent.startDate).format('YYYY-MM-DD');
+            setSelectedDate(dateStr);
+            sheetRef.current?.present();
+            handleEditEvent(pendingEvent);
+        } else if (pendingAction === 'delete') {
+            handleDeleteEvent(pendingEvent.id);
+        }
+        clearAction();
+    }, [pendingAction, pendingEvent]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ----- Display month/year derived from current view -----
     const getDateFromPageIndex = useCallback((pageIndex: number) => {
@@ -735,18 +754,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    centered: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    errorText: {
-        color: '#e74c3c',
-        fontSize: 14,
-        fontFamily: 'Kanit-Regular',
-        textAlign: 'center',
-        paddingHorizontal: 20
-    }
 });
 
 export default CalendarView;
