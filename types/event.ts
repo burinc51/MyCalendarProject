@@ -3,6 +3,14 @@
  * Extracted from CalendarView.tsx for better modularity
  */
 
+// User attached to an event (matches backend EventUserResponse)
+export interface EventUser {
+    userId: number;
+    username: string;
+    name: string;
+    imageUrl?: string | null;
+}
+
 // API Event Interface (matches your API response)
 export interface ApiEvent {
     eventId: number;
@@ -19,7 +27,7 @@ export interface ApiEvent {
     category: string | null;
     priority: string; // e.g., "1", "2", "3"
     groupId: number | null;
-    assignees: unknown[] | null;
+    assignees: EventUser[] | null;
     pinned: boolean;
 }
 
@@ -36,6 +44,7 @@ export interface CalendarEvent {
     category?: string;
     reminder?: number; // minutes before
     priority?: 'low' | 'medium' | 'high';
+    assignees?: EventUser[];  // users associated with this event
     // Extended fields for calendar rendering
     weekSpan?: number;
     isStartOfEvent?: boolean;

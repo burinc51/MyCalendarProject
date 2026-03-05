@@ -4,7 +4,7 @@
  */
 
 import dayjs from 'dayjs';
-import type { ApiEvent, CalendarEvent, EventPriority } from '@/types/event';
+import type { ApiEvent, CalendarEvent, EventPriority, EventUser } from '@/types/event';
 import { COLOR_NAME_TO_HEX, HEX_TO_COLOR_NAME, API_PRIORITY_MAP, PRIORITY_TO_API_MAP, DEFAULT_USER_ID } from '@/constants/Calendar';
 
 /**
@@ -42,6 +42,14 @@ export const mapApiEventToCalendar = (apiEvent: ApiEvent): CalendarEvent => {
     // Check for 'all-day' - if time is 00:00:00 or no time component
     const isAllDay = dayjs(apiEvent.startDate).isSame(apiEvent.endDate, 'day') && !apiEvent.startDate.includes('T');
 
+    // Map assignees — keep only fields our UI needs
+    const assignees: EventUser[] = (apiEvent.assignees ?? []).map((a) => ({
+        userId: a.userId,
+        username: a.username,
+        name: a.name,
+        imageUrl: a.imageUrl ?? null,
+    }));
+
     return {
         id: apiEvent.eventId,
         userId: apiEvent.userId,
@@ -53,7 +61,8 @@ export const mapApiEventToCalendar = (apiEvent: ApiEvent): CalendarEvent => {
         color: mapApiColorToHex(apiEvent.color),
         category: apiEvent.category || 'Other',
         priority: mapApiPriorityToString(apiEvent.priority),
-        reminder: 15 // Default reminder
+        reminder: 15,
+        assignees
     };
 };
 
