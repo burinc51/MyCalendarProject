@@ -114,12 +114,18 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
 
     if (events.length === 0) {
         return (
-            <View style={[styles.emptyContainer, { backgroundColor: c.pageBg }]}>
-                <View style={[styles.emptyIconWrap, { backgroundColor: c.cardBg }]}>
-                    <MaterialIcons name="event-note" size={32} color={c.iconMuted} />
+            <View style={styles.emptyContainer}>
+                <View style={[styles.emptyIconWrap, {
+                    backgroundColor: c.cardBg,
+                    borderColor: isDark ? '#333' : '#dde3ec',
+                    borderWidth: 1.5,
+                }]}>
+                    <MaterialIcons name="event-note" size={34} color={isDark ? '#4a9eff' : '#0a7ea4'} />
                 </View>
-                <Text style={[styles.emptyTitle, { color: c.emptyText }]}>No events scheduled</Text>
-                <Text style={[styles.emptySub, { color: c.emptyText + '99' }]}>
+                <Text style={[styles.emptyTitle, { color: isDark ? '#d0d0d0' : '#2c3e50' }]}>
+                    No events scheduled
+                </Text>
+                <Text style={[styles.emptySub, { color: isDark ? '#666' : '#8e9aad' }]}>
                     Tap + to add your first event
                 </Text>
             </View>
@@ -214,13 +220,13 @@ const styles = StyleSheet.create({
 
     emptyContainer: {
         flex: 1, justifyContent: 'center', alignItems: 'center',
-        gap: 8, paddingVertical: 56,
+        gap: 8, paddingBottom: 40,
     },
     emptyIconWrap: {
-        width: 64, height: 64, borderRadius: 32,
-        justifyContent: 'center', alignItems: 'center', marginBottom: 8,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+        width: 72, height: 72, borderRadius: 36,
+        justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15, shadowRadius: 12, elevation: 5,
     },
     emptyTitle: { fontSize: 15, fontFamily: 'Kanit-Bold' },
     emptySub:   { fontSize: 12, fontFamily: 'Kanit-Regular' },
