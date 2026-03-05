@@ -5,11 +5,18 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
+import { useToast } from '@/components/ui/Toast';
+import type { ToastType } from '@/components/ui/Toast';
 import * as noteService from '@/services/note-service';
 import { DEFAULT_NOTE_FORM, DEFAULT_FOLDER_FORM } from '@/types/note';
 import type { Note, Folder, NoteFormData, FolderFormData, NoteSortOption, SortDirection, NoteViewMode } from '@/types/note';
 
 interface UseNotesReturn {
+    // Toast state
+    toast: { id: number; text: string; type: ToastType } | null;
+    showToast: (text: string, type?: ToastType) => void;
+    hideToast: () => void;
+
     // Notes state
     notes: Note[];
     filteredNotes: Note[];
@@ -65,6 +72,9 @@ interface UseNotesReturn {
 }
 
 export const useNotes = (): UseNotesReturn => {
+    // Toast
+    const { toast, showToast, hideToast } = useToast();
+
     // Notes state
     const [notes, setNotes] = useState<Note[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -196,7 +206,7 @@ export const useNotes = (): UseNotesReturn => {
     const createNoteAction = useCallback(async () => {
         try {
             await noteService.createNote(noteFormData);
-            Alert.alert('Success', 'Note created!');
+            showToast('สร้างโน้ตสำเร็จ ✓');
             setShowNoteEditor(false);
             resetNoteForm();
             fetchNotes();
@@ -213,7 +223,7 @@ export const useNotes = (): UseNotesReturn => {
 
         try {
             await noteService.updateNote(editingNote.id, noteFormData);
-            Alert.alert('Success', 'Note updated!');
+            showToast('note updated successfully');
             setShowNoteEditor(false);
             resetNoteForm();
             fetchNotes();
@@ -235,7 +245,7 @@ export const useNotes = (): UseNotesReturn => {
                     onPress: async () => {
                         try {
                             await noteService.deleteNote(noteId);
-                            Alert.alert('Success', 'Note deleted!');
+                            showToast('ลบโน้ตสำเร็จ');
                             fetchNotes();
                             fetchFolders();
                         } catch (err) {
@@ -282,7 +292,7 @@ export const useNotes = (): UseNotesReturn => {
 
         try {
             await noteService.createFolder(folderFormData);
-            Alert.alert('Success', 'Folder created!');
+            showToast('สร้างโฟลเดอร์สำเร็จ ✓');
             setShowFolderForm(false);
             resetFolderForm();
             fetchFolders();
@@ -298,7 +308,7 @@ export const useNotes = (): UseNotesReturn => {
 
         try {
             await noteService.updateFolder(editingFolder.id, folderFormData);
-            Alert.alert('Success', 'Folder updated!');
+            showToast('อัปเดตโฟลเดอร์สำเร็จ ✓');
             setShowFolderForm(false);
             resetFolderForm();
             fetchFolders();
@@ -322,7 +332,7 @@ export const useNotes = (): UseNotesReturn => {
                             if (selectedFolderId === folderId) {
                                 setSelectedFolderId(null);
                             }
-                            Alert.alert('Success', 'Folder deleted!');
+                            showToast('ลบโฟลเดอร์สำเร็จ');
                             fetchFolders();
                             fetchNotes();
                         } catch (err) {
@@ -337,6 +347,11 @@ export const useNotes = (): UseNotesReturn => {
     );
 
     return {
+        // Toast state
+        toast,
+        showToast,
+        hideToast,
+
         // Notes state
         notes,
         filteredNotes: filteredNotes(),

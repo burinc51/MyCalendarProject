@@ -7,6 +7,7 @@ import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/components/ThemeProvider';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
     const insets = useSafeAreaInsets();
@@ -56,11 +57,7 @@ export default function TabLayout() {
                 options={{
                     title: 'Notes',
                     tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={28}
-                            name="paperplane.fill"
-                            color={color}
-                        />
+                        <Ionicons name="document-text" size={24} color={color} />
                     ),
                     tabBarAccessibilityLabel: 'Notes Tab'
                 }}

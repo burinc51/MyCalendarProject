@@ -1,9 +1,3 @@
-/**
- * NoteCard Component
- * Card displaying a note preview in grid or list view
- * Supports dark/light theme
- */
-
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
@@ -37,6 +31,22 @@ const stripHtml = (html: string): string => {
         .trim();
 };
 
+// Helper to calculate color brightness
+const isColorDark = (color: string): boolean => {
+    // Default handle for non-hex or undefined
+    if (!color || !color.startsWith('#')) return false;
+
+    // Convert hex to rgb
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.length === 3 ? hex.charAt(0) + hex.charAt(0) : hex.substring(0, 2), 16);
+    const g = parseInt(hex.length === 3 ? hex.charAt(1) + hex.charAt(1) : hex.substring(2, 4), 16);
+    const b = parseInt(hex.length === 3 ? hex.charAt(2) + hex.charAt(2) : hex.substring(4, 6), 16);
+
+    // Calculate relative luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.5; // true if color is dark
+};
+
 const NoteCard: React.FC<NoteCardProps> = ({
     note,
     viewMode,
@@ -46,16 +56,21 @@ const NoteCard: React.FC<NoteCardProps> = ({
     isDark = false
 }) => {
     // Theme colors
-    const colors = useMemo(() => ({
-        title: isDark ? '#e5e5e5' : '#2c3e50',
-        content: isDark ? '#a3a3a3' : '#666',
-        timestamp: isDark ? '#737373' : '#999',
-        tagBg: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-        tagText: isDark ? '#a3a3a3' : '#666',
-        moreTagsText: isDark ? '#737373' : '#999',
-        // Adjust note color for dark mode if it's a light color
-        cardBg: isDark && note.color === '#ffffff' ? '#262626' : note.color
-    }), [isDark, note.color]);
+    const colors = useMemo(() => {
+        const cardBg = isDark && note.color === '#ffffff' ? '#262626' : note.color;
+
+        const useDarkText = !isColorDark(cardBg);
+
+        return {
+            title: useDarkText ? '#2c3e50' : '#e5e5e5',
+            content: useDarkText ? '#666' : '#a3a3a3',
+            timestamp: useDarkText ? '#999' : '#737373',
+            tagBg: useDarkText ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
+            tagText: useDarkText ? '#666' : '#a3a3a3',
+            moreTagsText: useDarkText ? '#999' : '#737373',
+            cardBg
+        };
+    }, [isDark, note.color]);
 
     const contentPreview = useMemo(() => {
         const stripped = stripHtml(note.content);

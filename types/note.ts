@@ -1,8 +1,3 @@
-/**
- * Note and Folder TypeScript interfaces
- * Types for the Notes feature with rich text support
- */
-
 // Note interface
 export interface Note {
     id: number;
