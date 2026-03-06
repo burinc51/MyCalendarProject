@@ -61,28 +61,22 @@ export const mapApiEventToCalendar = (apiEvent: ApiEvent): CalendarEvent => {
         color: mapApiColorToHex(apiEvent.color),
         category: apiEvent.category || 'Other',
         priority: mapApiPriorityToString(apiEvent.priority),
-        reminder: 15,
+        reminder: apiEvent.remindBeforeMinutes || 15, // fallback if backend sends null
+        location: apiEvent.location || '',
+        notificationType: (apiEvent.notificationType as 'POPUP' | 'EMAIL' | 'PUSH') || 'PUSH',
+        remindBeforeValue: apiEvent.remindBeforeValue || 15,
+        remindBeforeUnit: (apiEvent.remindBeforeUnit as 'MINUTES' | 'HOURS' | 'DAYS' | 'WEEKS') || 'MINUTES',
+        repeatType: (apiEvent.repeatType as any) || 'NONE',
+        repeatInterval: apiEvent.repeatInterval || 1,
+        repeatUntil: apiEvent.repeatUntil || null,
+        pinned: !!apiEvent.pinned,
+        groupId: apiEvent.groupId,
         assignees
     };
 };
 
-/**
- * Build FormData for API submission
- */
 export const buildEventFormData = (
-    formData: {
-        title: string;
-        description: string;
-        startDate: string;
-        endDate: string;
-        startTime: string;
-        endTime: string;
-        isAllDay: boolean;
-        color: string;
-        category: string;
-        priority: EventPriority;
-        reminder: number;
-    },
+    formData: import('@/types/event').EventFormData,
     userId = DEFAULT_USER_ID
 ): FormData => {
     const bodyData = {
@@ -93,15 +87,17 @@ export const buildEventFormData = (
         color: mapColorToApi(formData.color),
         category: formData.category,
         priority: mapPriorityToApi(formData.priority),
-        location: '',
-        repeatType: 'None',
-        repeatUntil: null,
-        notificationTime: formData.reminder > 0 ? dayjs(`${formData.startDate} ${formData.startTime}`).subtract(formData.reminder, 'minutes').toISOString() : null,
-        notificationType: 'Push',
-        remindBeforeMinutes: formData.reminder,
-        pinned: false,
+        location: formData.location.trim(),
+        repeatType: formData.repeatType,
+        repeatInterval: parseInt(formData.repeatInterval, 10) || 1,
+        repeatUntil: formData.repeatUntil ? dayjs(formData.repeatUntil).startOf('day').toISOString() : null,
+        notificationTime: null, // Let backend calculate based on value/unit
+        notificationType: formData.notificationType,
+        remindBeforeValue: parseInt(formData.remindBeforeValue, 10) || 0,
+        remindBeforeUnit: formData.remindBeforeUnit,
+        pinned: formData.pinned,
         createById: userId,
-        groupId: null,
+        groupId: formData.groupId || null,
         assigneeIds: [],
         latitude: 0,
         longitude: 0,

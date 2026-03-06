@@ -263,8 +263,9 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
     const handleEditEvent = useCallback((event: CalendarEvent) => {
         setEditingEvent(event);
         setFormData({
-            title: event.title,
+            title: event.title || '',
             description: event.description || '',
+            location: event.location || '',
             startDate: dayjs(event.startDate).format('YYYY-MM-DD'),
             endDate: dayjs(event.endDate).format('YYYY-MM-DD'),
             startTime: event.isAllDay ? '09:00' : dayjs(event.startDate).format('HH:mm'),
@@ -273,7 +274,15 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
             color: event.color,
             category: event.category || 'Work',
             priority: event.priority || 'medium',
-            reminder: event.reminder || 15
+            reminder: event.reminder || 15,
+            notificationType: event.notificationType || 'PUSH',
+            remindBeforeValue: (event.remindBeforeValue || 15).toString(),
+            remindBeforeUnit: event.remindBeforeUnit || 'MINUTES',
+            repeatType: event.repeatType || 'NONE',
+            repeatInterval: (event.repeatInterval || 1).toString(),
+            repeatUntil: event.repeatUntil ? dayjs(event.repeatUntil).format('YYYY-MM-DD') : '',
+            pinned: !!event.pinned,
+            groupId: event.groupId || null
         });
         setShowAddForm(true);
     }, []);
