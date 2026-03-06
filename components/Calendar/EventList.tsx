@@ -116,9 +116,10 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
         return (
             <View style={styles.emptyContainer}>
                 <View style={[styles.emptyIconWrap, {
-                    backgroundColor: c.cardBg,
-                    borderColor: isDark ? '#333' : '#dde3ec',
+                    backgroundColor: isDark ? '#1e1e1e' : '#fff',
+                    borderColor: isDark ? '#2a2a2a' : '#dde3ec',
                     borderWidth: 1.5,
+                    shadowColor: isDark ? '#4a9eff' : '#0a7ea4',
                 }]}>
                     <MaterialIcons name="event-note" size={34} color={isDark ? '#4a9eff' : '#0a7ea4'} />
                 </View>
@@ -219,17 +220,21 @@ const styles = StyleSheet.create({
     listContent: { paddingVertical: 8, paddingBottom: 24 },
 
     emptyContainer: {
-        flex: 1, justifyContent: 'center', alignItems: 'center',
-        gap: 8, paddingBottom: 40,
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 60,
+        minHeight: 220,
     },
     emptyIconWrap: {
-        width: 72, height: 72, borderRadius: 36,
-        justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15, shadowRadius: 12, elevation: 5,
+        width: 80, height: 80, borderRadius: 40,
+        justifyContent: 'center', alignItems: 'center', marginBottom: 8,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15, shadowRadius: 14, elevation: 6,
     },
-    emptyTitle: { fontSize: 15, fontFamily: 'Kanit-Bold' },
-    emptySub:   { fontSize: 12, fontFamily: 'Kanit-Regular' },
+    emptyTitle: { fontSize: 16, fontFamily: 'Kanit-Bold', marginTop: 4 },
+    emptySub:   { fontSize: 13, fontFamily: 'Kanit-Regular', opacity: 0.8 },
 
     card: {
         flexDirection: 'row', alignItems: 'center',

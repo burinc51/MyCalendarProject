@@ -67,49 +67,6 @@ const avStyle = StyleSheet.create({
     text: { fontFamily: 'Kanit-Bold', color: '#fff' },
 });
 
-// Created By Row
-const CreatedByRow: React.FC<{
-    user: EventUser;
-    isDark: boolean;
-    accent: string;
-}> = ({ user, isDark, accent }) => {
-    const bg     = isDark ? '#1a1a1a' : '#ffffff';
-    const titleC = isDark ? '#e5e5e5' : '#1a1a2e';
-    const subC   = isDark ? '#888'    : '#8e9aad';
-    return (
-        <View style={[cbStyle.wrap, { backgroundColor: bg }]}>
-            <View style={[cbStyle.iconBox, { backgroundColor: hexToRgba(accent, 0.15) }]}>
-                <Feather name="user" size={17} color={accent} />
-            </View>
-            <Text style={[cbStyle.label, { color: subC }]}>CREATED BY</Text>
-            <View style={cbStyle.userRow}>
-                <UserAvatar user={user} index={0} size={34} />
-                <View style={cbStyle.userInfo}>
-                    <Text style={[cbStyle.name, { color: titleC }]}>{user.name || user.username}</Text>
-                    {user.username ? (
-                        <Text style={[cbStyle.username, { color: subC }]}>@{user.username}</Text>
-                    ) : null}
-                </View>
-                <View style={[cbStyle.ownerBadge, { backgroundColor: hexToRgba(accent, 0.18) }]}>
-                    <Feather name="shield" size={11} color={accent} />
-                    <Text style={[cbStyle.ownerText, { color: accent }]}>Owner</Text>
-                </View>
-            </View>
-        </View>
-    );
-};
-const cbStyle = StyleSheet.create({
-    wrap:      { borderRadius: 16, padding: 14, marginBottom: 10, gap: 10, backgroundColor: '#fff',
-        shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-    iconBox:   { width: 38, height: 38, borderRadius: 11, justifyContent: 'center', alignItems: 'center', position: 'absolute', top: 14, right: 14 },
-    label:     { fontSize: 10, fontFamily: 'Kanit-Regular', letterSpacing: 0.8 },
-    userRow:   { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    userInfo:  { flex: 1, gap: 2 },
-    name:      { fontSize: 15, fontFamily: 'Kanit-Bold' },
-    username:  { fontSize: 12, fontFamily: 'Kanit-Regular' },
-    ownerBadge:{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-    ownerText: { fontSize: 11, fontFamily: 'Kanit-Bold' },
-});
 
 // Info Row
 const InfoRow: React.FC<{
@@ -151,7 +108,7 @@ const EventDetailScreen = () => {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const params = useLocalSearchParams<{ event: string }>();
-    const { requestEdit, requestDelete } = useEventActionStore();
+    const { requestDelete } = useEventActionStore();
 
     // The whole CalendarEvent is passed as a JSON string via router param
     const event = useMemo<CalendarEvent | null>(() => {
@@ -172,9 +129,11 @@ const EventDetailScreen = () => {
 
     const handleEdit = useCallback(() => {
         if (!event) return;
-        requestEdit(event);
-        router.back();
-    }, [event, requestEdit, router]);
+        router.push({
+            pathname: '/event/create',
+            params: { event: JSON.stringify(event) },
+        });
+    }, [event, router]);
 
     const handleDelete = useCallback(() => {
         if (!event) return;
@@ -224,7 +183,7 @@ const EventDetailScreen = () => {
 
     // If createdBy is in assignees, do not show separately.
     const creatorInAssignees = event.createdBy
-        ? (event.assignees ?? []).some((u) => u.userId === event.createdBy!.userId)
+        ? (event.assignees ?? []).some((u) => u.userId === event.createdBy?.userId)
         : false;
     const showCreatedBySection = !!event.createdBy && !creatorInAssignees;
 

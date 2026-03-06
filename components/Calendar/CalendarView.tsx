@@ -20,10 +20,10 @@ import PagerView from 'react-native-pager-view';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { AntDesign } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import CalendarBody from '@/components/Calendar/CalendarBody';
 import EventList from '@/components/Calendar/EventList';
-import EventForm from '@/components/Calendar/EventForm';
 import CalendarDayView from '@/components/Calendar/CalendarDayView';
 import CalendarWeekView from '@/components/Calendar/CalendarWeekView';
 import CalendarYearView from '@/components/Calendar/CalendarYearView';
@@ -75,6 +75,7 @@ const VIEW_MODES: { label: string; value: ViewMode; icon: string }[] = [
 const CalendarView: React.FC = () => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const router = useRouter();
     const { width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet } =
         useResponsiveDimensions();
 
@@ -145,9 +146,7 @@ const CalendarView: React.FC = () => {
 
     // Hook for events
     const {
-        events, isLoading, formData, editingEvent, showAddForm,
-        setShowAddForm, setEditingEvent, updateFormData, resetForm,
-        handleSaveEvent, handleDeleteEvent, handleEditEvent, initFormForDate
+        events, isLoading, handleDeleteEvent, handleEditEvent
     } = useCalendarEvents();
 
     // Subscribe to edit/delete actions triggered from EventDetailScreen
@@ -155,11 +154,11 @@ const CalendarView: React.FC = () => {
     useEffect(() => {
         if (!pendingAction || !pendingEvent) return;
         if (pendingAction === 'edit') {
-            // Open the bottom sheet on the event's date, then open the edit form
-            const dateStr = dayjs(pendingEvent.startDate).format('YYYY-MM-DD');
-            setSelectedDate(dateStr);
-            sheetRef.current?.present();
-            handleEditEvent(pendingEvent);
+            // Navigate to create screen with event data for editing
+            router.push({
+                pathname: '/event/create',
+                params: { event: JSON.stringify(pendingEvent) },
+            });
         } else if (pendingAction === 'delete') {
             handleDeleteEvent(pendingEvent.id);
         }
@@ -352,18 +351,13 @@ const CalendarView: React.FC = () => {
     const handleSelectDate = useCallback((date: string) => {
         sheetRef?.current?.present();
         setSelectedDate(date);
-        setShowAddForm(false);
-        setEditingEvent(null);
         if (viewMode !== 'month') setFocusDate(date);
-    }, [setShowAddForm, setEditingEvent, viewMode]);
+    }, [viewMode]);
 
     const closePanel = useCallback(() => {
         sheetRef?.current?.dismiss();
         setSelectedDate(null);
-        setShowAddForm(false);
-        setEditingEvent(null);
-        resetForm();
-    }, [setShowAddForm, setEditingEvent, resetForm]);
+    }, []);
 
     useEffect(() => {
         const h = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -383,20 +377,17 @@ const CalendarView: React.FC = () => {
 
     const handleAddEvent = useCallback(() => {
         if (!selectedDate) return;
-        initFormForDate(selectedDate);
-        setShowAddForm(true);
-    }, [selectedDate, initFormForDate, setShowAddForm]);
+        router.push({
+            pathname: '/event/create',
+            params: { date: selectedDate },
+        });
+    }, [selectedDate, router]);
 
     const formattedDate = useMemo(
         () => selectedDate ? dayjs(selectedDate).format('dddd D MMMM') : 'No Date Selected',
         [selectedDate]
     );
 
-    const handleFormCancel = useCallback(() => {
-        setShowAddForm(false);
-        setEditingEvent(null);
-        resetForm();
-    }, [setShowAddForm, setEditingEvent, resetForm]);
 
     const pages = useMemo(() => Array.from({ length: TOTAL_PAGES }, (_, i) => i), []);
 
@@ -594,56 +585,44 @@ const CalendarView: React.FC = () => {
             {viewMode === 'month' && (
                 <CustomBottomSheetModal ref={sheetRef} snapPoints={snapPoints} isDark={isDark}>
                     <View style={[styles.sheetContent, dynamicStyles.sheetContent]}>
-                        {!showAddForm ? (
-                            <>
-                                {/* Sheet header */}
+                        {/* Sheet header */}
+                        <View style={[
+                            styles.modalHeader,
+                            { borderBottomColor: isDark ? '#333' : '#f0f0f0' }
+                        ]}>
+                            <View style={styles.modalHeaderLeft}>
                                 <View style={[
-                                    styles.modalHeader,
-                                    { borderBottomColor: isDark ? '#333' : '#f0f0f0' }
+                                    styles.modalAccentBar,
+                                    { backgroundColor: '#2ecc71' }
+                                ]} />
+                                <Text style={[
+                                    styles.modalHeaderText,
+                                    dynamicStyles.modalHeaderText,
+                                    { color: isDark ? '#f0f0f0' : '#1a1a2e' }
                                 ]}>
-                                    <View style={styles.modalHeaderLeft}>
-                                        <View style={[
-                                            styles.modalAccentBar,
-                                            { backgroundColor: '#2ecc71' }
-                                        ]} />
-                                        <Text style={[
-                                            styles.modalHeaderText,
-                                            dynamicStyles.modalHeaderText,
-                                            { color: isDark ? '#f0f0f0' : '#1a1a2e' }
-                                        ]}>
-                                            {formattedDate}
-                                        </Text>
-                                    </View>
-                                    <TouchableOpacity
-                                        onPress={handleAddEvent}
-                                        style={[
-                                            styles.addButton,
-                                            {
-                                                backgroundColor: isDark ? '#1a3d2a' : '#eafaf1',
-                                                borderColor: isDark ? '#2ecc71aa' : '#2ecc7160'
-                                            }
-                                        ]}
-                                        activeOpacity={0.7}
-                                    >
-                                        <AntDesign name="plus" size={18} color="#2ecc71" />
-                                    </TouchableOpacity>
-                                </View>
-                                <EventList
-                                    events={selectedDateEvents}
-                                    onEdit={handleEditEvent}
-                                    onDelete={handleDeleteEvent}
-                                    isDark={isDark}
-                                />
-                            </>
-                        ) : (
-                            <EventForm
-                                formData={formData}
-                                isEditing={!!editingEvent}
-                                onUpdateField={updateFormData}
-                                onSave={handleSaveEvent}
-                                onCancel={handleFormCancel}
-                            />
-                        )}
+                                    {formattedDate}
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={handleAddEvent}
+                                style={[
+                                    styles.addButton,
+                                    {
+                                        backgroundColor: isDark ? '#1a3d2a' : '#eafaf1',
+                                        borderColor: isDark ? '#2ecc71aa' : '#2ecc7160'
+                                    }
+                                ]}
+                                activeOpacity={0.7}
+                            >
+                                <AntDesign name="plus" size={18} color="#2ecc71" />
+                            </TouchableOpacity>
+                        </View>
+                        <EventList
+                            events={selectedDateEvents}
+                            onEdit={handleEditEvent}
+                            onDelete={handleDeleteEvent}
+                            isDark={isDark}
+                        />
                     </View>
                 </CustomBottomSheetModal>
             )}
