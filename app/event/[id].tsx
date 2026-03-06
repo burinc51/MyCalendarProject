@@ -178,68 +178,87 @@ const EventDetailScreen = () => {
 
     const handleDelete = useCallback(() => {
         if (!event) return;
-        Alert.alert(
-            'Delete Event',
-            `Are you sure you want to delete "${event.title}"?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete', style: 'destructive',
-                    onPress: () => {
-                        requestDelete(event);
-                        router.back();
-                    }
-                },
-            ]
-        );
+        Alert.alert('Delete Event', `Are you sure you want to delete "${event.title}"?`, [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => {
+                    requestDelete(event);
+                    router.back();
+                }
+            }
+        ]);
     }, [event, requestDelete, router]);
 
     if (!event) {
         return (
             <View style={[styles.centered, { backgroundColor: bg }]}>
-                <MaterialIcons name="error-outline" size={48} color={subC} />
+                <MaterialIcons
+                    name="error-outline"
+                    size={48}
+                    color={subC}
+                />
                 <Text style={[styles.notFoundText, { color: subC }]}>Event not found</Text>
-                <TouchableOpacity onPress={handleBack} style={[styles.backBtn, { backgroundColor: accent }]}>
+                <TouchableOpacity
+                    onPress={handleBack}
+                    style={[styles.backBtn, { backgroundColor: accent }]}
+                >
                     <Text style={styles.backBtnText}>Go Back</Text>
                 </TouchableOpacity>
             </View>
         );
     }
 
-    const startD   = dayjs(event.startDate);
-    const endD     = dayjs(event.endDate);
-    const sameDay  = startD.isSame(endD, 'day');
+    const startD = dayjs(event.startDate);
+    const endD = dayjs(event.endDate);
+    const sameDay = startD.isSame(endD, 'day');
 
-    const dateStr  = sameDay
-        ? startD.format('ddd D MMMM YYYY')
-        : `${startD.format('D MMM')} – ${endD.format('D MMM YYYY')}`;
+    const dateStr = sameDay ? startD.format('ddd D MMMM YYYY') : `${startD.format('D MMM')} – ${endD.format('D MMM YYYY')}`;
 
-    const timeStr  = event.isAllDay
-        ? 'All Day'
-        : `${startD.format('HH:mm')} – ${endD.format('HH:mm')}`;
+    const timeStr = event.isAllDay ? 'All Day' : `${startD.format('HH:mm')} – ${endD.format('HH:mm')}`;
 
     const pm = event.priority ? PRIORITY_META[event.priority] : null;
     const pmDark = event.priority ? PRIORITY_META_DARK[event.priority] : null;
     const hasUsers = event.assignees && event.assignees.length > 0;
 
-    // ถ้า createdBy อยู่ใน assignees แล้ว → ไม่ต้องโชว์แยก
+    // If createdBy is in assignees, do not show separately.
     const creatorInAssignees = event.createdBy
-        ? (event.assignees ?? []).some(u => u.userId === event.createdBy!.userId)
+        ? (event.assignees ?? []).some((u) => u.userId === event.createdBy!.userId)
         : false;
     const showCreatedBySection = !!event.createdBy && !creatorInAssignees;
 
     return (
         <View style={[styles.root, { backgroundColor: bg }]}>
             {/* ── Custom Nav Bar ── */}
-            <View style={[styles.navbar, { backgroundColor: navBg, }]}>
-                <TouchableOpacity onPress={handleBack} style={styles.navBtn} activeOpacity={0.7}>
-                    <Feather name="arrow-left" size={22} color={isDark ? '#e5e5e5' : '#2c3e50'} />
+            <View style={[styles.navbar, { backgroundColor: navBg }]}>
+                <TouchableOpacity
+                    onPress={handleBack}
+                    style={styles.navBtn}
+                    activeOpacity={0.7}
+                >
+                    <Feather
+                        name="arrow-left"
+                        size={22}
+                        color={isDark ? '#e5e5e5' : '#2c3e50'}
+                    />
                 </TouchableOpacity>
-                <Text style={[styles.navTitle, { color: isDark ? '#e5e5e5' : '#2c3e50' }]} numberOfLines={1}>
+                <Text
+                    style={[styles.navTitle, { color: isDark ? '#e5e5e5' : '#2c3e50' }]}
+                    numberOfLines={1}
+                >
                     Event Detail
                 </Text>
-                <TouchableOpacity onPress={handleDelete} style={styles.navBtn} activeOpacity={0.7}>
-                    <Feather name="trash-2" size={20} color="#e74c3c" />
+                <TouchableOpacity
+                    onPress={handleDelete}
+                    style={styles.navBtn}
+                    activeOpacity={0.7}
+                >
+                    <Feather
+                        name="trash-2"
+                        size={20}
+                        color="#e74c3c"
+                    />
                 </TouchableOpacity>
             </View>
 
@@ -277,15 +296,20 @@ const EventDetailScreen = () => {
                     {/* Created By — แสดงใต้ category เฉพาะเมื่อไม่อยู่ใน assignees */}
                     {showCreatedBySection && event.createdBy ? (
                         <View style={[styles.heroCreatedBy, { backgroundColor: hexToRgba(accent, 0.12) }]}>
-                            <UserAvatar user={event.createdBy} index={0} size={22} />
+                            <UserAvatar
+                                user={event.createdBy}
+                                index={0}
+                                size={22}
+                            />
                             <Text style={[styles.heroCreatedByText, { color: isDark ? '#ccc' : '#4a5568' }]}>
-                                Created by{' '}
-                                <Text style={{ fontFamily: 'Kanit-Bold', color: accent }}>
-                                    {event.createdBy.name || event.createdBy.username}
-                                </Text>
+                                Created by <Text style={{ fontFamily: 'Kanit-Bold', color: accent }}>{event.createdBy.name || event.createdBy.username}</Text>
                             </Text>
                             <View style={[styles.heroOwnerBadge, { backgroundColor: hexToRgba(accent, 0.2) }]}>
-                                <Feather name="shield" size={10} color={accent} />
+                                <Feather
+                                    name="shield"
+                                    size={10}
+                                    color={accent}
+                                />
                                 <Text style={[styles.heroOwnerText, { color: accent }]}>Owner</Text>
                             </View>
                         </View>
@@ -294,17 +318,40 @@ const EventDetailScreen = () => {
 
                 {/* ── Detail Rows ── */}
                 <View style={styles.section}>
-                    <InfoRow icon="calendar" label="Date"  value={dateStr} accent={accent} isDark={isDark} />
-                    <InfoRow icon="clock"    label="Time"  value={timeStr} accent={accent} isDark={isDark} />
+                    <InfoRow
+                        icon="calendar"
+                        label="Date"
+                        value={dateStr}
+                        accent={accent}
+                        isDark={isDark}
+                    />
+                    <InfoRow
+                        icon="clock"
+                        label="Time"
+                        value={timeStr}
+                        accent={accent}
+                        isDark={isDark}
+                    />
 
                     {event.description ? (
-                        <InfoRow icon="file-text" label="Description" value={event.description} accent={accent} isDark={isDark} multiline />
+                        <InfoRow
+                            icon="file-text"
+                            label="Description"
+                            value={event.description}
+                            accent={accent}
+                            isDark={isDark}
+                            multiline
+                        />
                     ) : null}
 
                     {pm && (
                         <View style={[rowStyle.wrap, { backgroundColor: isDark ? '#222' : '#f7f9fc' }]}>
                             <View style={[rowStyle.iconBox, { backgroundColor: hexToRgba(pm.color, 0.15) }]}>
-                                <Feather name={pm.icon} size={17} color={pm.color} />
+                                <Feather
+                                    name={pm.icon}
+                                    size={17}
+                                    color={pm.color}
+                                />
                             </View>
                             <View style={rowStyle.body}>
                                 <Text style={[rowStyle.label, { color: subC }]}>PRIORITY</Text>
@@ -317,7 +364,13 @@ const EventDetailScreen = () => {
                     )}
 
                     {event.reminder !== undefined && event.reminder > 0 ? (
-                        <InfoRow icon="bell" label="Reminder" value={`${event.reminder} min before`} accent={accent} isDark={isDark} />
+                        <InfoRow
+                            icon="bell"
+                            label="Reminder"
+                            value={`${event.reminder} min before`}
+                            accent={accent}
+                            isDark={isDark}
+                        />
                     ) : null}
                 </View>
 
@@ -329,22 +382,26 @@ const EventDetailScreen = () => {
                             {(event.assignees ?? []).map((u, i) => {
                                 const isOwner = event.createdBy?.userId === u.userId;
                                 return (
-                                    <View key={u.userId} style={[
-                                        styles.assigneeRow,
-                                        i < (event.assignees?.length ?? 0) - 1 && { borderBottomWidth: 1, borderBottomColor: divider }
-                                    ]}>
-                                        <UserAvatar user={u} index={i} size={40} />
+                                    <View
+                                        key={u.userId}
+                                        style={[styles.assigneeRow, i < (event.assignees?.length ?? 0) - 1 && { borderBottomWidth: 1, borderBottomColor: divider }]}
+                                    >
+                                        <UserAvatar
+                                            user={u}
+                                            index={i}
+                                            size={40}
+                                        />
                                         <View style={styles.assigneeInfo}>
-                                            <Text style={[styles.assigneeName, { color: titleC }]}>
-                                                {u.name || u.username}
-                                            </Text>
-                                            {u.username ? (
-                                                <Text style={[styles.assigneeUsername, { color: subC }]}>@{u.username}</Text>
-                                            ) : null}
+                                            <Text style={[styles.assigneeName, { color: titleC }]}>{u.name || u.username}</Text>
+                                            {u.username ? <Text style={[styles.assigneeUsername, { color: subC }]}>@{u.username}</Text> : null}
                                         </View>
                                         {isOwner ? (
                                             <View style={[styles.ownerBadge, { backgroundColor: hexToRgba(accent, 0.18) }]}>
-                                                <Feather name="shield" size={11} color={accent} />
+                                                <Feather
+                                                    name="shield"
+                                                    size={11}
+                                                    color={accent}
+                                                />
                                                 <Text style={[styles.ownerBadgeText, { color: accent }]}>Owner</Text>
                                             </View>
                                         ) : (
@@ -359,32 +416,53 @@ const EventDetailScreen = () => {
             </ScrollView>
 
             {/* ── Bottom Action Bar ── */}
-            <View style={[styles.bottomBar, {
-                backgroundColor: navBg,
-                paddingBottom: insets.bottom + 12,
-                borderTopColor: divider,
-            }]}>
+            <View
+                style={[
+                    styles.bottomBar,
+                    {
+                        backgroundColor: navBg,
+                        paddingBottom: insets.bottom + 12,
+                        borderTopColor: divider
+                    }
+                ]}
+            >
                 <TouchableOpacity
-                    style={[styles.actionBtn, styles.deleteBtn, {
-                        backgroundColor: isDark ? '#2a1212' : '#fdecea',
-                        borderColor: isDark ? '#5a2020' : '#f5c6c6',
-                    }]}
+                    style={[
+                        styles.actionBtn,
+                        styles.deleteBtn,
+                        {
+                            backgroundColor: isDark ? '#2a1212' : '#fdecea',
+                            borderColor: isDark ? '#5a2020' : '#f5c6c6'
+                        }
+                    ]}
                     onPress={handleDelete}
                     activeOpacity={0.8}
                 >
-                    <Feather name="trash-2" size={18} color="#e74c3c" />
+                    <Feather
+                        name="trash-2"
+                        size={18}
+                        color="#e74c3c"
+                    />
                     <Text style={[styles.actionBtnText, { color: '#e74c3c' }]}>Delete</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={[styles.actionBtn, styles.editBtn, {
-                        backgroundColor: accent,
-                        shadowColor: accent,
-                    }]}
+                    style={[
+                        styles.actionBtn,
+                        styles.editBtn,
+                        {
+                            backgroundColor: accent,
+                            shadowColor: accent
+                        }
+                    ]}
                     onPress={handleEdit}
                     activeOpacity={0.85}
                 >
-                    <Feather name="edit-2" size={18} color="#fff" />
+                    <Feather
+                        name="edit-2"
+                        size={18}
+                        color="#fff"
+                    />
                     <Text style={[styles.actionBtnText, { color: '#fff' }]}>Edit Event</Text>
                 </TouchableOpacity>
             </View>
