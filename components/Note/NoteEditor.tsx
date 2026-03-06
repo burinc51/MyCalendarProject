@@ -7,7 +7,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-// Custom date/time picker (pure JS, no native module needed)
 import dayjs from 'dayjs';
 import type { NoteFormData } from '@/types/note';
 import { NOTE_COLORS } from '@/types/note';
@@ -57,6 +56,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     const [tempReminderDate, setTempReminderDate] = useState<Date>(
         formData.reminderDate ? new Date(formData.reminderDate) : new Date(Date.now() + 60 * 60 * 1000)
     );
+    const [remindBefore, setRemindBefore] = useState(0);
+
+    const finalNotificationTime = new Date(tempReminderDate.getTime() - remindBefore * 60 * 1000);
+    const isNotificationPast = finalNotificationTime <= new Date();
 
     const { theme, isDark } = useTheme();
     const colors = useThemeColors();
@@ -155,6 +158,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             ? new Date(formData.reminderDate)
             : new Date(Date.now() + 60 * 60 * 1000);
         setTempReminderDate(initialDate);
+        setRemindBefore(0);
         setShowReminderModal(true);
     }, [formData.reminderDate]);
 
@@ -163,46 +167,57 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         setTempReminderDate(prev => {
             const d = new Date(prev);
             d.setDate(d.getDate() + days);
-            // Don't allow past dates
-            if (d < new Date()) {
-                const now = new Date();
-                now.setSeconds(0, 0);
-                return now;
-            }
+            const minAllowed = new Date(Date.now() + remindBefore * 60 * 1000);
+            minAllowed.setSeconds(0, 0);
+            if (d < minAllowed) return minAllowed;
             return d;
         });
-    }, []);
+    }, [remindBefore]);
 
     const adjustHour = useCallback((delta: number) => {
         setTempReminderDate(prev => {
             const d = new Date(prev);
             d.setHours(d.getHours() + delta);
-            if (d < new Date()) {
-                const now = new Date();
-                now.setSeconds(0, 0);
-                return now;
-            }
+            const minAllowed = new Date(Date.now() + remindBefore * 60 * 1000);
+            minAllowed.setSeconds(0, 0);
+            if (d < minAllowed) return minAllowed;
             return d;
         });
-    }, []);
+    }, [remindBefore]);
 
     const adjustMinute = useCallback((delta: number) => {
         setTempReminderDate(prev => {
             const d = new Date(prev);
             d.setMinutes(d.getMinutes() + delta);
-            if (d < new Date()) {
-                const now = new Date();
-                now.setSeconds(0, 0);
-                return now;
-            }
+            const minAllowed = new Date(Date.now() + remindBefore * 60 * 1000);
+            minAllowed.setSeconds(0, 0);
+            if (d < minAllowed) return minAllowed;
             return d;
         });
-    }, []);
+    }, [remindBefore]);
+
+    const handleSelectRemindBefore = useCallback((minutes: number) => {
+        setRemindBefore(minutes);
+
+        // Check if the resulting reminder time would be in the past
+        const now = new Date();
+        const notificationTime = new Date(tempReminderDate.getTime() - minutes * 60 * 1000);
+
+        if (notificationTime <= now) {
+            // Auto-adjust target date (tempReminderDate) so that notificationTime is slightly in the future (e.g. now + 1 min)
+            const newTargetDate = new Date(now.getTime() + (minutes + 1) * 60 * 1000);
+            newTargetDate.setSeconds(0, 0);
+            setTempReminderDate(newTargetDate);
+
+            // Show toast or alert? Just silently adjusting is fine according to user requested behavior.
+        }
+    }, [tempReminderDate]);
 
     const handleConfirmReminder = useCallback(() => {
-        onUpdateField('reminderDate', tempReminderDate.toISOString());
+        if (isNotificationPast) return;
+        onUpdateField('reminderDate', finalNotificationTime.toISOString());
         setShowReminderModal(false);
-    }, [tempReminderDate, onUpdateField]);
+    }, [finalNotificationTime, isNotificationPast, onUpdateField]);
 
     const handleRemoveReminder = useCallback(() => {
         onUpdateField('reminderDate', null);
@@ -425,7 +440,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                         </View>
 
                         {/* Custom date/time picker */}
-                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>กำหนดเอง</Text>
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>กำหนดเอง (เลือกวันและเวลา)</Text>
 
                         {/* Date picker row */}
                         <View style={[styles.customPickerRow, { backgroundColor: isDark ? colors.background : '#f8f8f8', borderColor: colors.border }]}>
@@ -471,11 +486,50 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             </View>
                         </View>
 
+                        {/* Remind Before Option */}
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>แจ้งเตือนก่อนเวลากำหนด</Text>
+                        <View style={styles.quickPresetsRow}>
+                            {[
+                                { label: 'ตรงเวลา', minutes: 0 },
+                                { label: '10 นาที', minutes: 10 },
+                                { label: '30 นาที', minutes: 30 },
+                                { label: '1 ชม.', minutes: 60 },
+                                { label: '1 วัน', minutes: 1440 },
+                            ].map((preset) => (
+                                <TouchableOpacity
+                                    key={preset.minutes}
+                                    style={[
+                                        styles.quickPresetBtn,
+                                        { backgroundColor: remindBefore === preset.minutes ? '#e67e22' : (isDark ? 'rgba(230,126,34,0.15)' : 'rgba(230,126,34,0.1)'), marginBottom: 8 }
+                                    ]}
+                                    onPress={() => handleSelectRemindBefore(preset.minutes)}
+                                >
+                                    <Text style={[
+                                        styles.quickPresetText,
+                                        { color: remindBefore === preset.minutes ? '#fff' : '#e67e22' }
+                                    ]}>{preset.label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        {/* Computed Feedback */}
+                        {remindBefore > 0 && !isNotificationPast && (
+                            <Text style={[styles.reminderSectionLabel, { color: colors.primary, marginTop: 12, textAlign: 'center' }]}>
+                                ⏰ แจ้งเตือนเวลาจริง: {dayjs(finalNotificationTime).format('DD MMM YYYY HH:mm')}
+                            </Text>
+                        )}
+                        {isNotificationPast && (
+                            <Text style={[styles.reminderSectionLabel, { color: '#e74c3c', marginTop: 12, textAlign: 'center' }]}>
+                                ⚠️ เวลาแจ้งเตือนผ่านไปแล้ว กรุณาเลื่อนเวลาที่กำหนด
+                            </Text>
+                        )}
+
                         {/* Action buttons */}
                         <View style={styles.reminderActions}>
                             <TouchableOpacity
-                                style={[styles.reminderConfirmBtn, { backgroundColor: '#e67e22' }]}
+                                style={[styles.reminderConfirmBtn, { backgroundColor: isNotificationPast ? '#95a5a6' : '#e67e22' }]}
                                 onPress={handleConfirmReminder}
+                                disabled={isNotificationPast}
                             >
                                 <Ionicons name="notifications" size={16} color="#fff" style={{ marginRight: 6 }} />
                                 <Text style={styles.reminderConfirmText}>ตั้งเวลาแจ้งเตือน</Text>
