@@ -42,6 +42,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         isPinned: formData.isPinned,
         tags: formData.tags,
         reminderDate: formData.reminderDate,
+        recurrence: formData.recurrence,
     });
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
@@ -57,6 +58,9 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         formData.reminderDate ? new Date(formData.reminderDate) : new Date(Date.now() + 60 * 60 * 1000)
     );
     const [remindBefore, setRemindBefore] = useState(0);
+    const [tempRecurrence, setTempRecurrence] = useState<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>(
+        formData.recurrence || 'none'
+    );
 
     const finalNotificationTime = new Date(tempReminderDate.getTime() - remindBefore * 60 * 1000);
     const isNotificationPast = finalNotificationTime <= new Date();
@@ -159,8 +163,9 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             : new Date(Date.now() + 60 * 60 * 1000);
         setTempReminderDate(initialDate);
         setRemindBefore(0);
+        setTempRecurrence(formData.recurrence || 'none');
         setShowReminderModal(true);
-    }, [formData.reminderDate]);
+    }, [formData.reminderDate, formData.recurrence]);
 
     // Custom date/time adjustment helpers
     const adjustDate = useCallback((days: number) => {
@@ -216,11 +221,13 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     const handleConfirmReminder = useCallback(() => {
         if (isNotificationPast) return;
         onUpdateField('reminderDate', finalNotificationTime.toISOString());
+        onUpdateField('recurrence', tempRecurrence);
         setShowReminderModal(false);
-    }, [finalNotificationTime, isNotificationPast, onUpdateField]);
+    }, [finalNotificationTime, isNotificationPast, onUpdateField, tempRecurrence]);
 
     const handleRemoveReminder = useCallback(() => {
         onUpdateField('reminderDate', null);
+        onUpdateField('recurrence', 'none');
         setShowReminderModal(false);
     }, [onUpdateField]);
 
@@ -276,9 +283,13 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 { color: isReminderPast ? '#e74c3c' : '#ffffff' }
                             ]}>
                                 {isReminderPast ? 'เลยกำหนด: ' : ''}{formattedReminder}
+                                {formData.recurrence === 'daily' && ' (ทุกวัน)'}
+                                {formData.recurrence === 'weekly' && ' (ทุกสัปดาห์)'}
+                                {formData.recurrence === 'monthly' && ' (ทุกเดือน)'}
+                                {formData.recurrence === 'yearly' && ' (ทุกปี)'}
                             </Text>
                             <TouchableOpacity
-                                onPress={() => onUpdateField('reminderDate', null)}
+                                onPress={handleRemoveReminder}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                             >
                                 <AntDesign name="close" size={14} color={isReminderPast ? '#e74c3c' : '#e67e22'} />
@@ -422,42 +433,47 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
                         {/* Quick presets */}
                         <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary }]}>ตั้งค่าด่วน</Text>
-                        <View style={styles.quickPresetsRow}>
-                            {[
-                                { label: '30 นาที', minutes: 30 },
-                                { label: '1 ชม.', minutes: 60 },
-                                { label: '3 ชม.', minutes: 180 },
-                                { label: 'พรุ่งนี้', minutes: 1440 },
-                            ].map((preset) => (
-                                <TouchableOpacity
-                                    key={preset.minutes}
-                                    style={[styles.quickPresetBtn, { backgroundColor: isDark ? 'rgba(230,126,34,0.15)' : 'rgba(230,126,34,0.1)' }]}
-                                    onPress={() => handleQuickReminder(preset.minutes)}
-                                >
-                                    <Text style={[styles.quickPresetText, { color: '#e67e22' }]}>{preset.label}</Text>
-                                </TouchableOpacity>
-                            ))}
+                        <View style={styles.presetsScrollView}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickPresetsRow}>
+                                {[
+                                    { label: '30 นาที', minutes: 30 },
+                                    { label: '1 ชม.', minutes: 60 },
+                                    { label: '3 ชม.', minutes: 180 },
+                                    { label: 'พรุ่งนี้', minutes: 1440 },
+                                ].map((preset) => (
+                                    <TouchableOpacity
+                                        key={preset.minutes}
+                                        style={[styles.quickPresetBtn, { backgroundColor: isDark ? 'rgba(230,126,34,0.15)' : 'rgba(230,126,34,0.1)' }]}
+                                        onPress={() => handleQuickReminder(preset.minutes)}
+                                    >
+                                        <Text style={[styles.quickPresetText, { color: '#e67e22' }]}>{preset.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
                         </View>
 
                         {/* Custom date/time picker */}
-                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>กำหนดเอง (เลือกวันและเวลา)</Text>
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>กำหนดเอง (เลื่อนเพื่อปรับเวลา)</Text>
 
-                        {/* Date picker row */}
-                        <View style={[styles.customPickerRow, { backgroundColor: isDark ? colors.background : '#f8f8f8', borderColor: colors.border }]}>
-                            <AntDesign name="calendar" size={16} color={colors.primary} />
-                            <TouchableOpacity onPress={() => adjustDate(-1)} style={styles.pickerArrow}>
-                                <AntDesign name="left" size={18} color={colors.textSecondary} />
-                            </TouchableOpacity>
-                            <Text style={[styles.pickerValueText, { color: colors.textPrimary }]}>
-                                {dayjs(tempReminderDate).format('DD MMM YYYY')}
-                            </Text>
-                            <TouchableOpacity onPress={() => adjustDate(1)} style={styles.pickerArrow}>
-                                <AntDesign name="right" size={18} color={colors.textSecondary} />
-                            </TouchableOpacity>
-                        </View>
+                        <View style={[styles.pickerContainer, { backgroundColor: isDark ? colors.background : '#f8f8f8', borderColor: colors.border }]}>
+                            {/* Date picker row */}
+                            <View style={styles.customPickerRow}>
+                                <AntDesign name="calendar" size={16} color={colors.primary} />
+                                <TouchableOpacity onPress={() => adjustDate(-1)} style={styles.pickerArrow}>
+                                    <AntDesign name="left" size={18} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                                <Text style={[styles.pickerValueText, { color: colors.textPrimary }]}>
+                                    {dayjs(tempReminderDate).format('DD MMM YYYY')}
+                                </Text>
+                                <TouchableOpacity onPress={() => adjustDate(1)} style={styles.pickerArrow}>
+                                    <AntDesign name="right" size={18} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            </View>
 
-                        {/* Time picker row */}
-                        <View style={[styles.customPickerRow, { backgroundColor: isDark ? colors.background : '#f8f8f8', borderColor: colors.border, marginTop: 10 }]}>
+                            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                            {/* Time picker row */}
+                            <View style={styles.customPickerRow}>
                             <AntDesign name="clock-circle" size={16} color={colors.primary} />
                             {/* Hour */}
                             <View style={styles.timeUnit}>
@@ -484,45 +500,76 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                     <AntDesign name="down" size={16} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             </View>
+                            </View>
                         </View>
 
                         {/* Remind Before Option */}
-                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>แจ้งเตือนก่อนเวลากำหนด</Text>
-                        <View style={styles.quickPresetsRow}>
-                            {[
-                                { label: 'ตรงเวลา', minutes: 0 },
-                                { label: '10 นาที', minutes: 10 },
-                                { label: '30 นาที', minutes: 30 },
-                                { label: '1 ชม.', minutes: 60 },
-                                { label: '1 วัน', minutes: 1440 },
-                            ].map((preset) => (
-                                <TouchableOpacity
-                                    key={preset.minutes}
-                                    style={[
-                                        styles.quickPresetBtn,
-                                        { backgroundColor: remindBefore === preset.minutes ? '#e67e22' : (isDark ? 'rgba(230,126,34,0.15)' : 'rgba(230,126,34,0.1)'), marginBottom: 8 }
-                                    ]}
-                                    onPress={() => handleSelectRemindBefore(preset.minutes)}
-                                >
-                                    <Text style={[
-                                        styles.quickPresetText,
-                                        { color: remindBefore === preset.minutes ? '#fff' : '#e67e22' }
-                                    ]}>{preset.label}</Text>
-                                </TouchableOpacity>
-                            ))}
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>แจ้งเตือนล่วงหน้า</Text>
+                        <View style={styles.presetsScrollView}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickPresetsRow}>
+                                {[
+                                    { label: 'ตรงเวลา', minutes: 0 },
+                                    { label: '10 นาที', minutes: 10 },
+                                    { label: '30 นาที', minutes: 30 },
+                                    { label: '1 ชม.', minutes: 60 },
+                                    { label: '1 วัน', minutes: 1440 },
+                                ].map((preset) => (
+                                    <TouchableOpacity
+                                        key={preset.minutes}
+                                        style={[
+                                            styles.quickPresetBtn,
+                                                { backgroundColor: remindBefore === preset.minutes ? '#e67e22' : (isDark ? 'rgba(230,126,34,0.15)' : 'rgba(230,126,34,0.1)') }
+                                            ]}
+                                            onPress={() => handleSelectRemindBefore(preset.minutes)}
+                                        >
+                                            <Text style={[
+                                                styles.quickPresetText,
+                                                { color: remindBefore === preset.minutes ? '#fff' : '#e67e22' }
+                                            ]}>{preset.label}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                            </ScrollView>
                         </View>
 
                         {/* Computed Feedback */}
                         {remindBefore > 0 && !isNotificationPast && (
-                            <Text style={[styles.reminderSectionLabel, { color: colors.primary, marginTop: 12, textAlign: 'center' }]}>
-                                ⏰ แจ้งเตือนเวลาจริง: {dayjs(finalNotificationTime).format('DD MMM YYYY HH:mm')}
+                            <Text style={[styles.reminderFeedback, { color: colors.primary }]}>
+                                ⏰ ดังกริ่งจริงตอน: {dayjs(finalNotificationTime).format('DD MMM HH:mm')}
                             </Text>
                         )}
                         {isNotificationPast && (
-                            <Text style={[styles.reminderSectionLabel, { color: '#e74c3c', marginTop: 12, textAlign: 'center' }]}>
-                                ⚠️ เวลาแจ้งเตือนผ่านไปแล้ว กรุณาเลื่อนเวลาที่กำหนด
+                            <Text style={[styles.reminderFeedback, { color: '#e74c3c' }]}>
+                                ⚠️ เวลาแจ้งเตือนผ่านไปแล้ว กรุณาเลื่อนเวลาใหม่
                             </Text>
                         )}
+
+                        {/* Recurrence Option */}
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>เกิดซ้ำ (Recurrence)</Text>
+                        <View style={styles.presetsScrollView}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickPresetsRow}>
+                                {[
+                                    { label: 'ไม่ทำซ้ำ', value: 'none' },
+                                    { label: 'ทุกวัน', value: 'daily' },
+                                    { label: 'ทุกสัปดาห์', value: 'weekly' },
+                                    { label: 'ทุกเดือน', value: 'monthly' },
+                                    { label: 'ทุกปี', value: 'yearly' },
+                                ].map((preset) => (
+                                    <TouchableOpacity
+                                        key={preset.value}
+                                        style={[
+                                            styles.quickPresetBtn,
+                                            { backgroundColor: tempRecurrence === preset.value ? colors.primary : (isDark ? 'rgba(52,152,219,0.15)' : 'rgba(52,152,219,0.1)') }
+                                        ]}
+                                        onPress={() => setTempRecurrence(preset.value as any)}
+                                    >
+                                        <Text style={[
+                                            styles.quickPresetText,
+                                            { color: tempRecurrence === preset.value ? '#fff' : colors.primary }
+                                        ]}>{preset.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
 
                         {/* Action buttons */}
                         <View style={styles.reminderActions}>
@@ -728,10 +775,14 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: 8,
     },
+    presetsScrollView: {
+        marginHorizontal: -24, // pull out to edge of modal
+        marginBottom: 8,
+    },
     quickPresetsRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         gap: 8,
+        paddingHorizontal: 24, // push content back in
     },
     quickPresetBtn: {
         paddingHorizontal: 16,
@@ -742,15 +793,21 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '600',
     },
+    pickerContainer: {
+        borderRadius: 12,
+        borderWidth: 1,
+        overflow: 'hidden',
+    },
     customPickerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        gap: 8,
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    divider: {
+        height: 1,
+        width: '100%',
     },
     pickerArrow: {
         padding: 6,
@@ -769,14 +826,21 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     timeValueText: {
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: '700',
-        minWidth: 36,
+        minWidth: 32,
         textAlign: 'center',
     },
     timeSeparator: {
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: '700',
+        marginHorizontal: 8,
+    },
+    reminderFeedback: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 6,
+        textAlign: 'center'
     },
     reminderActions: {
         marginTop: 20,

@@ -189,7 +189,8 @@ export const useNotes = (): UseNotesReturn => {
                     color: note.color,
                     isPinned: note.isPinned,
                     tags: note.tags || [],
-                    reminderDate: note.reminderDate || null
+                    reminderDate: note.reminderDate || null,
+                    recurrence: note.recurrence || 'none'
                 });
                 setEditingNote(note);
             } else {
@@ -212,8 +213,13 @@ export const useNotes = (): UseNotesReturn => {
             // Schedule reminder notification if set
             if (noteFormData.reminderDate) {
                 const reminderDate = new Date(noteFormData.reminderDate);
-                if (reminderDate > new Date()) {
-                    await scheduleNoteReminder(createdNote.id, noteFormData.title || 'Untitled', reminderDate);
+                if (reminderDate > new Date() || noteFormData.recurrence !== 'none') {
+                    await scheduleNoteReminder(
+                        createdNote.id, 
+                        noteFormData.title || 'Untitled', 
+                        reminderDate, 
+                        noteFormData.recurrence
+                    );
                 }
             }
 
@@ -238,8 +244,13 @@ export const useNotes = (): UseNotesReturn => {
             // Schedule or cancel reminder notification
             if (noteFormData.reminderDate) {
                 const reminderDate = new Date(noteFormData.reminderDate);
-                if (reminderDate > new Date()) {
-                    await scheduleNoteReminder(editingNote.id, noteFormData.title || 'Untitled', reminderDate);
+                if (reminderDate > new Date() || noteFormData.recurrence !== 'none') {
+                    await scheduleNoteReminder(
+                        editingNote.id, 
+                        noteFormData.title || 'Untitled', 
+                        reminderDate, 
+                        noteFormData.recurrence
+                    );
                 }
             }
 

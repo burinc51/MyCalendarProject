@@ -61,31 +61,59 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
 export const scheduleNoteReminder = async (
     noteId: number,
     title: string,
-    reminderDate: Date
+    reminderDate: Date,
+    recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' = 'none'
 ): Promise<string | null> => {
     try {
         const hasPermission = await requestNotificationPermissions();
         if (!hasPermission) return null;
 
-        const now = new Date();
-        const secondsUntilReminder = Math.floor((reminderDate.getTime() - now.getTime()) / 1000);
+        let trigger: Notifications.NotificationTriggerInput;
 
-        if (secondsUntilReminder <= 0) {
-            console.warn('Reminder date is in the past');
-            return null;
+        if (recurrence === 'none') {
+            const now = new Date();
+            const secondsUntilReminder = Math.floor((reminderDate.getTime() - now.getTime()) / 1000);
+
+            if (secondsUntilReminder <= 0) {
+                console.warn('Reminder date is in the past');
+                return null;
+            }
+
+            trigger = {
+                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+                seconds: secondsUntilReminder,
+            };
+        } else {
+            const calendarTrigger: any = {
+                type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+                repeats: true,
+                hour: reminderDate.getHours(),
+                minute: reminderDate.getMinutes(),
+            };
+
+            if (recurrence === 'weekly') {
+                // Expo uses 1 (Sunday) to 7 (Saturday)
+                calendarTrigger.weekday = reminderDate.getDay() + 1;
+            } else if (recurrence === 'monthly') {
+                calendarTrigger.day = reminderDate.getDate();
+            } else if (recurrence === 'yearly') {
+                // Expo uses 0 (Jan) to 11 (Dec) for month on iOS, but types say number. 
+                // Let's rely on standard calendar triggers
+                calendarTrigger.month = reminderDate.getMonth();
+                calendarTrigger.day = reminderDate.getDate();
+            }
+
+            trigger = calendarTrigger;
         }
 
         const notificationId = await Notifications.scheduleNotificationAsync({
             content: {
-                title: '🔔 แจ้งเตือนโน้ต',
+                title: recurrence !== 'none' ? '🔄 แจ้งเตือนโน้ตประจำ' : '🔔 แจ้งเตือนโน้ต',
                 body: title || 'คุณมีโน้ตที่ต้องดู',
-                data: { noteId, type: 'note-reminder' },
+                data: { noteId, type: 'note-reminder', recurrence },
                 sound: 'default',
             },
-            trigger: {
-                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-                seconds: secondsUntilReminder,
-            },
+            trigger,
         });
 
         return notificationId;

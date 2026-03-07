@@ -10,6 +10,7 @@ export interface Note {
     color: string;
     tags?: string[];
     reminderDate?: string | null; // ISO date string for reminder notification
+    recurrence?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'; // Reminder recurrence pattern
 }
 
 // Folder interface
@@ -32,6 +33,7 @@ export interface NoteFormData {
     isPinned: boolean;
     tags: string[];
     reminderDate: string | null; // ISO date string for reminder notification
+    recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 }
 
 // Form data for creating/editing folders
@@ -54,6 +56,7 @@ export interface ApiNote {
     color: string;
     tags: string[] | null;
     reminderDate: string | null;
+    recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 }
 
 export interface ApiFolder {
@@ -100,7 +103,8 @@ export const DEFAULT_NOTE_FORM: NoteFormData = {
     color: NOTE_COLORS[0],
     isPinned: false,
     tags: [],
-    reminderDate: null
+    reminderDate: null,
+    recurrence: 'none'
 };
 
 export const DEFAULT_FOLDER_FORM: FolderFormData = {

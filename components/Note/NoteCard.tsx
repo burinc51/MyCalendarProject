@@ -81,16 +81,24 @@ const NoteCard: React.FC<NoteCardProps> = ({
         return dayjs(note.updatedAt).fromNow();
     }, [note.updatedAt]);
 
-    // Reminder display
     const reminderInfo = useMemo(() => {
         if (!note.reminderDate) return null;
         const reminderDate = dayjs(note.reminderDate);
         const isPast = reminderDate.isBefore(dayjs());
+
+        let recurrenceText = '';
+        if (note.recurrence) {
+            if (note.recurrence === 'daily') recurrenceText = ' (ทุกวัน)';
+            else if (note.recurrence === 'weekly') recurrenceText = ' (ทุกสัปดาห์)';
+            else if (note.recurrence === 'monthly') recurrenceText = ' (ทุกเดือน)';
+            else if (note.recurrence === 'yearly') recurrenceText = ' (ทุกปี)';
+        }
+
         return {
-            text: reminderDate.format('DD MMM HH:mm'),
+            text: reminderDate.format('DD MMM HH:mm') + recurrenceText,
             isPast,
         };
-    }, [note.reminderDate]);
+    }, [note.reminderDate, note.recurrence]);
 
     const isGridView = viewMode === 'grid';
 
