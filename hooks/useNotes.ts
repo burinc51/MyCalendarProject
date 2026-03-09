@@ -190,7 +190,8 @@ export const useNotes = (): UseNotesReturn => {
                     isPinned: note.isPinned,
                     tags: note.tags || [],
                     reminderDate: note.reminderDate || null,
-                    recurrence: note.recurrence || 'none'
+                    recurrence: note.recurrence || 'none',
+                    location: note.location || null
                 });
                 setEditingNote(note);
             } else {

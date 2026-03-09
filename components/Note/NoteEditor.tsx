@@ -43,6 +43,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         tags: formData.tags,
         reminderDate: formData.reminderDate,
         recurrence: formData.recurrence,
+        location: formData.location,
     });
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
@@ -51,6 +52,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     const [linkModalVisible, setLinkModalVisible] = useState(false);
     const [linkTitle, setLinkTitle] = useState('');
     const [linkUrl, setLinkUrl] = useState('');
+
+    // Location state
+    const [showLocationModal, setShowLocationModal] = useState(false);
+    const [tempLocation, setTempLocation] = useState(formData.location || '');
 
     // Reminder state
     const [showReminderModal, setShowReminderModal] = useState(false);
@@ -238,6 +243,19 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         setShowReminderModal(false);
     }, [onUpdateField]);
 
+    // ========== Location Handlers ==========
+
+    const handleConfirmLocation = useCallback(() => {
+        onUpdateField('location', tempLocation.trim() || null);
+        setShowLocationModal(false);
+    }, [tempLocation, onUpdateField]);
+
+    const handleRemoveLocation = useCallback(() => {
+        setTempLocation('');
+        onUpdateField('location', null);
+        setShowLocationModal(false);
+    }, [onUpdateField]);
+
     return (
         <SafeAreaView
             style={{ flex: 1, backgroundColor: colors.background }}
@@ -259,6 +277,13 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             {/* Reminder button in header */}
                             <TouchableOpacity onPress={handleOpenReminderModal}>
                                 <Ionicons name='notifications' size={24} color={formData.reminderDate ? '#ffffff' : colors.textSecondary} />
+                            </TouchableOpacity>
+                            {/* Location button */}
+                            <TouchableOpacity onPress={() => {
+                                setTempLocation(formData.location || '');
+                                setShowLocationModal(true);
+                            }}>
+                                <Ionicons name='location' size={24} color={formData.location ? colors.primary : colors.textSecondary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={onSave}><Ionicons name='checkmark' size={24} color={colors.textPrimary} /></TouchableOpacity>
                         </View>
@@ -293,6 +318,31 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                             >
                                 <AntDesign name="close" size={14} color={isReminderPast ? '#e74c3c' : '#e67e22'} />
+                            </TouchableOpacity>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Location Badge */}
+                    {formData.location && (
+                        <TouchableOpacity
+                            onPress={() => {
+                                setTempLocation(formData.location || '');
+                                setShowLocationModal(true);
+                            }}
+                            style={[
+                                styles.reminderBadge,
+                                { backgroundColor: isDark ? 'rgba(52,152,219,0.15)' : 'rgba(52,152,219,0.1)' }
+                            ]}
+                        >
+                            <Ionicons name='location' size={16} color={colors.primary} />
+                            <Text style={[styles.reminderBadgeText, { color: colors.primary }]} numberOfLines={1}>
+                                {formData.location}
+                            </Text>
+                            <TouchableOpacity
+                                onPress={handleRemoveLocation}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <AntDesign name="close" size={14} color={colors.primary} />
                             </TouchableOpacity>
                         </TouchableOpacity>
                     )}
@@ -599,6 +649,70 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 <Text style={[styles.reminderCancelText, { color: colors.textSecondary }]}>ยกเลิก</Text>
                             </TouchableOpacity>
                         </View>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Location Modal */}
+            <Modal
+                visible={showLocationModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowLocationModal(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowLocationModal(false)}
+                >
+                    <TouchableOpacity activeOpacity={1} style={[styles.reminderModalContent, { backgroundColor: colors.surface }]}>
+                        {/* Header */}
+                        <View style={styles.reminderModalHeader}>
+                            <Ionicons name="location" size={24} color={colors.primary} />
+                            <Text style={[styles.reminderModalTitle, { color: colors.textPrimary }]}>สถานที่</Text>
+                        </View>
+
+                        <TextInput
+                            style={[
+                                styles.modalInput,
+                                {
+                                    backgroundColor: isDark ? colors.background : '#f8f8f8',
+                                    color: colors.textPrimary,
+                                    borderColor: colors.border,
+                                    marginTop: 16,
+                                    marginBottom: 8
+                                }
+                            ]}
+                            placeholder="พิมพ์ชื่อสถานที่ หรือลิงก์..."
+                            placeholderTextColor={colors.textSecondary}
+                            value={tempLocation}
+                            onChangeText={setTempLocation}
+                            autoFocus
+                        />
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={styles.modalBtnCancel}
+                                onPress={() => setShowLocationModal(false)}
+                            >
+                                <Text style={[styles.modalBtnCancelText, { color: colors.textSecondary }]}>ยกเลิก</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalBtnInsert, { backgroundColor: colors.primary }]}
+                                onPress={handleConfirmLocation}
+                            >
+                                <Text style={styles.modalBtnInsertText}>บันทึก</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {formData.location && (
+                            <TouchableOpacity
+                                style={[styles.reminderRemoveBtn, { borderColor: '#e74c3c', marginTop: 16 }]}
+                                onPress={handleRemoveLocation}
+                            >
+                                <AntDesign name="delete" size={14} color="#e74c3c" style={{ marginRight: 6 }} />
+                                <Text style={[styles.reminderRemoveText, { color: '#e74c3c' }]}>ลบสถานที่</Text>
+                            </TouchableOpacity>
+                        )}
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>

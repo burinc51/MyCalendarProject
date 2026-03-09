@@ -165,6 +165,26 @@ const NoteCard: React.FC<NoteCardProps> = ({
                 </View>
             )}
 
+            {/* Location Badge */}
+            {note.location && (
+                <View style={[
+                    styles.reminderBadge,
+                    { backgroundColor: 'rgba(52,152,219,0.1)' }
+                ]}>
+                    <Ionicons
+                        name="location"
+                        size={11}
+                        color="#2980b9"
+                    />
+                    <Text style={[
+                        styles.reminderText,
+                        { color: '#2980b9' }
+                    ]} numberOfLines={1}>
+                        {note.location}
+                    </Text>
+                </View>
+            )}
+
             {/* Footer */}
             <View style={styles.footer}>
                 <Text style={[styles.timestamp, { color: colors.timestamp }]}>
