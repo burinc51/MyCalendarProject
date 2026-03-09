@@ -594,39 +594,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontFamily: 'Kanit-Bold',
     },
-
-    // Bottom bar
-    bottomBar: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        flexDirection: 'row',
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingTop: 14,
-        borderTopWidth: 1
-    },
-    actionBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 15,
-        borderRadius: 16,
-        borderWidth: 1
-    },
-    deleteBtn: { borderWidth: 1 },
-    editBtn: {
-        borderWidth: 0,
-        flex: 2,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
-        elevation: 8
-    },
-    actionBtnText: { fontSize: 15, fontFamily: 'Kanit-Bold' }
 });
 
 export default EventDetailScreen;
