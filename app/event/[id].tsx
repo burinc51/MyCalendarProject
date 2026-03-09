@@ -5,7 +5,7 @@
  * Action buttons: Edit (navigates back + opens form) | Delete
  */
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useRef } from 'react';
 import {
     View,
     Text,
@@ -14,6 +14,8 @@ import {
     ScrollView,
     Image,
     Alert,
+    Modal,
+    Pressable,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -109,6 +111,9 @@ const EventDetailScreen = () => {
     const insets = useSafeAreaInsets();
     const params = useLocalSearchParams<{ event: string }>();
     const { requestDelete } = useEventActionStore();
+    const [menuVisible, setMenuVisible] = useState(false);
+    const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+    const moreButtonRef = useRef<View>(null);
 
     // The whole CalendarEvent is passed as a JSON string via router param
     const event = useMemo<CalendarEvent | null>(() => {
@@ -127,7 +132,15 @@ const EventDetailScreen = () => {
 
     const handleBack = useCallback(() => router.back(), [router]);
 
+    const openMenu = useCallback(() => {
+        moreButtonRef.current?.measure((_fx, _fy, _w, _h, px, py) => {
+            setMenuPos({ top: py + _h + 4, right: 0 });
+            setMenuVisible(true);
+        });
+    }, []);
+
     const handleEdit = useCallback(() => {
+        setMenuVisible(false);
         if (!event) return;
         router.push({
             pathname: '/event/create',
@@ -136,6 +149,7 @@ const EventDetailScreen = () => {
     }, [event, router]);
 
     const handleDelete = useCallback(() => {
+        setMenuVisible(false);
         if (!event) return;
         Alert.alert('Delete Event', `Are you sure you want to delete "${event.title}"?`, [
             { text: 'Cancel', style: 'cancel' },
@@ -208,18 +222,63 @@ const EventDetailScreen = () => {
                 >
                     Event Detail
                 </Text>
-                <TouchableOpacity
-                    onPress={handleDelete}
-                    style={styles.navBtn}
-                    activeOpacity={0.7}
-                >
-                    <Feather
-                        name="trash-2"
-                        size={20}
-                        color="#e74c3c"
-                    />
-                </TouchableOpacity>
+                <View ref={moreButtonRef} collapsable={false}>
+                    <TouchableOpacity
+                        onPress={openMenu}
+                        style={styles.navBtn}
+                        activeOpacity={0.7}
+                    >
+                        <Feather
+                            name="more-vertical"
+                            size={22}
+                            color={isDark ? '#e5e5e5' : '#2c3e50'}
+                        />
+                    </TouchableOpacity>
+                </View>
             </View>
+
+            {/* ── Dropdown Menu Modal ── */}
+            <Modal
+                visible={menuVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMenuVisible(false)}
+            >
+                <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
+                    <View style={[
+                        styles.menuContainer,
+                        {
+                            backgroundColor: isDark ? '#2a2a2a' : '#ffffff',
+                            shadowColor: '#000',
+                            right: 12,
+                            top: menuPos.top,
+                        }
+                    ]}>
+                        {/* Edit */}
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomWidth: 1, borderBottomColor: isDark ? '#3a3a3a' : '#f0f0f0' }]}
+                            onPress={handleEdit}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.menuIconBox, { backgroundColor: hexToRgba(accent, 0.15) }]}>
+                                <Feather name="edit-2" size={15} color={accent} />
+                            </View>
+                            <Text style={[styles.menuItemText, { color: isDark ? '#e5e5e5' : '#1a1a2e' }]}>Edit</Text>
+                        </TouchableOpacity>
+                        {/* Delete */}
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={handleDelete}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.menuIconBox, { backgroundColor: 'rgba(231,76,60,0.15)' }]}>
+                                <Feather name="trash-2" size={15} color="#e74c3c" />
+                            </View>
+                            <Text style={[styles.menuItemText, { color: '#e74c3c' }]}>Delete</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Pressable>
+            </Modal>
 
             <ScrollView
                 style={{ flex: 1 }}
@@ -373,58 +432,6 @@ const EventDetailScreen = () => {
                     </View>
                 )}
             </ScrollView>
-
-            {/* ── Bottom Action Bar ── */}
-            <View
-                style={[
-                    styles.bottomBar,
-                    {
-                        backgroundColor: navBg,
-                        paddingBottom: insets.bottom + 12,
-                        borderTopColor: divider
-                    }
-                ]}
-            >
-                <TouchableOpacity
-                    style={[
-                        styles.actionBtn,
-                        styles.deleteBtn,
-                        {
-                            backgroundColor: isDark ? '#2a1212' : '#fdecea',
-                            borderColor: isDark ? '#5a2020' : '#f5c6c6'
-                        }
-                    ]}
-                    onPress={handleDelete}
-                    activeOpacity={0.8}
-                >
-                    <Feather
-                        name="trash-2"
-                        size={18}
-                        color="#e74c3c"
-                    />
-                    <Text style={[styles.actionBtnText, { color: '#e74c3c' }]}>Delete</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[
-                        styles.actionBtn,
-                        styles.editBtn,
-                        {
-                            backgroundColor: accent,
-                            shadowColor: accent
-                        }
-                    ]}
-                    onPress={handleEdit}
-                    activeOpacity={0.85}
-                >
-                    <Feather
-                        name="edit-2"
-                        size={18}
-                        color="#fff"
-                    />
-                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>Edit Event</Text>
-                </TouchableOpacity>
-            </View>
         </View>
     );
 };
@@ -554,6 +561,39 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
     },
     ownerBadgeText: { fontSize: 11, fontFamily: 'Kanit-Bold' },
+
+    // Dropdown menu
+    menuOverlay: {
+        flex: 1,
+    },
+    menuContainer: {
+        position: 'absolute',
+        minWidth: 160,
+        borderRadius: 14,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 10,
+        overflow: 'hidden',
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 13,
+        gap: 12,
+    },
+    menuIconBox: {
+        width: 32,
+        height: 32,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    menuItemText: {
+        fontSize: 15,
+        fontFamily: 'Kanit-Bold',
+    },
 
     // Bottom bar
     bottomBar: {
