@@ -46,7 +46,7 @@ function ThemedApp() {
                     />
                     <Stack.Screen
                         name="event/create"
-                        options={{ headerShown: false, animation: 'slide_from_bottom' }}
+                        options={{ headerShown: false, animation: 'slide_from_right' }}
                     />
                     <Stack.Screen name="+not-found" />
                 </Stack>

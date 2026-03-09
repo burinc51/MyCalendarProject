@@ -523,14 +523,13 @@ export default function EventCreateScreen() {
     return (
         <View style={[s.root, { backgroundColor: c.bg }]}>
             {/* Nav Bar */}
-            <View style={[s.navbar, { backgroundColor: c.navBg}]}>
+            <View style={[s.navbar, { backgroundColor: c.navBg }]}>
                 <TouchableOpacity onPress={() => router.back()} style={s.navBtn} activeOpacity={0.7}>
                     <Feather name="x" size={22} color={isDark ? '#e5e5e5' : '#2c3e50'} />
                 </TouchableOpacity>
                 <Text style={[s.navTitle, { color: c.text }]}>{isEditing ? 'Edit Event' : 'New Event'}</Text>
-                <TouchableOpacity onPress={handleSave} style={[s.saveBtn, { backgroundColor: hexToRgba(accent, 0.15) }]} activeOpacity={0.7}>
-                    <Text style={[s.saveBtnTxt, { color: accent }]}>{isEditing ? 'Update' : 'Save'}</Text>
-                </TouchableOpacity>
+                {/* Placeholder to balance the left button so title stays centered */}
+                <View style={s.navBtn} />
             </View>
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -819,8 +818,6 @@ const s = StyleSheet.create({
     navbar:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 4 },
     navBtn:         { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
     navTitle:       { fontSize: 17, fontFamily: 'Kanit-Bold', flex: 1, textAlign: 'center' },
-    saveBtn:        { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20 },
-    saveBtnTxt:     { fontSize: 14, fontFamily: 'Kanit-Bold' },
     scroll:         { paddingHorizontal: 16, paddingTop: 16, gap: 14 },
     accentStrip:    { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2 },
     accentDot:      { width: 12, height: 12, borderRadius: 6, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 3 },
