@@ -523,7 +523,7 @@ export default function EventCreateScreen() {
     return (
         <View style={[s.root, { backgroundColor: c.bg }]}>
             {/* Nav Bar */}
-            <View style={[s.navbar, { backgroundColor: c.navBg, paddingTop: insets.top }]}>
+            <View style={[s.navbar, { backgroundColor: c.navBg}]}>
                 <TouchableOpacity onPress={() => router.back()} style={s.navBtn} activeOpacity={0.7}>
                     <Feather name="x" size={22} color={isDark ? '#e5e5e5' : '#2c3e50'} />
                 </TouchableOpacity>
@@ -720,21 +720,6 @@ export default function EventCreateScreen() {
                                     })}
                                 </View>
                             </ScrollView>
-                        </View>
-                        <Text style={[s.lbl, { color: c.label, marginTop: 12 }]}>Type</Text>
-                        <View style={s.chipRow}>
-                            {(['POPUP', 'EMAIL', 'PUSH'] as const).map(type => {
-                                const sel = formData.notificationType === type;
-                                const icns: Record<string, string> = { POPUP: 'bell', EMAIL: 'mail', PUSH: 'smartphone' };
-                                return (
-                                    <TouchableOpacity key={type}
-                                        style={[s.chip, { borderColor: sel ? accent : c.inputBorder, backgroundColor: sel ? hexToRgba(accent, 0.15) : c.input }]}
-                                        onPress={() => updateField('notificationType', type)}>
-                                        <Feather name={icns[type] as any} size={13} color={sel ? accent : c.label} />
-                                        <Text style={[s.chipTxt, { color: sel ? accent : c.label, fontFamily: sel ? 'Kanit-Bold' : 'Kanit-Regular' }]}>{type}</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
                         </View>
                     </View>
 

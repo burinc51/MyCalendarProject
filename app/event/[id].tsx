@@ -323,13 +323,29 @@ const EventDetailScreen = () => {
                                 Created by <Text style={{ fontFamily: 'Kanit-Bold', color: accent }}>{event.createdBy.name || event.createdBy.username}</Text>
                             </Text>
                             <View style={[styles.heroOwnerBadge, { backgroundColor: hexToRgba(accent, 0.2) }]}>
-                                <Feather
-                                    name="shield"
-                                    size={10}
-                                    color={accent}
-                                />
+                                <Feather name="shield" size={10} color={accent} />
                                 <Text style={[styles.heroOwnerText, { color: accent }]}>Owner</Text>
                             </View>
+                        </View>
+                    ) : null}
+
+                    {/* Description card in Hero */}
+                    {event.description ? (
+                        <View style={[styles.heroDesc, {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        }]}>
+                            <View style={styles.heroDescHeader}>
+                                <View style={[styles.heroDescIconBox, { backgroundColor: hexToRgba(accent, 0.18) }]}>
+                                    <Feather name="align-left" size={13} color={accent} />
+                                </View>
+                                <Text style={[styles.heroDescLabel, { color: isDark ? '#888' : '#8e9aad' }]}>
+                                    DESCRIPTION
+                                </Text>
+                            </View>
+                            <Text style={[styles.heroDescText, { color: isDark ? '#d0d0d0' : '#2d3748' }]}>
+                                {event.description}
+                            </Text>
                         </View>
                     ) : null}
                 </View>
@@ -351,18 +367,7 @@ const EventDetailScreen = () => {
                         isDark={isDark}
                     />
 
-                    {event.description ? (
-                        <InfoRow
-                            icon="file-text"
-                            label="Description"
-                            value={event.description}
-                            accent={accent}
-                            isDark={isDark}
-                            multiline
-                        />
-                    ) : null}
-
-                    {pm && (
+                    {event.priority && pm ? (
                         <View style={[rowStyle.wrap, { backgroundColor: isDark ? '#222' : '#f7f9fc' }]}>
                             <View style={[rowStyle.iconBox, { backgroundColor: hexToRgba(pm.color, 0.15) }]}>
                                 <Feather
@@ -379,7 +384,7 @@ const EventDetailScreen = () => {
                                 </View>
                             </View>
                         </View>
-                    )}
+                    ) : null}
 
                     {event.reminder !== undefined && event.reminder > 0 ? (
                         <InfoRow
@@ -510,6 +515,38 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12,
     },
     heroOwnerText: { fontSize: 10, fontFamily: 'Kanit-Bold' },
+
+    // Description card (inside Hero)
+    heroDesc: {
+        width: '100%',
+        marginTop: 4,
+        borderRadius: 16,
+        borderWidth: 1,
+        padding: 16,
+        gap: 10,
+    },
+    heroDescHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    heroDescIconBox: {
+        width: 26,
+        height: 26,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    heroDescLabel: {
+        fontSize: 10,
+        fontFamily: 'Kanit-Bold',
+        letterSpacing: 1.2,
+    },
+    heroDescText: {
+        fontSize: 14,
+        fontFamily: 'Kanit-Regular',
+        lineHeight: 22,
+    },
     // heroAccentBar: { width: 48, height: 4, borderRadius: 2, marginTop: 4 },
 
     // Sections
