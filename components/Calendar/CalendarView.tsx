@@ -20,10 +20,10 @@ import PagerView from 'react-native-pager-view';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { AntDesign } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import CalendarBody from '@/components/Calendar/CalendarBody';
 import EventList from '@/components/Calendar/EventList';
-import EventForm from '@/components/Calendar/EventForm';
 import CalendarDayView from '@/components/Calendar/CalendarDayView';
 import CalendarWeekView from '@/components/Calendar/CalendarWeekView';
 import CalendarYearView from '@/components/Calendar/CalendarYearView';
@@ -35,6 +35,9 @@ import { monthNames } from '@/utils/month-names';
 // Hooks
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
+
+// Stores
+import { useEventActionStore } from '@/stores/useEventActionStore';
 
 // Types
 import type { CalendarEvent } from '@/types/event';
@@ -72,6 +75,7 @@ const VIEW_MODES: { label: string; value: ViewMode; icon: string }[] = [
 const CalendarView: React.FC = () => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const router = useRouter();
     const { width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet } =
         useResponsiveDimensions();
 
@@ -142,10 +146,24 @@ const CalendarView: React.FC = () => {
 
     // Hook for events
     const {
-        events, isLoading, formData, editingEvent, showAddForm,
-        setShowAddForm, setEditingEvent, updateFormData, resetForm,
-        handleSaveEvent, handleDeleteEvent, handleEditEvent, initFormForDate
+        events, isLoading, handleDeleteEvent, handleEditEvent
     } = useCalendarEvents();
+
+    // Subscribe to edit/delete actions triggered from EventDetailScreen
+    const { pendingAction, pendingEvent, clearAction } = useEventActionStore();
+    useEffect(() => {
+        if (!pendingAction || !pendingEvent) return;
+        if (pendingAction === 'edit') {
+            // Navigate to create screen with event data for editing
+            router.push({
+                pathname: '/event/create',
+                params: { event: JSON.stringify(pendingEvent) },
+            });
+        } else if (pendingAction === 'delete') {
+            handleDeleteEvent(pendingEvent.id);
+        }
+        clearAction();
+    }, [pendingAction, pendingEvent]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ----- Display month/year derived from current view -----
     const getDateFromPageIndex = useCallback((pageIndex: number) => {
@@ -333,18 +351,13 @@ const CalendarView: React.FC = () => {
     const handleSelectDate = useCallback((date: string) => {
         sheetRef?.current?.present();
         setSelectedDate(date);
-        setShowAddForm(false);
-        setEditingEvent(null);
         if (viewMode !== 'month') setFocusDate(date);
-    }, [setShowAddForm, setEditingEvent, viewMode]);
+    }, [viewMode]);
 
     const closePanel = useCallback(() => {
         sheetRef?.current?.dismiss();
         setSelectedDate(null);
-        setShowAddForm(false);
-        setEditingEvent(null);
-        resetForm();
-    }, [setShowAddForm, setEditingEvent, resetForm]);
+    }, []);
 
     useEffect(() => {
         const h = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -364,20 +377,17 @@ const CalendarView: React.FC = () => {
 
     const handleAddEvent = useCallback(() => {
         if (!selectedDate) return;
-        initFormForDate(selectedDate);
-        setShowAddForm(true);
-    }, [selectedDate, initFormForDate, setShowAddForm]);
+        router.push({
+            pathname: '/event/create',
+            params: { date: selectedDate },
+        });
+    }, [selectedDate, router]);
 
     const formattedDate = useMemo(
         () => selectedDate ? dayjs(selectedDate).format('dddd D MMMM') : 'No Date Selected',
         [selectedDate]
     );
 
-    const handleFormCancel = useCallback(() => {
-        setShowAddForm(false);
-        setEditingEvent(null);
-        resetForm();
-    }, [setShowAddForm, setEditingEvent, resetForm]);
 
     const pages = useMemo(() => Array.from({ length: TOTAL_PAGES }, (_, i) => i), []);
 
@@ -573,41 +583,46 @@ const CalendarView: React.FC = () => {
 
             {/* Bottom Sheet (month view only) */}
             {viewMode === 'month' && (
-                <CustomBottomSheetModal ref={sheetRef} snapPoints={snapPoints}>
+                <CustomBottomSheetModal ref={sheetRef} snapPoints={snapPoints} isDark={isDark}>
                     <View style={[styles.sheetContent, dynamicStyles.sheetContent]}>
-                        {!showAddForm ? (
-                            <>
-                                <View style={styles.modalHeader}>
-                                    <Text style={[styles.modalHeaderText, dynamicStyles.modalHeaderText]}>
-                                        {formattedDate}
-                                    </Text>
-                                    <TouchableOpacity
-                                        onPress={handleAddEvent}
-                                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                        activeOpacity={0.7}
-                                    >
-                                        <AntDesign
-                                            name="plus-circle"
-                                            size={dynamicStyles.addButtonSize}
-                                            color="#2ecc71"
-                                        />
-                                    </TouchableOpacity>
-                                </View>
-                                <EventList
-                                    events={selectedDateEvents}
-                                    onEdit={handleEditEvent}
-                                    onDelete={handleDeleteEvent}
-                                />
-                            </>
-                        ) : (
-                            <EventForm
-                                formData={formData}
-                                isEditing={!!editingEvent}
-                                onUpdateField={updateFormData}
-                                onSave={handleSaveEvent}
-                                onCancel={handleFormCancel}
-                            />
-                        )}
+                        {/* Sheet header */}
+                        <View style={[
+                            styles.modalHeader,
+                            { borderBottomColor: isDark ? '#333' : '#f0f0f0' }
+                        ]}>
+                            <View style={styles.modalHeaderLeft}>
+                                <View style={[
+                                    styles.modalAccentBar,
+                                    { backgroundColor: '#2ecc71' }
+                                ]} />
+                                <Text style={[
+                                    styles.modalHeaderText,
+                                    dynamicStyles.modalHeaderText,
+                                    { color: isDark ? '#f0f0f0' : '#1a1a2e' }
+                                ]}>
+                                    {formattedDate}
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={handleAddEvent}
+                                style={[
+                                    styles.addButton,
+                                    {
+                                        backgroundColor: isDark ? '#1a3d2a' : '#eafaf1',
+                                        borderColor: isDark ? '#2ecc71aa' : '#2ecc7160'
+                                    }
+                                ]}
+                                activeOpacity={0.7}
+                            >
+                                <AntDesign name="plus" size={18} color="#2ecc71" />
+                            </TouchableOpacity>
+                        </View>
+                        <EventList
+                            events={selectedDateEvents}
+                            onEdit={handleEditEvent}
+                            onDelete={handleDeleteEvent}
+                            isDark={isDark}
+                        />
                     </View>
                 </CustomBottomSheetModal>
             )}
@@ -691,25 +706,33 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
-        paddingBottom: 16
+        marginBottom: 16,
+        paddingBottom: 14,
+        borderBottomWidth: 1,
+    },
+    modalHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
+    },
+    modalAccentBar: {
+        width: 4,
+        height: 22,
+        borderRadius: 2,
     },
     modalHeaderText: {
         fontFamily: 'Kanit-Bold',
-        color: '#2c3e50'
+        color: '#1a1a2e',
     },
-    centered: {
-        flex: 1,
+    addButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        borderWidth: 1,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
     },
-    errorText: {
-        color: '#e74c3c',
-        fontSize: 14,
-        fontFamily: 'Kanit-Regular',
-        textAlign: 'center',
-        paddingHorizontal: 20
-    }
 });
 
 export default CalendarView;

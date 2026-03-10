@@ -55,6 +55,7 @@ export const HEX_TO_COLOR_NAME: Record<string, string> = {
 export const DEFAULT_EVENT_FORM = {
     title: '',
     description: '',
+    location: '',
     startDate: '',
     endDate: '',
     startTime: '09:00',
@@ -63,7 +64,15 @@ export const DEFAULT_EVENT_FORM = {
     color: EVENT_COLORS[0].solid,
     category: CATEGORIES[0],
     priority: 'medium' as const,
-    reminder: 15
+    reminder: 15,
+    notificationType: 'PUSH' as const,
+    remindBeforeValue: '15',
+    remindBeforeUnit: 'MINUTES' as const,
+    repeatType: 'NONE' as const,
+    repeatInterval: '1',
+    repeatUntil: '',
+    pinned: false,
+    groupId: null as number | null
 };
 
 // API Priority mapping

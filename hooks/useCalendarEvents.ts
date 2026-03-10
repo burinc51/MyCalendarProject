@@ -17,89 +17,170 @@ import type { CalendarEvent, EventFormData } from '@/types/event';
 const today = dayjs();
 const fmt = (d: dayjs.Dayjs) => d.format('YYYY-MM-DDTHH:mm:ss');
 
+// Reusable mock users
+const MOCK_USERS = {
+    alice: { userId: 1, username: 'alice', name: 'Alice Johnson', imageUrl: null },
+    bob: { userId: 2, username: 'bob', name: 'Bob Smith', imageUrl: null },
+    carol: { userId: 3, username: 'carol', name: 'Carol White', imageUrl: null },
+    dave: { userId: 4, username: 'dave', name: 'Dave Brown', imageUrl: null },
+    eve: { userId: 5, username: 'eve', name: 'Eve Martinez', imageUrl: null },
+};
+
 const MOCK_EVENTS: CalendarEvent[] = [
-    // All-day event spanning 3 days
+    // All-day event spanning 3 days — 3 assignees
     {
-        id: 9001, title: 'ประชุมประจำเดือน', isAllDay: true,
+        id: 9001,
+        title: 'ประชุมประจำเดือน',
+        isAllDay: true,
         startDate: fmt(today.startOf('week').add(1, 'day')),
         endDate: fmt(today.startOf('week').add(3, 'day')),
-        color: '#3498db', category: 'Work', priority: 'high'
+        color: '#3498db',
+        category: 'Work',
+        priority: 'high',
+        createdBy: MOCK_USERS.alice,
+        assignees: [MOCK_USERS.alice, MOCK_USERS.bob, MOCK_USERS.carol]
     },
-    // Today morning meeting
+    // Today morning meeting — 2 assignees
     {
-        id: 9002, title: 'Stand-up Meeting', isAllDay: false,
+        id: 9002,
+        title: 'Stand-up Meeting',
+        isAllDay: false,
         startDate: fmt(today.hour(9).minute(0)),
         endDate: fmt(today.hour(9).minute(30)),
-        color: '#2ecc71', category: 'Work', priority: 'medium'
+        color: '#2ecc71',
+        category: 'Work',
+        priority: 'medium',
+        createdBy: MOCK_USERS.bob,
+        assignees: [MOCK_USERS.alice, MOCK_USERS.dave]
     },
-    // Today lunch
+    // Today lunch — 1 assignee (only self)
     {
-        id: 9003, title: '🍜 พักกินข้าว', isAllDay: false,
+        id: 9003,
+        title: '🍜 พักกินข้าว',
+        isAllDay: false,
         startDate: fmt(today.hour(12).minute(0)),
         endDate: fmt(today.hour(13).minute(0)),
-        color: '#f39c12', category: 'Personal', priority: 'low'
+        color: '#f39c12',
+        category: 'Personal',
+        priority: 'low',
+        createdBy: MOCK_USERS.bob,
+        assignees: [MOCK_USERS.bob]
     },
-    // Today afternoon
+    // Today afternoon — 4 assignees (tests +N overflow badge)
     {
-        id: 9004, title: 'Code Review', isAllDay: false,
+        id: 9004,
+        title: 'Code Review',
+        isAllDay: false,
         startDate: fmt(today.hour(14).minute(0)),
         endDate: fmt(today.hour(15).minute(30)),
-        color: '#9b59b6', category: 'Work', priority: 'high'
+        color: '#9b59b6',
+        category: 'Work',
+        priority: 'high',
+        createdBy: MOCK_USERS.carol,
+        assignees: [MOCK_USERS.alice, MOCK_USERS.bob, MOCK_USERS.carol, MOCK_USERS.dave]
     },
-    // Tomorrow
+    // Tomorrow — 2 assignees
     {
-        id: 9005, title: 'Design Workshop', isAllDay: false,
+        id: 9005,
+        title: 'Design Workshop',
+        isAllDay: false,
         startDate: fmt(today.add(1, 'day').hour(10).minute(0)),
         endDate: fmt(today.add(1, 'day').hour(12).minute(0)),
-        color: '#e74c3c', category: 'Work', priority: 'high'
+        color: '#e74c3c',
+        category: 'Work',
+        priority: 'high',
+        createdBy: MOCK_USERS.carol,
+        assignees: [MOCK_USERS.carol, MOCK_USERS.eve]
     },
-    // Day after tomorrow all-day
+    // Day after tomorrow — no assignees (tests fallback avatar)
     {
-        id: 9006, title: 'วันหยุดพิเศษ 🎉', isAllDay: true,
+        id: 9006,
+        title: 'วันหยุดพิเศษ 🎉',
+        isAllDay: true,
         startDate: fmt(today.add(2, 'day').startOf('day')),
         endDate: fmt(today.add(2, 'day').endOf('day')),
-        color: '#1abc9c', category: 'Holiday', priority: 'low'
+        color: '#1abc9c',
+        category: 'Holiday',
+        priority: 'low',
+        createdBy: MOCK_USERS.dave,
+        assignees: []
     },
-    // Next week
+    // Next week — 5 assignees (tests +2 badge)
     {
-        id: 9007, title: 'Sprint Planning', isAllDay: false,
+        id: 9007,
+        title: 'Sprint Planning',
+        isAllDay: false,
         startDate: fmt(today.add(7, 'day').hour(9).minute(0)),
         endDate: fmt(today.add(7, 'day').hour(11).minute(0)),
-        color: '#2980b9', category: 'Work', priority: 'high'
+        color: '#2980b9',
+        category: 'Work',
+        priority: 'high',
+        createdBy: MOCK_USERS.alice,
+        assignees: [MOCK_USERS.alice, MOCK_USERS.bob, MOCK_USERS.carol, MOCK_USERS.dave, MOCK_USERS.eve]
     },
-    // End of month
+    // End of month — 1 assignee
     {
-        id: 9008, title: 'Monthly Review 📊', isAllDay: false,
+        id: 9008,
+        title: 'Monthly Review 📊',
+        isAllDay: false,
         startDate: fmt(today.endOf('month').subtract(1, 'day').hour(14).minute(0)),
         endDate: fmt(today.endOf('month').subtract(1, 'day').hour(16).minute(0)),
-        color: '#8e44ad', category: 'Work', priority: 'medium'
+        color: '#8e44ad',
+        category: 'Work',
+        priority: 'medium',
+        createdBy: MOCK_USERS.eve,
+        assignees: [MOCK_USERS.eve]
     },
-    // Next month
+    // Next month — 2 assignees
     {
-        id: 9009, title: 'Team Outing 🏖️', isAllDay: true,
+        id: 9009,
+        title: 'Team Outing 🏖️',
+        isAllDay: true,
         startDate: fmt(today.add(1, 'month').startOf('month').add(4, 'day')),
         endDate: fmt(today.add(1, 'month').startOf('month').add(4, 'day')),
-        color: '#27ae60', category: 'Personal', priority: 'low'
+        color: '#27ae60',
+        category: 'Personal',
+        priority: 'low',
+        createdBy: MOCK_USERS.dave,
+        assignees: [MOCK_USERS.dave, MOCK_USERS.carol]
     },
-    // Yesterday (to test past events)
+    // Yesterday — 1 assignee
     {
-        id: 9010, title: 'Retrospective', isAllDay: false,
+        id: 9010,
+        title: 'Retrospective',
+        isAllDay: false,
         startDate: fmt(today.subtract(1, 'day').hour(16).minute(0)),
         endDate: fmt(today.subtract(1, 'day').hour(17).minute(0)),
-        color: '#c0392b', category: 'Work', priority: 'medium'
+        color: '#c0392b',
+        category: 'Work',
+        priority: 'medium',
+        createdBy: MOCK_USERS.alice,
+        assignees: [MOCK_USERS.alice]
     },
     {
-        id: 9011, title: 'Retrospective', isAllDay: true,
+        id: 9011,
+        title: 'Retrospective',
+        isAllDay: true,
         startDate: fmt(today.startOf('week').add(1, 'day')),
         endDate: fmt(today.startOf('week').add(3, 'day')),
-        color: '#c0392b', category: 'Work', priority: 'medium'
+        color: '#c0392b',
+        category: 'Work',
+        priority: 'medium',
+        createdBy: MOCK_USERS.bob,
+        assignees: [MOCK_USERS.bob, MOCK_USERS.dave]
     },
     {
-        id: 9012, title: 'Retrospective', isAllDay: true,
+        id: 9012,
+        title: 'Retrospective',
+        isAllDay: true,
         startDate: fmt(today.startOf('week').add(1, 'day')),
         endDate: fmt(today.startOf('week').add(3, 'day')),
-        color: '#c0392b', category: 'Work', priority: 'high'
-    },
+        color: '#c0392b',
+        category: 'Work',
+        priority: 'high',
+        createdBy: MOCK_USERS.eve,
+        assignees: [MOCK_USERS.alice, MOCK_USERS.carol, MOCK_USERS.eve]
+    }
 ];
 
 interface UseCalendarEventsReturn {
@@ -182,8 +263,9 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
     const handleEditEvent = useCallback((event: CalendarEvent) => {
         setEditingEvent(event);
         setFormData({
-            title: event.title,
+            title: event.title || '',
             description: event.description || '',
+            location: event.location || '',
             startDate: dayjs(event.startDate).format('YYYY-MM-DD'),
             endDate: dayjs(event.endDate).format('YYYY-MM-DD'),
             startTime: event.isAllDay ? '09:00' : dayjs(event.startDate).format('HH:mm'),
@@ -192,7 +274,15 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
             color: event.color,
             category: event.category || 'Work',
             priority: event.priority || 'medium',
-            reminder: event.reminder || 15
+            reminder: event.reminder || 15,
+            notificationType: event.notificationType || 'PUSH',
+            remindBeforeValue: (event.remindBeforeValue || 15).toString(),
+            remindBeforeUnit: event.remindBeforeUnit || 'MINUTES',
+            repeatType: event.repeatType || 'NONE',
+            repeatInterval: (event.repeatInterval || 1).toString(),
+            repeatUntil: event.repeatUntil ? dayjs(event.repeatUntil).format('YYYY-MM-DD') : '',
+            pinned: !!event.pinned,
+            groupId: event.groupId || null
         });
         setShowAddForm(true);
     }, []);
