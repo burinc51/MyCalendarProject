@@ -3,7 +3,7 @@
  * Manages notes and folders state with CRUD operations
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useToast } from '@/components/ui/Toast';
 import type { ToastType } from '@/components/ui/Toast';
@@ -131,7 +131,7 @@ export const useNotes = (): UseNotesReturn => {
     }, [fetchNotes, fetchFolders]);
 
     // Filter and sort notes
-    const filteredNotes = useCallback(() => {
+    const filteredNotes = useMemo(() => {
         let result = [...notes];
 
         // Filter by folder
@@ -276,6 +276,12 @@ export const useNotes = (): UseNotesReturn => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
+                            // Cancel any scheduled reminder before deleting
+                            const noteToDelete = notes.find((n) => n.id === noteId);
+                            if (noteToDelete?.reminderDate) {
+                                await cancelNoteReminder(`note-reminder-${noteId}`);
+                            }
+
                             await noteService.deleteNote(noteId);
                             showToast('ลบโน้ตสำเร็จ');
                             fetchNotes();
@@ -288,7 +294,7 @@ export const useNotes = (): UseNotesReturn => {
                 }
             ]);
         },
-        [fetchNotes, fetchFolders]
+        [notes, fetchNotes, fetchFolders]
     );
 
     // Toggle pin
@@ -386,7 +392,7 @@ export const useNotes = (): UseNotesReturn => {
 
         // Notes state
         notes,
-        filteredNotes: filteredNotes(),
+        filteredNotes,
         isLoading,
         error,
 

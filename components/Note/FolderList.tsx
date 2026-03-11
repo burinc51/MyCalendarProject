@@ -3,7 +3,7 @@
  * Sidebar/drawer showing all folders with "All Notes" option
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     View,
     Text,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { MaterialIcons, Feather, AntDesign } from '@expo/vector-icons';
 import FolderCard from './FolderCard';
+import { useTheme } from '@/components/ThemeProvider';
 import type { Folder, FolderFormData } from '@/types/note';
 import { NOTE_COLORS } from '@/types/note';
 
@@ -61,6 +62,33 @@ const FolderList: React.FC<FolderListProps> = ({
     onFormCancel
 }) => {
     const [showColorPicker, setShowColorPicker] = useState(false);
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
+    const themeColors = useMemo(() => ({
+        containerBg: isDark ? '#171717' : '#f8f9fa',
+        headerBg: isDark ? '#262626' : '#fff',
+        headerBorder: isDark ? '#404040' : '#f0f0f0',
+        headerTitle: isDark ? '#e5e5e5' : '#2c3e50',
+        addBtnBg: isDark ? '#1a3a2a' : '#e8f5e9',
+        cardBg: isDark ? '#262626' : '#fff',
+        cardSelectedBg: isDark ? '#1a3a2a' : '#e8f5e9',
+        allNotesTitle: isDark ? '#e5e5e5' : '#2c3e50',
+        allNotesCount: isDark ? '#a3a3a3' : '#999',
+        divider: isDark ? '#404040' : '#e0e0e0',
+        emptyText: isDark ? '#a3a3a3' : '#999',
+        emptySubtext: isDark ? '#737373' : '#bbb',
+        modalBg: isDark ? '#262626' : '#fff',
+        modalTitle: isDark ? '#e5e5e5' : '#2c3e50',
+        inputBg: isDark ? '#404040' : '#fff',
+        inputBorder: isDark ? '#525252' : '#e0e0e0',
+        inputText: isDark ? '#e5e5e5' : '#333',
+        labelColor: isDark ? '#a3a3a3' : '#666',
+        cancelBtnBg: isDark ? '#404040' : '#f5f5f5',
+        cancelBtnText: isDark ? '#a3a3a3' : '#666',
+        closeIcon: isDark ? '#a3a3a3' : '#666',
+        placeholderText: isDark ? '#737373' : '#999',
+    }), [isDark]);
 
     // Render folder creation form modal
     const renderCreateFolderModal = () => {
@@ -74,26 +102,26 @@ const FolderList: React.FC<FolderListProps> = ({
                 onRequestClose={onFormCancel}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                    <View style={[styles.modalContent, { backgroundColor: themeColors.modalBg }]}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>New Folder</Text>
+                            <Text style={[styles.modalTitle, { color: themeColors.modalTitle }]}>New Folder</Text>
                             <TouchableOpacity onPress={onFormCancel}>
-                                <AntDesign name="close" size={24} color="#666" />
+                                <AntDesign name="close" size={24} color={themeColors.closeIcon} />
                             </TouchableOpacity>
                         </View>
 
                         {/* Folder Name Input */}
                         <TextInput
-                            style={styles.folderNameInput}
+                            style={[styles.folderNameInput, { backgroundColor: themeColors.inputBg, borderColor: themeColors.inputBorder, color: themeColors.inputText }]}
                             value={folderFormData.name}
                             onChangeText={(text) => onFormDataChange('name', text)}
                             placeholder="Folder name"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={themeColors.placeholderText}
                             autoFocus
                         />
 
                         {/* Color Selection */}
-                        <Text style={styles.colorLabel}>Color</Text>
+                        <Text style={[styles.colorLabel, { color: themeColors.labelColor }]}>Color</Text>
                         <View style={styles.colorGrid}>
                             {FOLDER_COLORS.map((color) => (
                                 <TouchableOpacity
@@ -115,10 +143,10 @@ const FolderList: React.FC<FolderListProps> = ({
                         {/* Actions */}
                         <View style={styles.modalActions}>
                             <TouchableOpacity
-                                style={styles.cancelButton}
+                                style={[styles.cancelButton, { backgroundColor: themeColors.cancelBtnBg }]}
                                 onPress={onFormCancel}
                             >
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                                <Text style={[styles.cancelButtonText, { color: themeColors.cancelBtnText }]}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.createButton}
@@ -134,12 +162,12 @@ const FolderList: React.FC<FolderListProps> = ({
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: themeColors.containerBg }]}>
             {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Folders</Text>
+            <View style={[styles.header, { backgroundColor: themeColors.headerBg, borderBottomColor: themeColors.headerBorder }]}>
+                <Text style={[styles.headerTitle, { color: themeColors.headerTitle }]}>Folders</Text>
                 <TouchableOpacity
-                    style={styles.addButton}
+                    style={[styles.addButton, { backgroundColor: themeColors.addBtnBg }]}
                     onPress={onCreateFolder}
                 >
                     <Feather name="plus" size={20} color="#2ecc71" />
@@ -154,7 +182,8 @@ const FolderList: React.FC<FolderListProps> = ({
                 <TouchableOpacity
                     style={[
                         styles.allNotesCard,
-                        selectedFolderId === null && styles.allNotesCardSelected
+                        { backgroundColor: themeColors.cardBg },
+                        selectedFolderId === null && [styles.allNotesCardSelected, { backgroundColor: themeColors.cardSelectedBg }]
                     ]}
                     onPress={() => onSelectFolder(null)}
                 >
@@ -162,24 +191,25 @@ const FolderList: React.FC<FolderListProps> = ({
                         <MaterialIcons
                             name="notes"
                             size={28}
-                            color={selectedFolderId === null ? '#2ecc71' : '#666'}
+                            color={selectedFolderId === null ? '#2ecc71' : (isDark ? '#a3a3a3' : '#666')}
                         />
                     </View>
                     <View style={styles.allNotesContent}>
                         <Text style={[
                             styles.allNotesTitle,
+                            { color: themeColors.allNotesTitle },
                             selectedFolderId === null && styles.allNotesTitleSelected
                         ]}>
                             All Notes
                         </Text>
-                        <Text style={styles.allNotesCount}>
+                        <Text style={[styles.allNotesCount, { color: themeColors.allNotesCount }]}>
                             {totalNoteCount} {totalNoteCount === 1 ? 'note' : 'notes'}
                         </Text>
                     </View>
                 </TouchableOpacity>
 
                 {/* Divider */}
-                <View style={styles.divider} />
+                <View style={[styles.divider, { backgroundColor: themeColors.divider }]} />
 
                 {/* Folder List */}
                 {folders.length > 0 ? (
@@ -195,10 +225,10 @@ const FolderList: React.FC<FolderListProps> = ({
                     ))
                 ) : (
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyStateText}>
+                        <Text style={[styles.emptyStateText, { color: themeColors.emptyText }]}>
                             No folders yet
                         </Text>
-                        <Text style={styles.emptyStateSubtext}>
+                        <Text style={[styles.emptyStateSubtext, { color: themeColors.emptySubtext }]}>
                             Create folders to organize your notes
                         </Text>
                     </View>
@@ -214,7 +244,6 @@ const FolderList: React.FC<FolderListProps> = ({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa'
     },
     header: {
         flexDirection: 'row',
@@ -222,14 +251,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 16,
-        backgroundColor: '#fff',
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0'
     },
     headerTitle: {
         fontFamily: 'Kanit-Bold',
         fontSize: 20,
-        color: '#2c3e50'
     },
     addButton: {
         padding: 8,
@@ -243,7 +269,6 @@ const styles = StyleSheet.create({
     allNotesCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
         borderRadius: 12,
         padding: 14,
         marginBottom: 12,
@@ -254,7 +279,6 @@ const styles = StyleSheet.create({
         elevation: 2
     },
     allNotesCardSelected: {
-        backgroundColor: '#e8f5e9',
         borderColor: '#2ecc71',
         borderWidth: 1
     },
@@ -267,7 +291,6 @@ const styles = StyleSheet.create({
     allNotesTitle: {
         fontFamily: 'Kanit-Bold',
         fontSize: 16,
-        color: '#2c3e50',
         marginBottom: 2
     },
     allNotesTitleSelected: {
@@ -276,7 +299,6 @@ const styles = StyleSheet.create({
     allNotesCount: {
         fontFamily: 'Kanit-Regular',
         fontSize: 12,
-        color: '#999'
     },
     divider: {
         height: 1,
@@ -290,13 +312,11 @@ const styles = StyleSheet.create({
     emptyStateText: {
         fontFamily: 'Kanit-Bold',
         fontSize: 14,
-        color: '#999',
         marginBottom: 4
     },
     emptyStateSubtext: {
         fontFamily: 'Kanit-Regular',
         fontSize: 12,
-        color: '#bbb',
         textAlign: 'center'
     },
     // Modal styles
@@ -309,7 +329,6 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         width: '100%',
-        backgroundColor: '#fff',
         borderRadius: 20,
         padding: 24
     },
@@ -322,14 +341,11 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontFamily: 'Kanit-Bold',
         fontSize: 20,
-        color: '#2c3e50'
     },
     folderNameInput: {
         fontFamily: 'Kanit-Regular',
         fontSize: 16,
-        color: '#333',
         borderWidth: 1.5,
-        borderColor: '#e0e0e0',
         borderRadius: 12,
         padding: 14,
         marginBottom: 16
@@ -337,7 +353,6 @@ const styles = StyleSheet.create({
     colorLabel: {
         fontFamily: 'Kanit-Bold',
         fontSize: 14,
-        color: '#666',
         marginBottom: 12
     },
     colorGrid: {
@@ -376,7 +391,6 @@ const styles = StyleSheet.create({
     cancelButtonText: {
         fontFamily: 'Kanit-Bold',
         fontSize: 15,
-        color: '#666'
     },
     createButton: {
         flex: 1,

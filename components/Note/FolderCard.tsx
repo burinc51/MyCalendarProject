@@ -3,9 +3,10 @@
  * Card displaying a folder with note count
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { useTheme } from '@/components/ThemeProvider';
 import type { Folder } from '@/types/note';
 
 interface FolderCardProps {
@@ -25,11 +26,23 @@ const FolderCard: React.FC<FolderCardProps> = ({
     onEdit,
     onDelete
 }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
+    const colors = useMemo(() => ({
+        cardBg: isDark ? '#262626' : '#fff',
+        cardSelectedBg: isDark ? '#1a3a2a' : '#f0fff4',
+        name: isDark ? '#e5e5e5' : '#2c3e50',
+        noteCount: isDark ? '#a3a3a3' : '#999',
+        actionBg: isDark ? '#404040' : '#f8f9fa',
+    }), [isDark]);
+
     return (
         <TouchableOpacity
             style={[
                 styles.card,
-                isSelected && styles.cardSelected,
+                { backgroundColor: colors.cardBg },
+                isSelected && [styles.cardSelected, { backgroundColor: colors.cardSelectedBg }],
                 { borderLeftColor: folder.color }
             ]}
             onPress={() => onPress(folder.id)}
@@ -45,20 +58,20 @@ const FolderCard: React.FC<FolderCardProps> = ({
             </View>
 
             <View style={styles.content}>
-                <Text style={styles.name} numberOfLines={1}>
+                <Text style={[styles.name, { color: colors.name }]} numberOfLines={1}>
                     {folder.name}
                 </Text>
-                <Text style={styles.noteCount}>
+                <Text style={[styles.noteCount, { color: colors.noteCount }]}>
                     {folder.noteCount} {folder.noteCount === 1 ? 'note' : 'notes'}
                 </Text>
             </View>
 
-            {/* Actions (shown on long press or swipe in real implementation) */}
+            {/* Actions */}
             {(onEdit || onDelete) && (
                 <View style={styles.actions}>
                     {onEdit && (
                         <TouchableOpacity
-                            style={styles.actionButton}
+                            style={[styles.actionButton, { backgroundColor: colors.actionBg }]}
                             onPress={() => onEdit(folder)}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
@@ -67,7 +80,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
                     )}
                     {onDelete && (
                         <TouchableOpacity
-                            style={styles.actionButton}
+                            style={[styles.actionButton, { backgroundColor: colors.actionBg }]}
                             onPress={() => onDelete(folder.id)}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
@@ -84,7 +97,6 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
         borderRadius: 12,
         padding: 12,
         marginBottom: 8,
@@ -96,7 +108,6 @@ const styles = StyleSheet.create({
         elevation: 2
     },
     cardSelected: {
-        backgroundColor: '#f0fff4',
         borderColor: '#2ecc71',
         borderWidth: 1
     },
@@ -109,13 +120,11 @@ const styles = StyleSheet.create({
     name: {
         fontFamily: 'Kanit-Bold',
         fontSize: 15,
-        color: '#2c3e50',
         marginBottom: 2
     },
     noteCount: {
         fontFamily: 'Kanit-Regular',
         fontSize: 12,
-        color: '#999'
     },
     actions: {
         flexDirection: 'row',
@@ -124,8 +133,8 @@ const styles = StyleSheet.create({
     actionButton: {
         padding: 8,
         borderRadius: 8,
-        backgroundColor: '#f8f9fa'
     }
 });
 
 export default FolderCard;
+
