@@ -2,11 +2,12 @@ import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import {
     View, Text, StyleSheet, TouchableOpacity,
     TextInput, ScrollView, KeyboardAvoidingView, Platform,
-    Keyboard, Modal
+    Keyboard, Modal, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
-import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { AntDesign, Ionicons, Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import dayjs from 'dayjs';
 import type { NoteFormData } from '@/types/note';
 import { NOTE_COLORS } from '@/types/note';
@@ -43,7 +44,8 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         tags: formData.tags,
         reminderDate: formData.reminderDate,
         recurrence: formData.recurrence,
-        location: formData.location,
+        locationName: formData.locationName,
+        locationLink: formData.locationLink,
     });
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
@@ -55,7 +57,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
     // Location state
     const [showLocationModal, setShowLocationModal] = useState(false);
-    const [tempLocation, setTempLocation] = useState(formData.location || '');
+    const [tempLocationName, setTempLocationName] = useState(formData.locationName || '');
+    const [tempLocationLink, setTempLocationLink] = useState(formData.locationLink || '');
+
+    // Image picker state
+    const [showImagePickerModal, setShowImagePickerModal] = useState(false);
 
     // Reminder state
     const [showReminderModal, setShowReminderModal] = useState(false);
@@ -246,15 +252,70 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     // ========== Location Handlers ==========
 
     const handleConfirmLocation = useCallback(() => {
-        onUpdateField('location', tempLocation.trim() || null);
+        onUpdateField('locationName', tempLocationName.trim() || null);
+        onUpdateField('locationLink', tempLocationLink.trim() || null);
         setShowLocationModal(false);
-    }, [tempLocation, onUpdateField]);
+    }, [tempLocationName, tempLocationLink, onUpdateField]);
 
     const handleRemoveLocation = useCallback(() => {
-        setTempLocation('');
-        onUpdateField('location', null);
+        setTempLocationName('');
+        setTempLocationLink('');
+        onUpdateField('locationName', null);
+        onUpdateField('locationLink', null);
         setShowLocationModal(false);
     }, [onUpdateField]);
+
+    // ========== Image Handlers ==========
+
+    const handlePickImageFromGallery = useCallback(async () => {
+        setShowImagePickerModal(false);
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                quality: 0.6,
+                base64: true,
+                allowsEditing: true,
+            });
+            if (!result.canceled && result.assets[0]?.base64) {
+                const asset = result.assets[0];
+                const mimeType = asset.mimeType || 'image/jpeg';
+                const dataUri = `data:${mimeType};base64,${asset.base64}`;
+                richTextEditorRef.current?.insertImage(dataUri, 'width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'ไม่สามารถเลือกรูปภาพได้');
+            console.error('Image picker error:', error);
+        }
+    }, []);
+
+    const handleTakePhoto = useCallback(async () => {
+        setShowImagePickerModal(false);
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission', 'ต้องอนุญาตการเข้าถึงกล้องก่อน');
+                return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+                quality: 0.6,
+                base64: true,
+                allowsEditing: true,
+            });
+            if (!result.canceled && result.assets[0]?.base64) {
+                const asset = result.assets[0];
+                const mimeType = asset.mimeType || 'image/jpeg';
+                const dataUri = `data:${mimeType};base64,${asset.base64}`;
+                richTextEditorRef.current?.insertImage(dataUri, 'width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'ไม่สามารถถ่ายรูปได้');
+            console.error('Camera error:', error);
+        }
+    }, []);
+
+    const handlePressAddImage = useCallback(() => {
+        setShowImagePickerModal(true);
+    }, []);
 
     return (
         <SafeAreaView
@@ -280,10 +341,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             </TouchableOpacity>
                             {/* Location button */}
                             <TouchableOpacity onPress={() => {
-                                setTempLocation(formData.location || '');
+                                setTempLocationName(formData.locationName || '');
+                                setTempLocationLink(formData.locationLink || '');
                                 setShowLocationModal(true);
                             }}>
-                                <Ionicons name='location' size={24} color={formData.location ? colors.primary : colors.textSecondary} />
+                                <Ionicons name='location' size={24} color={formData.locationName ? colors.primary : colors.textSecondary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={onSave}><Ionicons name='checkmark' size={24} color={colors.textPrimary} /></TouchableOpacity>
                         </View>
@@ -323,10 +385,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                     )}
 
                     {/* Location Badge */}
-                    {formData.location && (
+                    {formData.locationName && (
                         <TouchableOpacity
                             onPress={() => {
-                                setTempLocation(formData.location || '');
+                                setTempLocationName(formData.locationName || '');
+                                setTempLocationLink(formData.locationLink || '');
                                 setShowLocationModal(true);
                             }}
                             style={[
@@ -336,8 +399,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                         >
                             <Ionicons name='location' size={16} color={colors.primary} />
                             <Text style={[styles.reminderBadgeText, { color: colors.primary }]} numberOfLines={1}>
-                                {formData.location}
+                                {formData.locationName}
                             </Text>
+                            {formData.locationLink ? (
+                                <Feather name="external-link" size={12} color={colors.primary} />
+                            ) : null}
                             <TouchableOpacity
                                 onPress={handleRemoveLocation}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -448,7 +514,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 actions.insertBulletsList, actions.insertOrderedList,
                                 actions.blockquote,
                                 actions.alignLeft, actions.alignCenter, actions.alignRight,
-                                actions.insertLink, actions.line,
+                                actions.insertLink, actions.insertImage, actions.line,
                             ]}
                             style={{ backgroundColor: colors.surface }}
                             iconTint={colors.textPrimary}
@@ -457,6 +523,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             unselectedButtonStyle={{ backgroundColor: 'transparent' }}
                             selectedButtonStyle={{ backgroundColor: colors.surface }}
                             onInsertLink={handleOpenLinkModal}
+                            onPressAddImage={handlePressAddImage}
                         />
                     </View>
                 )}
@@ -672,6 +739,8 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             <Text style={[styles.reminderModalTitle, { color: colors.textPrimary }]}>สถานที่</Text>
                         </View>
 
+                        {/* Location Name */}
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 12 }]}>ชื่อสถานที่</Text>
                         <TextInput
                             style={[
                                 styles.modalInput,
@@ -679,15 +748,35 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                     backgroundColor: isDark ? colors.background : '#f8f8f8',
                                     color: colors.textPrimary,
                                     borderColor: colors.border,
-                                    marginTop: 16,
+                                    marginBottom: 12
+                                }
+                            ]}
+                            placeholder="เช่น Central World, บ้าน, ออฟฟิศ..."
+                            placeholderTextColor={colors.textSecondary}
+                            value={tempLocationName}
+                            onChangeText={setTempLocationName}
+                            autoFocus
+                        />
+
+                        {/* GPS Link */}
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary }]}>ลิงก์ GPS (ไม่บังคับ)</Text>
+                        <TextInput
+                            style={[
+                                styles.modalInput,
+                                {
+                                    backgroundColor: isDark ? colors.background : '#f8f8f8',
+                                    color: colors.textPrimary,
+                                    borderColor: colors.border,
                                     marginBottom: 8
                                 }
                             ]}
-                            placeholder="พิมพ์ชื่อสถานที่ หรือลิงก์..."
+                            placeholder="วาง Google Maps link ที่นี่..."
                             placeholderTextColor={colors.textSecondary}
-                            value={tempLocation}
-                            onChangeText={setTempLocation}
-                            autoFocus
+                            value={tempLocationLink}
+                            onChangeText={setTempLocationLink}
+                            keyboardType="url"
+                            autoCapitalize="none"
+                            autoCorrect={false}
                         />
 
                         <View style={styles.modalButtons}>
@@ -704,7 +793,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 <Text style={styles.modalBtnInsertText}>บันทึก</Text>
                             </TouchableOpacity>
                         </View>
-                        {formData.location && (
+                        {(formData.locationName || formData.locationLink) && (
                             <TouchableOpacity
                                 style={[styles.reminderRemoveBtn, { borderColor: '#e74c3c', marginTop: 16 }]}
                                 onPress={handleRemoveLocation}
@@ -713,6 +802,50 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 <Text style={[styles.reminderRemoveText, { color: '#e74c3c' }]}>ลบสถานที่</Text>
                             </TouchableOpacity>
                         )}
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Image Picker Modal */}
+            <Modal
+                visible={showImagePickerModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowImagePickerModal(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowImagePickerModal(false)}
+                >
+                    <TouchableOpacity activeOpacity={1} style={[styles.reminderModalContent, { backgroundColor: colors.surface }]}>
+                        <View style={styles.reminderModalHeader}>
+                            <Feather name="image" size={24} color={colors.primary} />
+                            <Text style={[styles.reminderModalTitle, { color: colors.textPrimary }]}>แทรกรูปภาพ</Text>
+                        </View>
+
+                        <TouchableOpacity
+                            style={[styles.imagePickerOption, { backgroundColor: isDark ? colors.background : '#f8f8f8' }]}
+                            onPress={handlePickImageFromGallery}
+                        >
+                            <Feather name="image" size={22} color={colors.primary} />
+                            <Text style={[styles.imagePickerOptionText, { color: colors.textPrimary }]}>เลือกจากแกลเลอรี่</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.imagePickerOption, { backgroundColor: isDark ? colors.background : '#f8f8f8' }]}
+                            onPress={handleTakePhoto}
+                        >
+                            <Feather name="camera" size={22} color={colors.primary} />
+                            <Text style={[styles.imagePickerOptionText, { color: colors.textPrimary }]}>ถ่ายรูป</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.reminderCancelBtn}
+                            onPress={() => setShowImagePickerModal(false)}
+                        >
+                            <Text style={[styles.reminderCancelText, { color: colors.textSecondary }]}>ยกเลิก</Text>
+                        </TouchableOpacity>
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>
@@ -1119,6 +1252,19 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#fff',
         fontWeight: '600',
+    },
+    // Image Picker
+    imagePickerOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 12,
+        marginTop: 12,
+        gap: 14,
+    },
+    imagePickerOptionText: {
+        fontSize: 16,
+        fontWeight: '500',
     },
 });
 

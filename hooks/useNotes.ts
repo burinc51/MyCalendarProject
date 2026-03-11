@@ -191,7 +191,8 @@ export const useNotes = (): UseNotesReturn => {
                     tags: note.tags || [],
                     reminderDate: note.reminderDate || null,
                     recurrence: note.recurrence || 'none',
-                    location: note.location || null
+                    locationName: note.locationName || null,
+                    locationLink: note.locationLink || null
                 });
                 setEditingNote(note);
             } else {

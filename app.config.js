@@ -51,6 +51,13 @@ module.exports = {
                     icon: "./assets/images/notification-icon.png",
                     color: "#e74c3c"
                 }
+            ],
+            [
+                "expo-image-picker",
+                {
+                    photosPermission: "Allow access to your photos to insert images into notes",
+                    cameraPermission: "Allow camera access to take photos for notes"
+                }
             ]
         ],
         experiments: {

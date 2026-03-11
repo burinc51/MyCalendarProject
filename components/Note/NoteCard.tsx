@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Linking } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -166,11 +166,20 @@ const NoteCard: React.FC<NoteCardProps> = ({
             )}
 
             {/* Location Badge */}
-            {note.location && (
-                <View style={[
-                    styles.reminderBadge,
-                    { backgroundColor: 'rgba(52,152,219,0.1)' }
-                ]}>
+            {note.locationName && (
+                <TouchableOpacity
+                    style={[
+                        styles.reminderBadge,
+                        { backgroundColor: 'rgba(52,152,219,0.1)' }
+                    ]}
+                    onPress={() => {
+                        if (note.locationLink) {
+                            Linking.openURL(note.locationLink);
+                        }
+                    }}
+                    disabled={!note.locationLink}
+                    activeOpacity={note.locationLink ? 0.6 : 1}
+                >
                     <Ionicons
                         name="location"
                         size={11}
@@ -180,9 +189,12 @@ const NoteCard: React.FC<NoteCardProps> = ({
                         styles.reminderText,
                         { color: '#2980b9' }
                     ]} numberOfLines={1}>
-                        {note.location}
+                        {note.locationName}
                     </Text>
-                </View>
+                    {note.locationLink ? (
+                        <Ionicons name="open-outline" size={10} color="#2980b9" />
+                    ) : null}
+                </TouchableOpacity>
             )}
 
             {/* Footer */}

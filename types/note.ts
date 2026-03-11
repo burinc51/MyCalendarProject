@@ -7,7 +7,8 @@ export type NoteFormData = {
     tags: string[];
     reminderDate: string | null;
     recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-    location: string | null;
+    locationName: string | null;
+    locationLink: string | null;
 }
 
 export const NOTE_COLORS = [
@@ -36,7 +37,8 @@ export const DEFAULT_NOTE_FORM: NoteFormData = {
     tags: [],
     reminderDate: null,
     recurrence: 'none',
-    location: null
+    locationName: null,
+    locationLink: null
 };
 
 // ==================== Note ====================
@@ -53,7 +55,8 @@ export interface Note {
     tags?: string[];
     reminderDate: string | null;
     recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-    location: string | null;
+    locationName: string | null;
+    locationLink: string | null;
 }
 
 // ==================== Folder ====================
