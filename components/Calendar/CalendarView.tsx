@@ -31,6 +31,7 @@ import MonthYearPicker, { PickerMode } from '@/components/Calendar/MonthYearPick
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 import { useTheme } from '@/components/ThemeProvider';
 import { monthNames } from '@/utils/month-names';
+import Sidebar from '@/components/Sidebar';
 
 // Hooks
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -103,6 +104,7 @@ const CalendarView: React.FC = () => {
     const [focusDate, setFocusDate] = useState(dayjs().format('YYYY-MM-DD'));
     const [showPicker, setShowPicker] = useState(false);
     const [showViewMenu, setShowViewMenu] = useState(false);
+    const [showSidebar, setShowSidebar] = useState(false);
     const arrowAnim = useRef(new Animated.Value(0)).current;
 
     const colors = useMemo(() => ({
@@ -163,7 +165,7 @@ const CalendarView: React.FC = () => {
             handleDeleteEvent(pendingEvent.id);
         }
         clearAction();
-    }, [pendingAction, pendingEvent]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [pendingAction, pendingEvent]);
 
     // ----- Display month/year derived from current view -----
     const getDateFromPageIndex = useCallback((pageIndex: number) => {
@@ -409,11 +411,27 @@ const CalendarView: React.FC = () => {
 
     return (
         <View style={dynamicStyles.container}>
+            {/* ── Sidebar ── */}
+            <Sidebar
+                visible={showSidebar}
+                onClose={() => setShowSidebar(false)}
+            />
+
             {/* ── Header ── */}
             <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
-                {/* Left: red dot + tappable month/year + arrow */}
+                {/* Left: hamburger + tappable month/year + arrow */}
+                <TouchableOpacity
+                    style={styles.hamburgerBtn}
+                    onPress={() => setShowSidebar(true)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <View style={styles.hamburgerLine} />
+                    <View style={[styles.hamburgerLine, { width: 14 }]} />
+                    <View style={styles.hamburgerLine} />
+                </TouchableOpacity>
+
                 <TouchableOpacity style={styles.headerLeft} onPress={togglePicker} activeOpacity={0.7}>
-                    <View style={[styles.redDot, dynamicStyles.redDot]} />
                     <Text style={[styles.headerMonthText, dynamicStyles.headerMonthText]}>
                         {headerTitle}
                     </Text>
@@ -641,6 +659,19 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3
+    },
+    hamburgerBtn: {
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        gap: 4,
+        marginRight: 10,
+        paddingVertical: 4,
+    },
+    hamburgerLine: {
+        width: 20,
+        height: 2.5,
+        borderRadius: 2,
+        backgroundColor: '#2ecc71',
     },
     headerLeft: {
         flexDirection: 'row',
