@@ -80,32 +80,27 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="group"
+                name="activity"
                 options={{
-                    title: 'Group',
+                    title: 'Activity',
                     tabBarIcon: ({ color }) => (
                         <IconSymbol
                             size={28}
-                            name="rectangle.3.group.fill"
+                            name="bell.fill"
                             color={color}
                         />
                     ),
-                    tabBarAccessibilityLabel: 'Group Tab'
+                    tabBarAccessibilityLabel: 'Activity Tab'
                 }}
+            />
+            {/* Hidden screens — still routable but not shown in tab bar */}
+            <Tabs.Screen
+                name="group"
+                options={{ href: null }}
             />
             <Tabs.Screen
                 name="setting"
-                options={{
-                    title: 'Settings',
-                    tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={28}
-                            name="gearshape.fill"
-                            color={color}
-                        />
-                    ),
-                    tabBarAccessibilityLabel: 'Settings Tab'
-                }}
+                options={{ href: null }}
             />
         </Tabs>
     );
