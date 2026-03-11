@@ -120,29 +120,34 @@ const CalendarView: React.FC = () => {
         menuDivider: isDark ? '#2a2a2a' : '#f0f0f0'
     }), [isDark]);
 
-    const dynamicStyles = useMemo(() => ({
-        container: { flex: 1, backgroundColor: colors.background } as ViewStyle,
-        headerContainer: {
-            height: headerHeight,
-            paddingHorizontal: horizontalPadding,
-            backgroundColor: colors.headerBg
-        } as ViewStyle,
-        headerMonthText: {
-            fontSize: isSmallPhone ? 18 : isTablet ? 24 : 20,
-            color: colors.headerText
-        } as TextStyle,
-        redDot: {
-            width: isSmallPhone ? 8 : 10, height: isSmallPhone ? 8 : 10,
-            borderRadius: isSmallPhone ? 4 : 5, marginRight: isSmallPhone ? 10 : 12
-        } as ViewStyle,
-        pageContainer: { width } as ViewStyle,
-        modalHeaderText: {
-            fontSize: isSmallPhone ? 18 : isTablet ? 26 : titleFontSize,
-            color: colors.modalText
-        } as TextStyle,
-        sheetContent: { padding: isSmallPhone ? 12 : isTablet ? 24 : 16 } as ViewStyle,
-        addButtonSize: isSmallPhone ? 26 : isTablet ? 36 : 30
-    }), [width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet, colors]);
+    const dynamicStyles = useMemo(
+        () => ({
+            container: { flex: 1, backgroundColor: colors.background } as ViewStyle,
+            headerContainer: {
+                height: headerHeight,
+                paddingHorizontal: horizontalPadding,
+                backgroundColor: '#171717'
+            } as ViewStyle,
+            headerMonthText: {
+                fontSize: isSmallPhone ? 18 : isTablet ? 24 : 20,
+                color: colors.headerText
+            } as TextStyle,
+            redDot: {
+                width: isSmallPhone ? 8 : 10,
+                height: isSmallPhone ? 8 : 10,
+                borderRadius: isSmallPhone ? 4 : 5,
+                marginRight: isSmallPhone ? 10 : 12
+            } as ViewStyle,
+            pageContainer: { width } as ViewStyle,
+            modalHeaderText: {
+                fontSize: isSmallPhone ? 18 : isTablet ? 26 : titleFontSize,
+                color: colors.modalText
+            } as TextStyle,
+            sheetContent: { padding: isSmallPhone ? 12 : isTablet ? 24 : 16 } as ViewStyle,
+            addButtonSize: isSmallPhone ? 26 : isTablet ? 36 : 30
+        }),
+        [width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet, colors]
+    );
 
     const snapPoints = useMemo(() => (isTablet ? ['70%', '100%'] : ['100%']), [isTablet]);
 

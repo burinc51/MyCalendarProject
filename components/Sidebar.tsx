@@ -305,7 +305,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         activeOpacity={0.7}
                     >
                         <Feather name="plus" size={15} color="#2ecc71" />
-                        <Text style={styles.addGroupText}>+ Create new group</Text>
+                        <Text style={styles.addGroupText}>Create new group</Text>
                     </TouchableOpacity>
                 </ScrollView>
 

@@ -106,12 +106,12 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
     const timeStr = isToday ? time.format('HH:mm') : time.format('D MMM HH:mm');
 
     const C = {
-        card: isDark ? '#1e1e1e' : '#ffffff',
-        border: isDark ? '#2a2a2a' : '#f0f0f0',
+        card: isDark ? '#262626' : '#ffffff',
+        border: isDark ? '#333333' : '#f0f0f0',
         title: isDark ? '#f5f5f5' : '#0f0f0f',
-        sub: isDark ? '#737373' : '#9ca3af',
-        row: isDark ? '#262626' : '#f9f9f9',
-        rowBorder: isDark ? '#333' : '#ebebeb',
+        sub: isDark ? '#a3a3a3' : '#9ca3af',
+        row: 'transparent', // blends into the card
+        rowBorder: isDark ? '#3a3a3a' : '#ebebeb',
     };
 
     return (
@@ -173,11 +173,11 @@ export default function ActivityScreen() {
     const [refreshing, setRefreshing] = useState(false);
 
     const C = {
-        bg:         isDark ? '#171717' : '#f8f9fa',
-        headerBg:   isDark ? '#262626' : '#fff',
-        headerText: isDark ? '#e5e5e5' : '#2c3e50',
-        sub:        isDark ? '#737373' : '#9ca3af',
-        border:     isDark ? '#262626' : '#e5e7eb',
+        bg: isDark ? '#171717' : '#f8f9fa',
+        headerBg: isDark ? '#171717' : '#fff',
+        headerText: isDark ? '#f5f5f5' : '#2c3e50',
+        sub: isDark ? '#a3a3a3' : '#9ca3af',
+        border: isDark ? '#333333' : '#e5e7eb'
     };
 
     const onRefresh = () => {
@@ -188,34 +188,40 @@ export default function ActivityScreen() {
     return (
         <View style={[styles.screen, { backgroundColor: C.bg }]}>
             {/* Header — same style as CalendarView */}
-            <View style={[
-                styles.header,
-                {
-                    height: headerHeight,
-                    paddingHorizontal: horizontalPadding,
-                    backgroundColor: C.headerBg,
-                }
-            ]}>
-                <Text style={[
-                    styles.headerTitle,
+            <View
+                style={[
+                    styles.header,
                     {
-                        fontSize: isSmallPhone ? 18 : isTablet ? 24 : titleFontSize,
-                        color: C.headerText,
+                        height: headerHeight,
+                        paddingHorizontal: horizontalPadding,
+                        backgroundColor: C.headerBg
                     }
-                ]}>Activity</Text>
+                ]}
+            >
+                <Text
+                    style={[
+                        styles.headerTitle,
+                        {
+                            fontSize: isSmallPhone ? 18 : isTablet ? 24 : titleFontSize,
+                            color: C.headerText
+                        }
+                    ]}
+                >
+                    Activity
+                </Text>
             </View>
 
             {/* List */}
             <FlatList
                 data={MOCK_DATA}
-                keyExtractor={item => String(item.id)}
+                keyExtractor={(item) => String(item.id)}
                 renderItem={({ item }) => (
-                    <ActivityCard item={item} isDark={isDark} />
+                    <ActivityCard
+                        item={item}
+                        isDark={isDark}
+                    />
                 )}
-                contentContainerStyle={[
-                    styles.list,
-                    { paddingBottom: insets.bottom + 88 }
-                ]}
+                contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 88 }]}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
@@ -227,7 +233,11 @@ export default function ActivityScreen() {
                 }
                 ListEmptyComponent={
                     <View style={styles.empty}>
-                        <Feather name="bell-off" size={40} color={isDark ? '#333' : '#d1d5db'} />
+                        <Feather
+                            name="bell-off"
+                            size={40}
+                            color={isDark ? '#333' : '#d1d5db'}
+                        />
                         <Text style={[styles.emptyText, { color: C.sub }]}>No activity yet</Text>
                     </View>
                 }
@@ -245,29 +255,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        borderBottomWidth: 1,
+        borderBottomColor: '#424141a9',
     },
     headerTitle: {
         fontFamily: 'Kanit-Bold',
         letterSpacing: 0.5,
-    },
-    markAllBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        borderWidth: 1,
-        borderRadius: 20,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-    },
-    markAllText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 12,
-        color: '#2ecc71',
     },
 
     // List
