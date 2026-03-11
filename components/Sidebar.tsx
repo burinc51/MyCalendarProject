@@ -3,7 +3,7 @@
  * Slide-in panel from the left — premium redesign
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -149,6 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
     const backdropAnim = useRef(new Animated.Value(0)).current;
+    const [modalVisible, setModalVisible] = useState(false);
 
     const initial = userInitial ?? userName.charAt(0).toUpperCase();
 
@@ -165,6 +166,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     useEffect(() => {
         if (visible) {
+            // Reset to hidden position first, then show Modal and animate in
+            slideAnim.setValue(-SIDEBAR_WIDTH);
+            backdropAnim.setValue(0);
+            setModalVisible(true);
             Animated.parallel([
                 Animated.spring(slideAnim, {
                     toValue: 0,
@@ -179,6 +184,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 }),
             ]).start();
         } else {
+            // Animate out first, then hide Modal
             Animated.parallel([
                 Animated.timing(slideAnim, {
                     toValue: -SIDEBAR_WIDTH,
@@ -190,7 +196,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     duration: 230,
                     useNativeDriver: true,
                 }),
-            ]).start();
+            ]).start(() => {
+                setModalVisible(false);
+            });
         }
     }, [visible]);
 
@@ -202,7 +210,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     return (
         <Modal
             transparent
-            visible={visible}
+            visible={modalVisible}
             animationType="none"
             onRequestClose={onClose}
             statusBarTranslucent

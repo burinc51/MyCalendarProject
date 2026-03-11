@@ -426,9 +426,7 @@ const CalendarView: React.FC = () => {
                     activeOpacity={0.7}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                    <View style={styles.hamburgerLine} />
-                    <View style={[styles.hamburgerLine, { width: 14 }]} />
-                    <View style={styles.hamburgerLine} />
+                    <AntDesign name="menu-fold" size={22} color="#2ecc71" />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.headerLeft} onPress={togglePicker} activeOpacity={0.7}>
@@ -662,16 +660,9 @@ const styles = StyleSheet.create({
     },
     hamburgerBtn: {
         justifyContent: 'center',
-        alignItems: 'flex-start',
-        gap: 4,
+        alignItems: 'center',
         marginRight: 10,
         paddingVertical: 4,
-    },
-    hamburgerLine: {
-        width: 20,
-        height: 2.5,
-        borderRadius: 2,
-        backgroundColor: '#2ecc71',
     },
     headerLeft: {
         flexDirection: 'row',
