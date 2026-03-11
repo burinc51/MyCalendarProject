@@ -269,9 +269,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <Feather name="edit-2" size={13} color="rgba(255,255,255,0.75)" />
                         </TouchableOpacity>
                     </View>
-
-                    {/* Subtitle */}
-                    <Text style={styles.subText}>View Profile</Text>
                 </View>
 
                 {/* Section: Groups */}
