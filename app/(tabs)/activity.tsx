@@ -5,345 +5,373 @@ import {
     StyleSheet,
     FlatList,
     TouchableOpacity,
+    RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import dayjs from 'dayjs';
 import { useTheme } from '@/components/ThemeProvider';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 
-// Types
-type ActivityType = 'event_added' | 'event_edited' | 'event_deleted' | 'member_joined' | 'member_left' | 'group_shared';
+// Types (matching API JSON)
+type ActionType =
+    | 'EVENT_CREATED'
+    | 'EVENT_UPDATED'
+    | 'EVENT_DELETED'
+    | 'MEMBER_JOINED'
+    | 'MEMBER_LEFT'
+    | 'GROUP_SHARED';
 
-interface ActivityItem {
-    id: string;
-    type: ActivityType;
-    actor: string;
-    actorInitial: string;
-    actorColor: string;
-    message: string;
-    detail?: string;
-    time: string;
-    isRead: boolean;
+interface ActivityLog {
+    id: number;
+    groupId: number;
+    actorId: number;
+    actorName: string;
+    actorAvatar: string | null;
+    actionType: ActionType;
+    eventId: number | null;
+    eventTitle: string | null;
+    targetUserId: number | null;
+    targetUserName: string | null;
+    // Java LocalDateTime array: [year, month, day, hour, min, sec, nano]
+    createdAt: number[];
 }
 
-// Mock data
-const MOCK_ACTIVITIES: ActivityItem[] = [
+// Helpers
+const parseCreatedAt = (arr: number[]): dayjs.Dayjs => {
+    const [year, month, day, hour, min, sec] = arr;
+    return dayjs(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`);
+};
+
+const ACTION_META: Record<ActionType, { label: string; icon: string; color: string }> = {
+    EVENT_CREATED: { label: 'created event', icon: 'plus-circle', color: '#2ecc71' },
+    EVENT_UPDATED: { label: 'updated event', icon: 'edit-2', color: '#60a5fa' },
+    EVENT_DELETED: { label: 'deleted event', icon: 'trash-2', color: '#ef4444' },
+    MEMBER_JOINED: { label: 'joined group', icon: 'user-plus', color: '#a78bfa' },
+    MEMBER_LEFT: { label: 'left group', icon: 'user-minus', color: '#f97316' },
+    GROUP_SHARED: { label: 'shared group', icon: 'share-2', color: '#fbbf24' },
+};
+
+const AVATAR_COLORS = ['#c084fc', '#818cf8', '#60a5fa', '#4ade80', '#fb923c', '#f472b6'];
+const getAvatarColor = (id: number) => AVATAR_COLORS[id % AVATAR_COLORS.length];
+
+const getInitials = (name: string) =>
+    name.slice(0, 2).toUpperCase();
+
+// Mock data matching API
+const MOCK_DATA: ActivityLog[] = [
     {
-        id: '1',
-        type: 'event_added',
-        actor: 'Rin',
-        actorInitial: 'R',
-        actorColor: '#c084fc',
-        message: 'added a new event',
-        detail: 'Team Standup — Monday 9:00 AM',
-        time: '2 min ago',
-        isRead: false,
+        id: 2,
+        groupId: 1,
+        actorId: 1,
+        actorName: 'gotzila',
+        actorAvatar: null,
+        actionType: 'EVENT_CREATED',
+        eventId: 3,
+        eventTitle: '🔔 Test Push Notification3',
+        targetUserId: null,
+        targetUserName: null,
+        createdAt: [2026, 3, 9, 18, 6, 23, 611787000],
     },
     {
-        id: '2',
-        type: 'member_joined',
-        actor: 'Min',
-        actorInitial: 'M',
-        actorColor: '#60a5fa',
-        message: 'joined group',
-        detail: 'Work',
-        time: '1 hr ago',
-        isRead: false,
-    },
-    {
-        id: '3',
-        type: 'event_edited',
-        actor: 'Sam',
-        actorInitial: 'S',
-        actorColor: '#4ade80',
-        message: 'edited an event',
-        detail: 'Project Review → rescheduled to Friday',
-        time: '3 hr ago',
-        isRead: true,
-    },
-    {
-        id: '4',
-        type: 'group_shared',
-        actor: 'Burin',
-        actorInitial: 'B',
-        actorColor: '#818cf8',
-        message: 'shared a calendar',
-        detail: 'Friends · 2 new members',
-        time: 'Yesterday',
-        isRead: true,
-    },
-    {
-        id: '5',
-        type: 'event_deleted',
-        actor: 'Rin',
-        actorInitial: 'R',
-        actorColor: '#c084fc',
-        message: 'removed an event',
-        detail: 'Friday Lunch',
-        time: 'Yesterday',
-        isRead: true,
-    },
-    {
-        id: '6',
-        type: 'member_left',
-        actor: 'Ton',
-        actorInitial: 'T',
-        actorColor: '#f97316',
-        message: 'left group',
-        detail: 'Work',
-        time: '2 days ago',
-        isRead: true,
+        id: 1,
+        groupId: 1,
+        actorId: 1,
+        actorName: 'gotzila',
+        actorAvatar: null,
+        actionType: 'EVENT_CREATED',
+        eventId: 2,
+        eventTitle: '🔔 Test Push Notification',
+        targetUserId: null,
+        targetUserName: null,
+        createdAt: [2026, 3, 9, 15, 29, 33, 294745000],
     },
 ];
 
-// Icon + color per type
-const TYPE_META: Record<ActivityType, { icon: string; color: string }> = {
-    event_added: { icon: 'calendar', color: '#2ecc71' },
-    event_edited: { icon: 'edit-2', color: '#60a5fa' },
-    event_deleted: { icon: 'trash-2', color: '#ef4444' },
-    member_joined: { icon: 'user-plus', color: '#a78bfa' },
-    member_left: { icon: 'user-minus', color: '#f97316' },
-    group_shared: { icon: 'share-2', color: '#fbbf24' },
-};
+const Avatar: React.FC<{ name: string; actorId: number; size?: number }> = ({
+    name, actorId, size = 34,
+}) => (
+    <View style={[
+        styles.avatar,
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: getAvatarColor(actorId) }
+    ]}>
+        <Text style={[styles.avatarText, { fontSize: size * 0.38 }]}>{getInitials(name)}</Text>
+    </View>
+);
 
-// Activity Row
-const ActivityRow: React.FC<{ item: ActivityItem; isDark: boolean }> = ({ item, isDark }) => {
-    const meta = TYPE_META[item.type];
+const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, isDark }) => {
+    const meta = ACTION_META[item.actionType];
+    const time = parseCreatedAt(item.createdAt);
+    const isToday = time.isSame(dayjs(), 'day');
+    const timeStr = isToday ? time.format('HH:mm') : time.format('D MMM HH:mm');
+
+    const C = {
+        card: isDark ? '#1e1e1e' : '#ffffff',
+        border: isDark ? '#2a2a2a' : '#f0f0f0',
+        title: isDark ? '#f5f5f5' : '#0f0f0f',
+        sub: isDark ? '#737373' : '#9ca3af',
+        row: isDark ? '#262626' : '#f9f9f9',
+        rowBorder: isDark ? '#333' : '#ebebeb',
+    };
 
     return (
-        <TouchableOpacity
-            style={[
-                styles.row,
-                {
-                    backgroundColor: item.isRead
-                        ? (isDark ? '#1a1a1a' : '#fff')
-                        : (isDark ? '#1e2a1e' : '#f0faf4'),
-                    borderLeftColor: item.isRead ? 'transparent' : '#2ecc71',
-                }
-            ]}
-            activeOpacity={0.7}
-        >
-            {/* Actor avatar */}
-            <View style={[styles.avatar, { backgroundColor: item.actorColor }]}>
-                <Text style={styles.avatarText}>{item.actorInitial}</Text>
-            </View>
+        <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
+            {/* Left accent bar */}
+            <View style={[styles.accentBar, { backgroundColor: meta.color }]} />
 
-            {/* Content */}
-            <View style={styles.content}>
-                <Text style={[styles.messageText, { color: isDark ? '#e5e5e5' : '#1a1a1a' }]}>
-                    <Text style={styles.actorName}>{item.actor} </Text>
-                    {item.message}
-                </Text>
-                {item.detail && (
-                    <Text style={[styles.detailText, { color: isDark ? '#737373' : '#6b7280' }]}>
-                        {item.detail}
-                    </Text>
-                )}
-                <Text style={[styles.timeText, { color: isDark ? '#525252' : '#9ca3af' }]}>
-                    {item.time}
-                </Text>
-            </View>
+            <View style={styles.cardInner}>
+                {/* Event header */}
+                <View style={styles.cardHeader}>
+                    <View style={styles.cardHeaderLeft}>
+                        <Text style={[styles.eventTitle, { color: C.title }]} numberOfLines={1}>
+                            {item.eventTitle ?? '—'}
+                        </Text>
+                        <Text style={[styles.groupLabel, { color: C.sub }]}>
+                            Group #{item.groupId}
+                        </Text>
+                    </View>
+                    <Avatar name={item.actorName} actorId={item.actorId} />
+                </View>
 
-            {/* Type icon */}
-            <View style={[styles.typeIcon, { backgroundColor: meta.color + '18' }]}>
-                <Feather name={meta.icon as any} size={14} color={meta.color} />
+                {/* Divider */}
+                <View style={[styles.innerDivider, { backgroundColor: C.rowBorder }]} />
+
+                {/* Activity row */}
+                <TouchableOpacity
+                    style={[styles.activityRow, { backgroundColor: C.row }]}
+                    activeOpacity={0.7}
+                >
+                    {/* Actor mini avatar */}
+                    <Avatar name={item.actorName} actorId={item.actorId} size={28} />
+
+                    {/* Action label */}
+                    <View style={styles.activityLabel}>
+                        <View style={[styles.actionIconBox, { backgroundColor: meta.color + '20' }]}>
+                            <Feather name={meta.icon as any} size={12} color={meta.color} />
+                        </View>
+                        <Text style={[styles.activityText, { color: C.title }]}>
+                            <Text style={styles.actorBold}>{item.actorName} </Text>
+                            {meta.label}
+                        </Text>
+                    </View>
+
+                    {/* Timestamp */}
+                    <Text style={[styles.timeText, { color: C.sub }]}>{timeStr}</Text>
+                </TouchableOpacity>
             </View>
-        </TouchableOpacity>
+        </View>
     );
 };
 
 // Main Screen
+
 export default function ActivityScreen() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const insets = useSafeAreaInsets();
-
-    const [filter, setFilter] = useState<'all' | 'unread'>('all');
-
-    const filtered = filter === 'unread'
-        ? MOCK_ACTIVITIES.filter(a => !a.isRead)
-        : MOCK_ACTIVITIES;
-
-    const unreadCount = MOCK_ACTIVITIES.filter(a => !a.isRead).length;
+    const { headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet } = useResponsiveDimensions();
+    const [refreshing, setRefreshing] = useState(false);
 
     const C = {
-        bg: isDark ? '#141414' : '#f8f9fb',
-        surface: isDark ? '#1a1a1a' : '#fff',
-        text: isDark ? '#e5e5e5' : '#1a1a1a',
-        subtext: isDark ? '#737373' : '#9ca3af',
-        border: isDark ? '#262626' : '#e5e7eb',
-        chip: isDark ? '#262626' : '#f0f0f0',
-        chipActive: isDark ? '#1e2e1e' : '#edfaf3',
+        bg:         isDark ? '#171717' : '#f8f9fa',
+        headerBg:   isDark ? '#262626' : '#fff',
+        headerText: isDark ? '#e5e5e5' : '#2c3e50',
+        sub:        isDark ? '#737373' : '#9ca3af',
+        border:     isDark ? '#262626' : '#e5e7eb',
+    };
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        setTimeout(() => setRefreshing(false), 1000);
     };
 
     return (
         <View style={[styles.screen, { backgroundColor: C.bg }]}>
-            {/* Header */}
-            <View style={[styles.header, { backgroundColor: C.surface, borderBottomColor: C.border }]}>
-                <Text style={[styles.headerTitle, { color: C.text }]}>Activity</Text>
-                {unreadCount > 0 && (
-                    <View style={styles.unreadBadge}>
-                        <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
-                    </View>
-                )}
-            </View>
-
-            {/* Filter chips */}
-            <View style={[styles.filterRow, { backgroundColor: C.surface, borderBottomColor: C.border }]}>
-                {(['all', 'unread'] as const).map(f => (
-                    <TouchableOpacity
-                        key={f}
-                        style={[
-                            styles.chip,
-                            {
-                                backgroundColor: filter === f ? C.chipActive : C.chip,
-                                borderColor: filter === f ? '#2ecc71' : 'transparent',
-                            }
-                        ]}
-                        onPress={() => setFilter(f)}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={[
-                            styles.chipText,
-                            { color: filter === f ? '#2ecc71' : C.subtext }
-                        ]}>
-                            {f === 'all' ? 'All' : `Unread${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+            {/* Header — same style as CalendarView */}
+            <View style={[
+                styles.header,
+                {
+                    height: headerHeight,
+                    paddingHorizontal: horizontalPadding,
+                    backgroundColor: C.headerBg,
+                }
+            ]}>
+                <Text style={[
+                    styles.headerTitle,
+                    {
+                        fontSize: isSmallPhone ? 18 : isTablet ? 24 : titleFontSize,
+                        color: C.headerText,
+                    }
+                ]}>Activity</Text>
             </View>
 
             {/* List */}
             <FlatList
-                data={filtered}
-                keyExtractor={item => item.id}
-                renderItem={({ item }) => <ActivityRow item={item} isDark={isDark} />}
+                data={MOCK_DATA}
+                keyExtractor={item => String(item.id)}
+                renderItem={({ item }) => (
+                    <ActivityCard item={item} isDark={isDark} />
+                )}
                 contentContainerStyle={[
                     styles.list,
-                    { paddingBottom: insets.bottom + 80 }
+                    { paddingBottom: insets.bottom + 88 }
                 ]}
-                ItemSeparatorComponent={() => (
-                    <View style={[styles.separator, { backgroundColor: C.border }]} />
-                )}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#2ecc71"
+                        colors={['#2ecc71']}
+                    />
+                }
                 ListEmptyComponent={
                     <View style={styles.empty}>
-                        <Feather name="bell-off" size={36} color={isDark ? '#404040' : '#d1d5db'} />
-                        <Text style={[styles.emptyText, { color: C.subtext }]}>No activity yet</Text>
+                        <Feather name="bell-off" size={40} color={isDark ? '#333' : '#d1d5db'} />
+                        <Text style={[styles.emptyText, { color: C.sub }]}>No activity yet</Text>
                     </View>
                 }
-                showsVerticalScrollIndicator={false}
             />
         </View>
     );
 }
 
+// Styles
 const styles = StyleSheet.create({
     screen: { flex: 1 },
 
-    // Header
+    // Header — matches CalendarView
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingBottom: 14,
-        borderBottomWidth: 1,
-        gap: 10,
+        justifyContent: 'space-between',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     headerTitle: {
         fontFamily: 'Kanit-Bold',
-        fontSize: 24,
-        letterSpacing: 0.3,
+        letterSpacing: 0.5,
     },
-    unreadBadge: {
-        backgroundColor: '#2ecc71',
-        borderRadius: 12,
-        minWidth: 22,
-        height: 22,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 6,
-    },
-    unreadBadgeText: {
-        fontFamily: 'Kanit-Bold',
-        fontSize: 12,
-        color: '#fff',
-    },
-
-    // Filter
-    filterRow: {
+    markAllBtn: {
         flexDirection: 'row',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        gap: 8,
-        borderBottomWidth: 1,
-    },
-    chip: {
-        borderRadius: 20,
-        paddingHorizontal: 14,
-        paddingVertical: 6,
+        alignItems: 'center',
+        gap: 5,
         borderWidth: 1,
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
     },
-    chipText: {
+    markAllText: {
         fontFamily: 'Kanit-Regular',
-        fontSize: 13,
+        fontSize: 12,
+        color: '#2ecc71',
     },
 
     // List
-    list: { paddingTop: 4 },
-    separator: { height: 1, marginLeft: 72 },
+    list: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        gap: 12,
+    },
 
-    // Row
-    row: {
+    // Card
+    card: {
+        borderRadius: 16,
+        borderWidth: 1,
+        flexDirection: 'row',
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 2,
+    },
+    accentBar: {
+        width: 4,
+    },
+    cardInner: {
+        flex: 1,
+        paddingTop: 14,
+    },
+
+    // Card header (event info)
+    cardHeader: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        gap: 12,
-        borderLeftWidth: 3,
+        justifyContent: 'space-between',
+        paddingHorizontal: 14,
+        paddingBottom: 12,
+        gap: 10,
     },
+    cardHeaderLeft: { flex: 1 },
+    eventTitle: {
+        fontFamily: 'Kanit-Bold',
+        fontSize: 15,
+        marginBottom: 3,
+    },
+    groupLabel: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 12,
+    },
+
+    innerDivider: {
+        height: 1,
+        marginHorizontal: 14,
+        marginBottom: 0,
+    },
+
+    // Activity row inside card
+    activityRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    activityLabel: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    actionIconBox: {
+        width: 22,
+        height: 22,
+        borderRadius: 7,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    activityText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 13,
+        flex: 1,
+    },
+    actorBold: {
+        fontFamily: 'Kanit-Bold',
+    },
+    timeText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 12,
+    },
+
+    // Avatar
     avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
     },
     avatarText: {
         fontFamily: 'Kanit-Bold',
-        fontSize: 16,
         color: '#fff',
-    },
-    content: { flex: 1, gap: 3 },
-    messageText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    actorName: {
-        fontFamily: 'Kanit-Bold',
-    },
-    detailText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 13,
-    },
-    timeText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 12,
-        marginTop: 2,
-    },
-    typeIcon: {
-        width: 30,
-        height: 30,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 2,
     },
 
     // Empty
     empty: {
         alignItems: 'center',
         paddingTop: 80,
-        gap: 12,
+        gap: 14,
     },
     emptyText: {
         fontFamily: 'Kanit-Regular',
