@@ -97,12 +97,12 @@ const MOCK_ACTIVITIES: ActivityItem[] = [
 
 // Icon + color per type
 const TYPE_META: Record<ActivityType, { icon: string; color: string }> = {
-    event_added:   { icon: 'calendar',  color: '#2ecc71' },
-    event_edited:  { icon: 'edit-2',    color: '#60a5fa' },
-    event_deleted: { icon: 'trash-2',   color: '#ef4444' },
+    event_added: { icon: 'calendar', color: '#2ecc71' },
+    event_edited: { icon: 'edit-2', color: '#60a5fa' },
+    event_deleted: { icon: 'trash-2', color: '#ef4444' },
     member_joined: { icon: 'user-plus', color: '#a78bfa' },
-    member_left:   { icon: 'user-minus',color: '#f97316' },
-    group_shared:  { icon: 'share-2',   color: '#fbbf24' },
+    member_left: { icon: 'user-minus', color: '#f97316' },
+    group_shared: { icon: 'share-2', color: '#fbbf24' },
 };
 
 // Activity Row
@@ -166,19 +166,19 @@ export default function ActivityScreen() {
     const unreadCount = MOCK_ACTIVITIES.filter(a => !a.isRead).length;
 
     const C = {
-        bg:       isDark ? '#141414' : '#f8f9fb',
-        surface:  isDark ? '#1a1a1a' : '#fff',
-        text:     isDark ? '#e5e5e5' : '#1a1a1a',
-        subtext:  isDark ? '#737373' : '#9ca3af',
-        border:   isDark ? '#262626' : '#e5e7eb',
-        chip:     isDark ? '#262626' : '#f0f0f0',
+        bg: isDark ? '#141414' : '#f8f9fb',
+        surface: isDark ? '#1a1a1a' : '#fff',
+        text: isDark ? '#e5e5e5' : '#1a1a1a',
+        subtext: isDark ? '#737373' : '#9ca3af',
+        border: isDark ? '#262626' : '#e5e7eb',
+        chip: isDark ? '#262626' : '#f0f0f0',
         chipActive: isDark ? '#1e2e1e' : '#edfaf3',
     };
 
     return (
         <View style={[styles.screen, { backgroundColor: C.bg }]}>
             {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: C.surface, borderBottomColor: C.border }]}>
+            <View style={[styles.header, { backgroundColor: C.surface, borderBottomColor: C.border }]}>
                 <Text style={[styles.headerTitle, { color: C.text }]}>Activity</Text>
                 {unreadCount > 0 && (
                     <View style={styles.unreadBadge}>

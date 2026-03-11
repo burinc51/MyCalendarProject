@@ -17,30 +17,32 @@ export default function TabLayout() {
         <Tabs
             initialRouteName="index"
             screenOptions={{
-                tabBarActiveTintColor: '#007aff',
+                tabBarActiveTintColor: '#2ecc71',
                 tabBarInactiveTintColor: isDark ? '#6b7280' : '#8e8e93',
+                tabBarShowLabel: false,
                 headerShown: false,
                 tabBarButton: HapticTab,
                 tabBarBackground: TabBarBackground,
                 tabBarStyle: Platform.select({
                     ios: {
                         position: 'absolute',
-                        backgroundColor: isDark ? 'rgba(23,23,23,0.95)' : 'rgba(255,255,255,0.92)',
+                        backgroundColor: isDark ? 'rgba(18,18,18,0.96)' : 'rgba(255,255,255,0.94)',
                         borderTopWidth: 0,
                         shadowColor: '#000',
-                        shadowOpacity: isDark ? 0.3 : 0.08,
-                        shadowRadius: 12,
-                        shadowOffset: { width: 0, height: -2 },
+                        shadowOpacity: isDark ? 0.4 : 0.08,
+                        shadowRadius: 10,
+                        shadowOffset: { width: 0, height: -1 },
                         elevation: 10,
-                        height: 70 + insets.bottom,
-                        paddingBottom: insets.bottom + 8,
-                        borderTopColor: isDark ? '#262626' : '#e0e0e0'
+                        height: 54 + insets.bottom,
+                        paddingBottom: insets.bottom + 4,
+                        borderTopColor: isDark ? '#1f1f1f' : '#ebebeb'
                     },
                     android: {
-                        backgroundColor: isDark ? '#171717' : '#fff',
-                        borderTopColor: isDark ? '#262626' : '#e0e0e0',
-                        elevation: 10,
-                        height: 70
+                        backgroundColor: isDark ? '#121212' : '#fff',
+                        borderTopColor: isDark ? '#1f1f1f' : '#ebebeb',
+                        borderTopWidth: 1,
+                        elevation: 8,
+                        height: 58
                     }
                 }),
                 tabBarLabelStyle: {
@@ -57,7 +59,7 @@ export default function TabLayout() {
                     title: 'Notes',
                     tabBarIcon: ({ color }) => (
                         <IconSymbol
-                            size={28}
+                            size={22}
                             name="paperplane.fill"
                             color={color}
                         />
@@ -71,8 +73,8 @@ export default function TabLayout() {
                     title: 'Home',
                     tabBarIcon: ({ color }) => (
                         <IconSymbol
-                            size={28}
-                            name="house.fill"
+                            size={22}
+                            name={'calendar.fill' as any}
                             color={color}
                         />
                     ),
@@ -85,7 +87,7 @@ export default function TabLayout() {
                     title: 'Activity',
                     tabBarIcon: ({ color }) => (
                         <IconSymbol
-                            size={28}
+                            size={22}
                             name="bell.fill"
                             color={color}
                         />
