@@ -15,10 +15,10 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
+import ScreenHeader from '@/components/ScreenHeader';
 
 // FieldInput sub-component (defined outside to avoid re-creation on render)
 interface FieldInputProps {
@@ -89,13 +89,10 @@ const FieldInput: React.FC<FieldInputProps> = ({
 export default function AccountSettingsScreen() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { headerHeight, horizontalPadding, titleFontSize } = useResponsiveDimensions();
 
     const [displayName, setDisplayName] = useState('User');
     const [email, setEmail] = useState('user@example.com');
-    const [bio, setBio] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -144,55 +141,25 @@ export default function AccountSettingsScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: C.bg }]}>
-            {/* Header */}
-            <View
-                style={[
-                    styles.header,
+            <ScreenHeader
+                title="Account Settings"
+                showBack
+                backgroundColor={C.headerBg}
+                borderColor={C.headerBorder}
+                actions={[
                     {
-                        height: headerHeight,
-                        paddingHorizontal: horizontalPadding,
-                        backgroundColor: C.headerBg,
-                        borderBottomColor: C.headerBorder,
+                        icon: isEditing ? 'check' : 'edit-2',
+                        onPress: () => isEditing ? handleSave() : setIsEditing(true),
+                        backgroundColor: isEditing
+                            ? C.accent
+                            : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        color: isEditing ? '#fff' : C.text,
+                        loading: saving,
+                        disabled: saving,
+                        accessibilityLabel: isEditing ? 'Save changes' : 'Edit profile',
                     },
                 ]}
-            >
-                <TouchableOpacity
-                    style={styles.backBtn}
-                    onPress={() => router.back()}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                    <View style={[styles.backBtnInner, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
-                        <Feather name="arrow-left" size={18} color={C.text} />
-                    </View>
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: C.text, fontSize: titleFontSize }]}>Account Settings</Text>
-                <TouchableOpacity
-                    style={[
-                        styles.editToggleBtn,
-                        {
-                            backgroundColor: isEditing
-                                ? C.accent
-                                : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                        },
-                    ]}
-                    onPress={() => {
-                        if (isEditing) {
-                            handleSave();
-                        } else {
-                            setIsEditing(true);
-                        }
-                    }}
-                    disabled={saving}
-                >
-                    {saving ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                    ) : isEditing ? (
-                        <Feather name="check" size={16} color="#fff" />
-                    ) : (
-                        <Feather name="edit-2" size={16} color={C.text} />
-                    )}
-                </TouchableOpacity>
-            </View>
+            />
 
             <ScrollView
                 style={styles.scroll}
@@ -369,36 +336,6 @@ export default function AccountSettingsScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
 
-    // Header
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottomWidth: 0.25,
-        borderBottomColor: '#424141a9',
-        gap: 12,
-    },
-    backBtn: {},
-    backBtnInner: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerTitle: {
-        flex: 1,
-        fontFamily: 'Kanit-Bold',
-        fontSize: 18,
-        letterSpacing: 0.3,
-    },
-    editToggleBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
 
     // Scroll
     scroll: { flex: 1 },
