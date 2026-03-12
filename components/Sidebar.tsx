@@ -16,6 +16,7 @@ import {
     Image,
 } from 'react-native';
 import { Feather, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useTheme } from '@/components/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -146,6 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const insets = useSafeAreaInsets();
+    const router = useRouter();
 
     const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
     const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -265,6 +267,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <TouchableOpacity
                             style={styles.editBtn}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            onPress={() => {
+                                onClose();
+                                setTimeout(() => router.push('/account-settings'), 300);
+                            }}
                         >
                             <Feather name="edit-2" size={13} color="rgba(255,255,255,0.75)" />
                         </TouchableOpacity>
@@ -308,19 +314,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <Text style={styles.addGroupText}>Create new group</Text>
                     </TouchableOpacity>
                 </ScrollView>
-
-                {/* Footer */}
-                <View style={[styles.footer, { backgroundColor: C.footerBg, borderTopColor: C.divider }]}>
-                    <TouchableOpacity style={styles.footerItem} activeOpacity={0.7}>
-                        <Feather name="settings" size={17} color={isDark ? '#6b7280' : '#9ca3af'} />
-                        <Text style={[styles.footerItemText, { color: C.footerText }]}>Settings</Text>
-                    </TouchableOpacity>
-                    <View style={[styles.footerDivider, { backgroundColor: C.divider }]} />
-                    <TouchableOpacity style={styles.footerItem} activeOpacity={0.7}>
-                        <Feather name="log-out" size={17} color="#ef4444" />
-                        <Text style={[styles.footerItemText, { color: '#ef4444' }]}>Sign Out</Text>
-                    </TouchableOpacity>
-                </View>
             </Animated.View>
         </Modal>
     );
@@ -444,12 +437,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 5,
     },
-    subText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.6)',
-        marginTop: 4,
-    },
 
     // Body
     body: { flex: 1 },
@@ -548,30 +535,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#2ecc71',
         letterSpacing: 0.2,
-    },
-
-    // Footer
-    footer: {
-        flexDirection: 'row',
-        borderTopWidth: 1,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-    },
-    footerItem: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 7,
-        paddingVertical: 6,
-    },
-    footerDivider: {
-        width: 1,
-        marginVertical: 4,
-    },
-    footerItemText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 13,
     },
 });
 

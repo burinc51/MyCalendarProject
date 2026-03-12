@@ -1,24 +1,49 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/components/ThemeProvider';
+
+// Custom tab icon with active indicator dot
+function TabIcon({ name, color, focused }: { name: React.ComponentProps<typeof Feather>['name']; color: string; focused: boolean }) {
+    return (
+        <View style={tabIconStyles.wrap}>
+            <Feather name={name} size={22} color={color} />
+            {focused && <View style={[tabIconStyles.dot, { backgroundColor: color }]} />}
+        </View>
+    );
+}
+
+const tabIconStyles = StyleSheet.create({
+    wrap: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+    },
+    dot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+    },
+});
 
 export default function TabLayout() {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
+    const TAB_H = 56;
+
     return (
         <Tabs
             initialRouteName="index"
             screenOptions={{
                 tabBarActiveTintColor: '#2ecc71',
-                tabBarInactiveTintColor: isDark ? '#6b7280' : '#8e8e93',
+                tabBarInactiveTintColor: isDark ? '#4b5563' : '#9ca3af',
                 tabBarShowLabel: false,
                 headerShown: false,
                 tabBarButton: HapticTab,
@@ -26,84 +51,60 @@ export default function TabLayout() {
                 tabBarStyle: Platform.select({
                     ios: {
                         position: 'absolute',
-                        backgroundColor: isDark ? 'rgba(18,18,18,0.96)' : 'rgba(255,255,255,0.94)',
-                        borderTopWidth: 0,
+                        backgroundColor: isDark ? 'rgba(17,17,17,0.97)' : 'rgba(255,255,255,0.97)',
+                        borderTopWidth: 0.5,
+                        borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
                         shadowColor: '#000',
-                        shadowOpacity: isDark ? 0.4 : 0.08,
-                        shadowRadius: 10,
-                        shadowOffset: { width: 0, height: -1 },
-                        elevation: 10,
-                        height: 54 + insets.bottom,
-                        paddingBottom: insets.bottom + 4,
-                        borderTopColor: isDark ? '#1f1f1f' : '#ebebeb'
+                        shadowOpacity: isDark ? 0.5 : 0.1,
+                        shadowRadius: 16,
+                        shadowOffset: { width: 0, height: -2 },
+                        elevation: 16,
+                        height: TAB_H + insets.bottom,
+                        paddingBottom: insets.bottom,
                     },
                     android: {
-                        backgroundColor: isDark ? '#121212' : '#fff',
-                        borderTopColor: isDark ? '#1f1f1f' : '#ebebeb',
-                        borderTopWidth: 1,
-                        elevation: 8,
-                        height: 58
-                    }
+                        backgroundColor: isDark ? '#111111' : '#ffffff',
+                        borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
+                        borderTopWidth: 0.5,
+                        elevation: 12,
+                        height: TAB_H,
+                    },
                 }),
-                tabBarLabelStyle: {
-                    fontSize: 13,
-                    fontWeight: '600',
-                    marginBottom: 6,
-                    letterSpacing: 0.3
-                }
             }}
         >
             <Tabs.Screen
                 name="explore"
                 options={{
                     title: 'Notes',
-                    tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={22}
-                            name="paperplane.fill"
-                            color={color}
-                        />
+                    tabBarIcon: ({ color, focused }) => (
+                        <TabIcon name="book-open" color={color} focused={focused} />
                     ),
-                    tabBarAccessibilityLabel: 'Notes Tab'
+                    tabBarAccessibilityLabel: 'Notes Tab',
                 }}
             />
             <Tabs.Screen
                 name="index"
                 options={{
                     title: 'Home',
-                    tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={22}
-                            name={'calendar.fill' as any}
-                            color={color}
-                        />
+                    tabBarIcon: ({ color, focused }) => (
+                        <TabIcon name="calendar" color={color} focused={focused} />
                     ),
-                    tabBarAccessibilityLabel: 'Home Tab'
+                    tabBarAccessibilityLabel: 'Home Tab',
                 }}
             />
             <Tabs.Screen
                 name="activity"
                 options={{
                     title: 'Activity',
-                    tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={22}
-                            name="bell.fill"
-                            color={color}
-                        />
+                    tabBarIcon: ({ color, focused }) => (
+                        <TabIcon name="bell" color={color} focused={focused} />
                     ),
-                    tabBarAccessibilityLabel: 'Activity Tab'
+                    tabBarAccessibilityLabel: 'Activity Tab',
                 }}
             />
-            {/* Hidden screens — still routable but not shown in tab bar */}
-            <Tabs.Screen
-                name="group"
-                options={{ href: null }}
-            />
-            <Tabs.Screen
-                name="setting"
-                options={{ href: null }}
-            />
+            {/* Hidden screens */}
+            <Tabs.Screen name="group" options={{ href: null }} />
+            <Tabs.Screen name="setting" options={{ href: null }} />
         </Tabs>
     );
 }
