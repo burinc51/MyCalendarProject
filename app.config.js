@@ -71,7 +71,7 @@ module.exports = {
                 projectId: "4b12d89a-d8f0-44eb-b817-7f4640458ad5"
             }
         },
-        owner: "gotzila",
+        owner: "mycalendarproject",
         runtimeVersion: "1.0.0",
         updates: {
             url: "https://u.expo.dev/4b12d89a-d8f0-44eb-b817-7f4640458ad5"
