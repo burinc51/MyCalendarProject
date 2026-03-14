@@ -3,13 +3,21 @@
  * Manages notes and folders state with CRUD operations
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
+import { useToast } from '@/components/ui/Toast';
+import type { ToastType } from '@/components/ui/Toast';
 import * as noteService from '@/services/note-service';
+import { scheduleNoteReminder, cancelNoteReminder } from '@/services/notification-service';
 import { DEFAULT_NOTE_FORM, DEFAULT_FOLDER_FORM } from '@/types/note';
 import type { Note, Folder, NoteFormData, FolderFormData, NoteSortOption, SortDirection, NoteViewMode } from '@/types/note';
 
 interface UseNotesReturn {
+    // Toast state
+    toast: { id: number; text: string; type: ToastType } | null;
+    showToast: (text: string, type?: ToastType) => void;
+    hideToast: () => void;
+
     // Notes state
     notes: Note[];
     filteredNotes: Note[];
@@ -65,6 +73,9 @@ interface UseNotesReturn {
 }
 
 export const useNotes = (): UseNotesReturn => {
+    // Toast
+    const { toast, showToast, hideToast } = useToast();
+
     // Notes state
     const [notes, setNotes] = useState<Note[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -120,7 +131,7 @@ export const useNotes = (): UseNotesReturn => {
     }, [fetchNotes, fetchFolders]);
 
     // Filter and sort notes
-    const filteredNotes = useCallback(() => {
+    const filteredNotes = useMemo(() => {
         let result = [...notes];
 
         // Filter by folder
@@ -177,7 +188,11 @@ export const useNotes = (): UseNotesReturn => {
                     folderId: note.folderId,
                     color: note.color,
                     isPinned: note.isPinned,
-                    tags: note.tags || []
+                    tags: note.tags || [],
+                    reminderDate: note.reminderDate || null,
+                    recurrence: note.recurrence || 'none',
+                    locationName: note.locationName || null,
+                    locationLink: note.locationLink || null
                 });
                 setEditingNote(note);
             } else {
@@ -195,8 +210,22 @@ export const useNotes = (): UseNotesReturn => {
     // Create new note
     const createNoteAction = useCallback(async () => {
         try {
-            await noteService.createNote(noteFormData);
-            Alert.alert('Success', 'Note created!');
+            const createdNote = await noteService.createNote(noteFormData);
+
+            // Schedule reminder notification if set
+            if (noteFormData.reminderDate) {
+                const reminderDate = new Date(noteFormData.reminderDate);
+                if (reminderDate > new Date() || noteFormData.recurrence !== 'none') {
+                    await scheduleNoteReminder(
+                        createdNote.id, 
+                        noteFormData.title || 'Untitled', 
+                        reminderDate, 
+                        noteFormData.recurrence
+                    );
+                }
+            }
+
+            showToast('สร้างโน้ตสำเร็จ ✓');
             setShowNoteEditor(false);
             resetNoteForm();
             fetchNotes();
@@ -213,7 +242,21 @@ export const useNotes = (): UseNotesReturn => {
 
         try {
             await noteService.updateNote(editingNote.id, noteFormData);
-            Alert.alert('Success', 'Note updated!');
+
+            // Schedule or cancel reminder notification
+            if (noteFormData.reminderDate) {
+                const reminderDate = new Date(noteFormData.reminderDate);
+                if (reminderDate > new Date() || noteFormData.recurrence !== 'none') {
+                    await scheduleNoteReminder(
+                        editingNote.id, 
+                        noteFormData.title || 'Untitled', 
+                        reminderDate, 
+                        noteFormData.recurrence
+                    );
+                }
+            }
+
+            showToast('อัปเดตโน้ตสำเร็จ ✓');
             setShowNoteEditor(false);
             resetNoteForm();
             fetchNotes();
@@ -234,8 +277,14 @@ export const useNotes = (): UseNotesReturn => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
+                            // Cancel any scheduled reminder before deleting
+                            const noteToDelete = notes.find((n) => n.id === noteId);
+                            if (noteToDelete?.reminderDate) {
+                                await cancelNoteReminder(`note-reminder-${noteId}`);
+                            }
+
                             await noteService.deleteNote(noteId);
-                            Alert.alert('Success', 'Note deleted!');
+                            showToast('ลบโน้ตสำเร็จ');
                             fetchNotes();
                             fetchFolders();
                         } catch (err) {
@@ -246,7 +295,7 @@ export const useNotes = (): UseNotesReturn => {
                 }
             ]);
         },
-        [fetchNotes, fetchFolders]
+        [notes, fetchNotes, fetchFolders]
     );
 
     // Toggle pin
@@ -282,7 +331,7 @@ export const useNotes = (): UseNotesReturn => {
 
         try {
             await noteService.createFolder(folderFormData);
-            Alert.alert('Success', 'Folder created!');
+            showToast('สร้างโฟลเดอร์สำเร็จ ✓');
             setShowFolderForm(false);
             resetFolderForm();
             fetchFolders();
@@ -298,7 +347,7 @@ export const useNotes = (): UseNotesReturn => {
 
         try {
             await noteService.updateFolder(editingFolder.id, folderFormData);
-            Alert.alert('Success', 'Folder updated!');
+            showToast('อัปเดตโฟลเดอร์สำเร็จ ✓');
             setShowFolderForm(false);
             resetFolderForm();
             fetchFolders();
@@ -322,7 +371,7 @@ export const useNotes = (): UseNotesReturn => {
                             if (selectedFolderId === folderId) {
                                 setSelectedFolderId(null);
                             }
-                            Alert.alert('Success', 'Folder deleted!');
+                            showToast('ลบโฟลเดอร์สำเร็จ');
                             fetchFolders();
                             fetchNotes();
                         } catch (err) {
@@ -337,9 +386,14 @@ export const useNotes = (): UseNotesReturn => {
     );
 
     return {
+        // Toast state
+        toast,
+        showToast,
+        hideToast,
+
         // Notes state
         notes,
-        filteredNotes: filteredNotes(),
+        filteredNotes,
         isLoading,
         error,
 
