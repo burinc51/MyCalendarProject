@@ -9,11 +9,10 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/components/ThemeProvider';
 
 // Custom tab icon with active indicator dot
-function TabIcon({ name, color, focused }: { name: React.ComponentProps<typeof Feather>['name']; color: string; focused: boolean }) {
+function TabIcon({ name, color }: { name: React.ComponentProps<typeof Feather>['name']; color: string; }) {
     return (
         <View style={tabIconStyles.wrap}>
             <Feather name={name} size={22} color={color} />
-            {focused && <View style={[tabIconStyles.dot, { backgroundColor: color }]} />}
         </View>
     );
 }
@@ -23,11 +22,6 @@ const tabIconStyles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 3,
-    },
-    dot: {
-        width: 4,
-        height: 4,
-        borderRadius: 2,
     },
 });
 
@@ -76,8 +70,8 @@ export default function TabLayout() {
                 name="explore"
                 options={{
                     title: 'Notes',
-                    tabBarIcon: ({ color, focused }) => (
-                        <TabIcon name="book-open" color={color} focused={focused} />
+                    tabBarIcon: ({ color }) => (
+                        <TabIcon name="book-open" color={color} />
                     ),
                     tabBarAccessibilityLabel: 'Notes Tab',
                 }}
@@ -86,8 +80,8 @@ export default function TabLayout() {
                 name="index"
                 options={{
                     title: 'Home',
-                    tabBarIcon: ({ color, focused }) => (
-                        <TabIcon name="calendar" color={color} focused={focused} />
+                    tabBarIcon: ({ color }) => (
+                        <TabIcon name="calendar" color={color} />
                     ),
                     tabBarAccessibilityLabel: 'Home Tab',
                 }}
@@ -96,8 +90,8 @@ export default function TabLayout() {
                 name="activity"
                 options={{
                     title: 'Activity',
-                    tabBarIcon: ({ color, focused }) => (
-                        <TabIcon name="bell" color={color} focused={focused} />
+                    tabBarIcon: ({ color }) => (
+                        <TabIcon name="bell" color={color} />
                     ),
                     tabBarAccessibilityLabel: 'Activity Tab',
                 }}
