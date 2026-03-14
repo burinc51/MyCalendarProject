@@ -59,6 +59,17 @@ const EventForm: React.FC<EventFormProps> = ({
                 />
             </View>
 
+            {/* Location */}
+            <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Location</Text>
+                <TextInput
+                    style={styles.textInput}
+                    value={formData.location || ''}
+                    onChangeText={(text) => onUpdateField('location', text)}
+                    placeholder="Enter location"
+                />
+            </View>
+
             {/* Description */}
             <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Description</Text>
@@ -72,13 +83,20 @@ const EventForm: React.FC<EventFormProps> = ({
                 />
             </View>
 
-            {/* All Day Toggle */}
+            {/* All Day Toggle & Pinned Toggle */}
             <View style={styles.formGroup}>
                 <View style={styles.switchContainer}>
                     <Text style={styles.formLabel}>All Day</Text>
                     <Switch
-                        value={formData.isAllDay}
+                        value={!!formData.isAllDay}
                         onValueChange={(value) => onUpdateField('isAllDay', value)}
+                    />
+                </View>
+                <View style={[styles.switchContainer, { marginTop: 12 }]}>
+                    <Text style={styles.formLabel}>Pin to Top 📌</Text>
+                    <Switch
+                        value={!!formData.pinned}
+                        onValueChange={(value) => onUpdateField('pinned', value)}
                     />
                 </View>
             </View>
@@ -218,6 +236,116 @@ const EventForm: React.FC<EventFormProps> = ({
                         </TouchableOpacity>
                     ))}
                 </View>
+            </View>
+
+            {/* Notification */}
+            <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>🔔 Notification</Text>
+                <View style={styles.notificationContainer}>
+                    <TextInput
+                        style={[styles.textInput, styles.smallInput]}
+                        value={formData.remindBeforeValue?.toString() || ''}
+                        onChangeText={(text) => onUpdateField('remindBeforeValue', text)}
+                        keyboardType="numeric"
+                        placeholder="15"
+                    />
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        <View style={styles.optionsRow}>
+                            {(['MINUTES', 'HOURS', 'DAYS', 'WEEKS'] as const).map((unit) => (
+                                <TouchableOpacity
+                                    key={unit}
+                                    style={[
+                                        styles.smallOption,
+                                        formData.remindBeforeUnit === unit && styles.selectedSmallOption
+                                    ]}
+                                    onPress={() => onUpdateField('remindBeforeUnit', unit)}
+                                >
+                                    <Text style={[
+                                        styles.smallOptionText,
+                                        formData.remindBeforeUnit === unit && styles.selectedSmallOptionText
+                                    ]}>
+                                        {unit.toLowerCase()}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </ScrollView>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                    <View style={styles.optionsRow}>
+                        {(['POPUP', 'EMAIL', 'PUSH'] as const).map((type) => (
+                            <TouchableOpacity
+                                key={type}
+                                style={[
+                                    styles.smallOption,
+                                    formData.notificationType === type && styles.selectedSmallOption
+                                ]}
+                                onPress={() => onUpdateField('notificationType', type)}
+                            >
+                                <Text style={[
+                                    styles.smallOptionText,
+                                    formData.notificationType === type && styles.selectedSmallOptionText
+                                ]}>
+                                    {type}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </ScrollView>
+            </View>
+
+            {/* Repeat */}
+            <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>🔁 Repeat</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.optionsRow}>
+                        {(['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY', 'CUSTOM'] as const).map((type) => (
+                            <TouchableOpacity
+                                key={type}
+                                style={[
+                                    styles.smallOption,
+                                    formData.repeatType === type && styles.selectedSmallOption
+                                ]}
+                                onPress={() => onUpdateField('repeatType', type)}
+                            >
+                                <Text style={[
+                                    styles.smallOptionText,
+                                    formData.repeatType === type && styles.selectedSmallOptionText
+                                ]}>
+                                    {type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </ScrollView>
+                {formData.repeatType !== 'NONE' && (
+                    <View style={styles.repeatExtraContainer}>
+                        <View style={styles.repeatRow}>
+                            <Text style={styles.repeatLabel}>Every</Text>
+                            <TextInput
+                                style={[styles.textInput, styles.smallInput]}
+                                value={formData.repeatInterval?.toString() || ''}
+                                onChangeText={(text) => onUpdateField('repeatInterval', text)}
+                                keyboardType="numeric"
+                                placeholder="1"
+                            />
+                            <Text style={styles.repeatLabel}>
+                                {formData.repeatType === 'DAILY' ? 'Days' :
+                                    formData.repeatType === 'WEEKLY' ? 'Weeks' :
+                                        formData.repeatType === 'MONTHLY' ? 'Months' : 'Years'}
+                            </Text>
+                        </View>
+                        <View style={styles.repeatRow}>
+                            <Text style={styles.repeatLabel}>Until</Text>
+                            <TextInput
+                                style={[styles.textInput, styles.dateInput]}
+                                value={formData.repeatUntil || ''}
+                                onChangeText={(text) => onUpdateField('repeatUntil', text)}
+                                placeholder="YYYY-MM-DD (Optional)"
+                            />
+                        </View>
+                    </View>
+                )}
             </View>
 
             {/* Action Buttons */}
@@ -444,6 +572,59 @@ const styles = StyleSheet.create({
         fontFamily: 'Kanit-Bold',
         color: '#fff',
         letterSpacing: 0.5
+    },
+    notificationContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12
+    },
+    smallInput: {
+        width: 60,
+        textAlign: 'center',
+        padding: 10
+    },
+    optionsRow: {
+        flexDirection: 'row',
+        gap: 8,
+        paddingVertical: 4
+    },
+    smallOption: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        backgroundColor: '#fff'
+    },
+    selectedSmallOption: {
+        backgroundColor: '#3498db',
+        borderColor: '#3498db'
+    },
+    smallOptionText: {
+        fontSize: 12,
+        fontFamily: 'Kanit-Regular',
+        color: '#34495e'
+    },
+    selectedSmallOptionText: {
+        color: '#fff',
+        fontFamily: 'Kanit-Bold'
+    },
+    repeatExtraContainer: {
+        marginTop: 12,
+        backgroundColor: '#f8f9fa',
+        padding: 12,
+        borderRadius: 12,
+        gap: 12
+    },
+    repeatRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12
+    },
+    repeatLabel: {
+        fontSize: 14,
+        fontFamily: 'Kanit-Regular',
+        color: '#34495e'
     }
 });
 
