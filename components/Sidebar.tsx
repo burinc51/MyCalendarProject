@@ -96,7 +96,7 @@ const MemberAvatar: React.FC<{ member: GroupMember; index: number }> = ({ member
     </View>
 );
 
-const GroupItem: React.FC<{ group: Group; isDark: boolean }> = ({ group, isDark }) => (
+const GroupItem: React.FC<{ group: Group; isDark: boolean; onPress: () => void }> = ({ group, isDark, onPress }) => (
     <TouchableOpacity
         style={[
             styles.groupCard,
@@ -106,6 +106,7 @@ const GroupItem: React.FC<{ group: Group; isDark: boolean }> = ({ group, isDark 
             },
         ]}
         activeOpacity={0.65}
+        onPress={onPress}
     >
         {/* Icon box */}
         <View style={[styles.groupIconBox, { backgroundColor: group.bg }]}>
@@ -296,7 +297,20 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </View>
 
                     {MOCK_GROUPS.map(g => (
-                        <GroupItem key={g.id} group={g} isDark={isDark} />
+                        <GroupItem 
+                            key={g.id} 
+                            group={g} 
+                            isDark={isDark} 
+                            onPress={() => {
+                                onClose();
+                                setTimeout(() => {
+                                    router.push({
+                                        pathname: '/group/[id]',
+                                        params: { id: g.id, name: g.name }
+                                    });
+                                }, 300); // Wait for sidebar to close before navigating
+                            }} 
+                        />
                     ))}
 
                     {/* Add group button */}
