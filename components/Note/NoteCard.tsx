@@ -95,10 +95,23 @@ const NoteCard: React.FC<NoteCardProps> = ({
         }
 
         return {
-            text: reminderDate.format('DD MMM HH:mm') + recurrenceText,
+            text: reminderDate.format('DD MMM') + recurrenceText, // Shorter text for badge
             isPast,
         };
     }, [note.reminderDate, note.recurrence]);
+
+    const dateInfo = useMemo(() => {
+        if (!note.startDate && !note.endDate) return null;
+        let text = '';
+        if (note.startDate && note.endDate) {
+            text = `${dayjs(note.startDate).format('DD MMM')} - ${dayjs(note.endDate).format('DD MMM')}`;
+        } else if (note.startDate) {
+            text = `เริ่ม ${dayjs(note.startDate).format('DD MMM')}`;
+        } else if (note.endDate) {
+            text = `สิ้นสุด ${dayjs(note.endDate).format('DD MMM')}`;
+        }
+        return { text };
+    }, [note.startDate, note.endDate]);
 
     const isGridView = viewMode === 'grid';
 
@@ -144,58 +157,73 @@ const NoteCard: React.FC<NoteCardProps> = ({
                 </Text>
             )}
 
-            {/* Reminder Badge */}
-            {reminderInfo && (
-                <View style={[
-                    styles.reminderBadge,
-                    { backgroundColor: reminderInfo.isPast ? 'rgba(231,76,60,0.12)' : 'rgba(230,126,34,0.1)' }
-                ]}>
-                    
-                    <Ionicons
-                        name="notifications"
-                        size={11}
-                        color={reminderInfo.isPast ? '#e74c3c' : '#e67e22'}
-                    />
-                    <Text style={[
-                        styles.reminderText,
-                        { color: reminderInfo.isPast ? '#e74c3c' : '#e67e22' }
-                    ]}>
-                        {reminderInfo.text}
-                    </Text>
-                </View>
-            )}
-
-            {/* Location Badge */}
-            {note.locationName && (
-                <TouchableOpacity
-                    style={[
+            {/* Badges Container */}
+            <View style={styles.badgesWrapper}>
+                {/* Reminder Badge */}
+                {reminderInfo && (
+                    <View style={[
                         styles.reminderBadge,
-                        { backgroundColor: 'rgba(52,152,219,0.1)' }
-                    ]}
-                    onPress={() => {
-                        if (note.locationLink) {
-                            Linking.openURL(note.locationLink);
-                        }
-                    }}
-                    disabled={!note.locationLink}
-                    activeOpacity={note.locationLink ? 0.6 : 1}
-                >
-                    <Ionicons
-                        name="location"
-                        size={11}
-                        color="#2980b9"
-                    />
-                    <Text style={[
-                        styles.reminderText,
-                        { color: '#2980b9' }
-                    ]} numberOfLines={1}>
-                        {note.locationName}
-                    </Text>
-                    {note.locationLink ? (
-                        <Ionicons name="open-outline" size={10} color="#2980b9" />
-                    ) : null}
-                </TouchableOpacity>
-            )}
+                        { backgroundColor: reminderInfo.isPast ? 'rgba(231,76,60,0.12)' : 'rgba(230,126,34,0.12)' }
+                    ]}>
+                        <Ionicons
+                            name="notifications"
+                            size={12}
+                            color={reminderInfo.isPast ? '#e74c3c' : '#e67e22'}
+                        />
+                        <Text style={[
+                            styles.reminderText,
+                            { color: reminderInfo.isPast ? '#e74c3c' : '#e67e22' }
+                        ]} numberOfLines={1}>
+                            {reminderInfo.text}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Dates Badge */}
+                {dateInfo && (
+                    <View style={[
+                        styles.reminderBadge,
+                        { backgroundColor: 'rgba(46, 204, 113, 0.12)' }
+                    ]}>
+                        <AntDesign name="calendar" size={12} color="#27ae60" />
+                        <Text style={[
+                            styles.reminderText,
+                            { color: '#27ae60' }
+                        ]} numberOfLines={1}>
+                            {dateInfo.text}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Location Badge */}
+                {note.locationName && (
+                    <TouchableOpacity
+                        style={[
+                            styles.reminderBadge,
+                            { backgroundColor: 'rgba(52,152,219,0.12)' }
+                        ]}
+                        onPress={() => {
+                            if (note.locationLink) {
+                                Linking.openURL(note.locationLink);
+                            }
+                        }}
+                        disabled={!note.locationLink}
+                        activeOpacity={note.locationLink ? 0.6 : 1}
+                    >
+                        <Ionicons
+                            name="location"
+                            size={12}
+                            color="#2980b9"
+                        />
+                        <Text style={[
+                            styles.reminderText,
+                            { color: '#2980b9' }
+                        ]} numberOfLines={1}>
+                            {note.locationName}
+                        </Text>
+                    </TouchableOpacity>
+                )}
+            </View>
 
             {/* Footer */}
             <View style={styles.footer}>
@@ -230,23 +258,25 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
 const styles = StyleSheet.create({
     card: {
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: 24,
+        padding: 18,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
-        overflow: 'hidden'
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        elevation: 4,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.03)'
     },
     gridCard: {
         width: GRID_CARD_WIDTH,
-        minHeight: 150,
+        minHeight: 160,
         marginBottom: 16
     },
     listCard: {
         width: '100%',
-        marginBottom: 12
+        marginBottom: 16
     },
     pinIndicator: {
         position: 'absolute',
@@ -255,59 +285,70 @@ const styles = StyleSheet.create({
         zIndex: 1
     },
     title: {
-        fontFamily: 'Kanit-Bold',
-        fontSize: 16,
-        marginBottom: 8,
-        paddingRight: 24 // Space for pin icon
+        fontFamily: 'Kanit-SemiBold',
+        fontSize: 17,
+        marginBottom: 6,
+        paddingRight: 24, // Space for pin icon
+        letterSpacing: 0.2
     },
     content: {
         fontFamily: 'Kanit-Regular',
         fontSize: 14,
-        lineHeight: 20,
-        flex: 1
+        lineHeight: 22,
+        flex: 1,
+        opacity: 0.9
     },
     footer: {
-        marginTop: 12,
+        marginTop: 14,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.04)',
+        paddingTop: 10
     },
     timestamp: {
         fontFamily: 'Kanit-Regular',
-        fontSize: 11
+        fontSize: 11,
+        opacity: 0.8
     },
     tagsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4
+        gap: 6
     },
     tag: {
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6
     },
     tagText: {
-        fontFamily: 'Kanit-Regular',
+        fontFamily: 'Kanit-Medium',
         fontSize: 10
     },
     moreTagsText: {
-        fontFamily: 'Kanit-Regular',
+        fontFamily: 'Kanit-Medium',
         fontSize: 10
+    },
+    badgesWrapper: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginTop: 10
     },
     reminderBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'flex-start',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 12,
-        gap: 4,
-        marginTop: 8
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 16,
+        gap: 4
     },
     reminderText: {
-        fontFamily: 'Kanit-Regular',
+        fontFamily: 'Kanit-Medium',
         fontSize: 10,
-        fontWeight: '500'
+        fontWeight: '600'
     }
 });
 

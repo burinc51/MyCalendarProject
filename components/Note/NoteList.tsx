@@ -1,9 +1,3 @@
-/**
- * NoteList Component
- * Displays notes in grid or list layout with search and sort options
- * Supports dark/light theme
- */
-
 import React, { useCallback, useMemo } from 'react';
 import {
     View,
@@ -16,6 +10,7 @@ import {
     ActivityIndicator
 } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import NoteCard from './NoteCard';
 import { useTheme } from '@/components/ThemeProvider';
 import type { Note, NoteViewMode, NoteSortOption } from '@/types/note';
@@ -54,6 +49,7 @@ const NoteList: React.FC<NoteListProps> = ({
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const isGridView = viewMode === 'grid';
+    const insets = useSafeAreaInsets();
 
     // Theme colors
     const colors = useMemo(() => ({
@@ -71,29 +67,36 @@ const NoteList: React.FC<NoteListProps> = ({
     const dynamicStyles = useMemo(() => ({
         container: {
             flex: 1,
-            backgroundColor: colors.background
+            backgroundColor: colors.background,
+            paddingBottom: insets.bottom
         },
         searchContainer: {
             paddingHorizontal: 16,
-            paddingVertical: 12,
+            paddingVertical: 16,
             backgroundColor: colors.surface,
             borderBottomWidth: 1,
-            borderBottomColor: colors.border
+            borderBottomColor: 'rgba(0,0,0,0.03)',
+            zIndex: 10
         },
         searchInputContainer: {
             flexDirection: 'row' as const,
             alignItems: 'center' as const,
             backgroundColor: colors.inputBg,
-            borderRadius: 12,
-            paddingHorizontal: 12,
-            paddingVertical: 10
+            borderRadius: 16,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.03,
+            shadowRadius: 4,
+            elevation: 1
         },
         searchInput: {
             flex: 1,
             fontFamily: 'Kanit-Regular',
-            fontSize: 15,
+            fontSize: 16,
             color: colors.text,
-            marginLeft: 8
+            marginLeft: 10
         },
         toolbar: {
             flexDirection: 'row' as const,
@@ -101,39 +104,46 @@ const NoteList: React.FC<NoteListProps> = ({
             alignItems: 'center' as const,
             paddingHorizontal: 16,
             paddingVertical: 12,
-            backgroundColor: colors.surface
+            backgroundColor: colors.surface,
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(0,0,0,0.03)'
         },
         sortButton: {
-            paddingHorizontal: 14,
-            paddingVertical: 6,
-            borderRadius: 16,
-            backgroundColor: colors.inputBg
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 20,
+            backgroundColor: colors.inputBg,
+            borderWidth: 1,
+            borderColor: 'transparent'
         },
         sortButtonActive: {
-            backgroundColor: colors.activeButton
+            backgroundColor: isDark ? 'rgba(46, 204, 113, 0.15)' : 'rgba(46, 204, 113, 0.1)',
+            borderColor: 'rgba(46, 204, 113, 0.2)'
         },
         sortButtonText: {
-            fontFamily: 'Kanit-Regular',
+            fontFamily: 'Kanit-Medium',
             fontSize: 13,
             color: colors.textSecondary
         },
         viewModeButtonActive: {
-            backgroundColor: colors.activeButton
+            backgroundColor: isDark ? 'rgba(46, 204, 113, 0.15)' : 'rgba(46, 204, 113, 0.1)'
         },
         emptyTitle: {
-            fontFamily: 'Kanit-Bold',
-            fontSize: 18,
+            fontFamily: 'Kanit-SemiBold',
+            fontSize: 20,
             color: colors.textSecondary,
-            marginBottom: 8
+            marginBottom: 8,
+            letterSpacing: 0.3
         },
         emptySubtitle: {
             fontFamily: 'Kanit-Regular',
-            fontSize: 14,
+            fontSize: 15,
             color: colors.textMuted,
             textAlign: 'center' as const,
-            paddingHorizontal: 40
+            paddingHorizontal: 40,
+            lineHeight: 22
         }
-    }), [colors]);
+    }), [colors, isDark, insets]);
 
     // Render empty state
     const renderEmptyState = useCallback(() => {
@@ -284,7 +294,7 @@ const NoteList: React.FC<NoteListProps> = ({
 
             {/* Add Note FAB */}
             <TouchableOpacity
-                style={styles.fab}
+                style={[styles.fab, { bottom: Math.max(20, insets.bottom + 20) }]}
                 onPress={onAddNote}
                 activeOpacity={0.8}
             >
@@ -301,7 +311,7 @@ const styles = StyleSheet.create({
     },
     sortButtonTextActive: {
         color: '#2ecc71',
-        fontFamily: 'Kanit-Bold'
+        fontFamily: 'Kanit-SemiBold'
     },
     viewModeContainer: {
         flexDirection: 'row',
@@ -312,7 +322,8 @@ const styles = StyleSheet.create({
         borderRadius: 8
     },
     listContent: {
-        padding: 16
+        padding: 16,
+        paddingBottom: 100 // Extra padding so FAB doesn't overlay bottom items
     },
     emptyListContent: {
         flexGrow: 1
@@ -324,28 +335,30 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 60
+        paddingVertical: 80
     },
     emptyIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-        opacity: 0.6
+        fontSize: 72,
+        marginBottom: 20,
+        opacity: 0.9
     },
     fab: {
         position: 'absolute',
-        right: 20,
-        bottom: 20,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        right: 24,
+        bottom: 24,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         backgroundColor: '#2ecc71',
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#2ecc71',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        elevation: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)'
     }
 });
 

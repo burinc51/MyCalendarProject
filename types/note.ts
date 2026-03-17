@@ -1,7 +1,6 @@
 export type NoteFormData = {
     title: string;
     content: string;
-    folderId: number | null;
     color: string;
     isPinned: boolean;
     tags: string[];
@@ -9,6 +8,8 @@ export type NoteFormData = {
     recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
     locationName: string | null;
     locationLink: string | null;
+    startDate: string | null;
+    endDate: string | null;
 }
 
 export const NOTE_COLORS = [
@@ -31,14 +32,15 @@ export type NoteColor = (typeof NOTE_COLORS)[number];
 export const DEFAULT_NOTE_FORM: NoteFormData = {
     title: '',
     content: '',
-    folderId: null,
     color: NOTE_COLORS[0],
     isPinned: false,
     tags: [],
     reminderDate: null,
     recurrence: 'none',
     locationName: null,
-    locationLink: null
+    locationLink: null,
+    startDate: null,
+    endDate: null
 };
 
 // ==================== Note ====================
@@ -47,7 +49,6 @@ export interface Note {
     id: number;
     title: string;
     content: string;
-    folderId: number | null;
     createdAt: string;
     updatedAt: string;
     isPinned: boolean;
@@ -57,30 +58,13 @@ export interface Note {
     recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
     locationName: string | null;
     locationLink: string | null;
+    startDate: string | null;
+    endDate: string | null;
 }
 
-// ==================== Folder ====================
+// ==================== View Types ====================
 
-export interface Folder {
-    id: number;
-    name: string;
-    color: string;
-    icon?: string;
-    noteCount: number;
-    createdAt: string;
-    updatedAt: string;
-}
 
-export type FolderFormData = {
-    name: string;
-    color: string;
-    icon?: string;
-};
-
-export const DEFAULT_FOLDER_FORM: FolderFormData = {
-    name: '',
-    color: '#3498db',
-};
 
 // ==================== View Types ====================
 

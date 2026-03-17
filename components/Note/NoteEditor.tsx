@@ -39,13 +39,14 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         title: formData.title,
         content: formData.content,
         color: formData.color,
-        folderId: formData.folderId,
         isPinned: formData.isPinned,
         tags: formData.tags,
         reminderDate: formData.reminderDate,
         recurrence: formData.recurrence,
         locationName: formData.locationName,
         locationLink: formData.locationLink,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
     });
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
@@ -59,6 +60,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [tempLocationName, setTempLocationName] = useState(formData.locationName || '');
     const [tempLocationLink, setTempLocationLink] = useState(formData.locationLink || '');
+
+    // Date/Time state (Start/End Date)
+    const [showDateModal, setShowDateModal] = useState(false);
+    const [dateModalType, setDateModalType] = useState<'start' | 'end'>('start');
+    const [tempDate, setTempDate] = useState<Date>(new Date());
 
     // Image picker state
     const [showImagePickerModal, setShowImagePickerModal] = useState(false);
@@ -94,6 +100,17 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         return new Date(formData.reminderDate) < new Date();
     }, [formData.reminderDate]);
 
+    // Formatted start and end dates for display
+    const formattedStartDate = useMemo(() => {
+        if (!formData.startDate) return null;
+        return dayjs(formData.startDate).format('DD MMM YYYY HH:mm');
+    }, [formData.startDate]);
+
+    const formattedEndDate = useMemo(() => {
+        if (!formData.endDate) return null;
+        return dayjs(formData.endDate).format('DD MMM YYYY HH:mm');
+    }, [formData.endDate]);
+
     useEffect(() => {
         const showSub = Keyboard.addListener(
             Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
@@ -116,9 +133,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             formData.title !== initial.title ||
             formData.content !== initial.content ||
             formData.color !== initial.color ||
-            formData.reminderDate !== initial.reminderDate;
+            formData.reminderDate !== initial.reminderDate ||
+            formData.startDate !== initial.startDate ||
+            formData.endDate !== initial.endDate;
         setHasUnsavedChanges(changed);
-    }, [formData.title, formData.content, formData.color, formData.reminderDate]);
+    }, [formData.title, formData.content, formData.color, formData.reminderDate, formData.startDate, formData.endDate]);
 
     const handleChangeText = useCallback((text: string) => {
         onUpdateField('content', text);
@@ -265,6 +284,51 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         setShowLocationModal(false);
     }, [onUpdateField]);
 
+    // ========== Start/End Date Handlers ==========
+
+    const handleOpenDateModal = useCallback((type: 'start' | 'end') => {
+        setDateModalType(type);
+        const existingDate = type === 'start' ? formData.startDate : formData.endDate;
+        setTempDate(existingDate ? new Date(existingDate) : new Date());
+        setShowDateModal(true);
+    }, [formData.startDate, formData.endDate]);
+
+    const adjustGenericDate = useCallback((days: number) => {
+        setTempDate(prev => {
+            const d = new Date(prev);
+            d.setDate(d.getDate() + days);
+            return d;
+        });
+    }, []);
+
+    const adjustGenericHour = useCallback((delta: number) => {
+        setTempDate(prev => {
+            const d = new Date(prev);
+            d.setHours(d.getHours() + delta);
+            return d;
+        });
+    }, []);
+
+    const adjustGenericMinute = useCallback((delta: number) => {
+        setTempDate(prev => {
+            const d = new Date(prev);
+            d.setMinutes(d.getMinutes() + delta);
+            return d;
+        });
+    }, []);
+
+    const handleConfirmDate = useCallback(() => {
+        const fieldName = dateModalType === 'start' ? 'startDate' : 'endDate';
+        onUpdateField(fieldName, tempDate.toISOString());
+        setShowDateModal(false);
+    }, [dateModalType, tempDate, onUpdateField]);
+
+    const handleRemoveDate = useCallback(() => {
+        const fieldName = dateModalType === 'start' ? 'startDate' : 'endDate';
+        onUpdateField(fieldName, null);
+        setShowDateModal(false);
+    }, [dateModalType, onUpdateField]);
+
     // ========== Image Handlers ==========
 
     const handlePickImageFromGallery = useCallback(async () => {
@@ -347,6 +411,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             }}>
                                 <Ionicons name='location' size={24} color={formData.locationName ? colors.primary : colors.textSecondary} />
                             </TouchableOpacity>
+                            {/* Start/End Date button */}
+                            <TouchableOpacity onPress={() => handleOpenDateModal('start')}>
+                                <AntDesign name="calendar" size={24} color={(formData.startDate || formData.endDate) ? colors.primary : colors.textSecondary} />
+                            </TouchableOpacity>
                             <TouchableOpacity onPress={onSave}><Ionicons name='checkmark' size={24} color={colors.textPrimary} /></TouchableOpacity>
                         </View>
                     </View>
@@ -411,6 +479,59 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 <AntDesign name="close" size={14} color={colors.primary} />
                             </TouchableOpacity>
                         </TouchableOpacity>
+                    )}
+
+                    {/* Start/End Date Badges */}
+                    {(formData.startDate || formData.endDate) && (
+                        <View style={{ paddingHorizontal: 16, marginTop: formData.reminderDate || formData.locationName ? 4 : 8, gap: 8 }}>
+                            {formData.startDate && (
+                                <TouchableOpacity
+                                    onPress={() => handleOpenDateModal('start')}
+                                    style={[
+                                        styles.reminderBadge,
+                                        { backgroundColor: isDark ? 'rgba(46, 204, 113, 0.15)' : 'rgba(46, 204, 113, 0.1)' }
+                                    ]}
+                                >
+                                    <AntDesign name="caret-right" size={14} color="#2ecc71" />
+                                    <Text style={[styles.reminderBadgeText, { color: '#2ecc71' }]} numberOfLines={1}>
+                                        เริ่ม: {formattedStartDate}
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setDateModalType('start');
+                                            handleRemoveDate();
+                                        }}
+                                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                    >
+                                        <AntDesign name="close" size={14} color="#2ecc71" />
+                                    </TouchableOpacity>
+                                </TouchableOpacity>
+                            )}
+                            
+                            {formData.endDate && (
+                                <TouchableOpacity
+                                    onPress={() => handleOpenDateModal('end')}
+                                    style={[
+                                        styles.reminderBadge,
+                                        { backgroundColor: isDark ? 'rgba(231, 76, 60, 0.15)' : 'rgba(231, 76, 60, 0.1)' }
+                                    ]}
+                                >
+                                    <AntDesign name="pause-circle" size={14} color="#e74c3c" />
+                                    <Text style={[styles.reminderBadgeText, { color: '#e74c3c' }]} numberOfLines={1}>
+                                        สิ้นสุด: {formattedEndDate}
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setDateModalType('end');
+                                            handleRemoveDate();
+                                        }}
+                                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                    >
+                                        <AntDesign name="close" size={14} color="#e74c3c" />
+                                    </TouchableOpacity>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     )}
 
                     <TouchableOpacity
@@ -802,6 +923,128 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 <Text style={[styles.reminderRemoveText, { color: '#e74c3c' }]}>ลบสถานที่</Text>
                             </TouchableOpacity>
                         )}
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Date/Time Modal for Start/End Date */}
+            <Modal
+                visible={showDateModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDateModal(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowDateModal(false)}
+                >
+                    <TouchableOpacity activeOpacity={1} style={[styles.reminderModalContent, { backgroundColor: colors.surface }]}>
+                        {/* Header */}
+                        <View style={styles.reminderModalHeader}>
+                            <AntDesign name="calendar" size={24} color={dateModalType === 'start' ? '#2ecc71' : '#e74c3c'} />
+                            <Text style={[styles.reminderModalTitle, { color: colors.textPrimary }]}>
+                                {dateModalType === 'start' ? 'เวลาเริ่มต้น (Start Date)' : 'เวลาสิ้นสุด (End Date)'}
+                            </Text>
+                        </View>
+
+                        <Text style={[styles.reminderSectionLabel, { color: colors.textSecondary, marginTop: 16 }]}>กำหนดเวลา (เลื่อนเพื่อปรับ)</Text>
+
+                        <View style={[styles.pickerContainer, { backgroundColor: isDark ? colors.background : '#f8f8f8', borderColor: colors.border }]}>
+                            {/* Date picker row */}
+                            <View style={styles.customPickerRow}>
+                                <AntDesign name="calendar" size={16} color={colors.primary} />
+                                <TouchableOpacity onPress={() => adjustGenericDate(-1)} style={styles.pickerArrow}>
+                                    <AntDesign name="left" size={18} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                                <Text style={[styles.pickerValueText, { color: colors.textPrimary }]}>
+                                    {dayjs(tempDate).format('DD MMM YYYY')}
+                                </Text>
+                                <TouchableOpacity onPress={() => adjustGenericDate(1)} style={styles.pickerArrow}>
+                                    <AntDesign name="right" size={18} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                            {/* Time picker row */}
+                            <View style={styles.customPickerRow}>
+                                <AntDesign name="clock-circle" size={16} color={colors.primary} />
+                                {/* Hour */}
+                                <View style={styles.timeUnit}>
+                                    <TouchableOpacity onPress={() => adjustGenericHour(1)} style={styles.timeArrow}>
+                                        <AntDesign name="up" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                    <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>
+                                        {dayjs(tempDate).format('HH')}
+                                    </Text>
+                                    <TouchableOpacity onPress={() => adjustGenericHour(-1)} style={styles.timeArrow}>
+                                        <AntDesign name="down" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={[styles.timeSeparator, { color: colors.textPrimary }]}>:</Text>
+                                {/* Minute */}
+                                <View style={styles.timeUnit}>
+                                    <TouchableOpacity onPress={() => adjustGenericMinute(1)} style={styles.timeArrow}>
+                                        <AntDesign name="up" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                    <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>
+                                        {dayjs(tempDate).format('mm')}
+                                    </Text>
+                                    <TouchableOpacity onPress={() => adjustGenericMinute(-1)} style={styles.timeArrow}>
+                                        <AntDesign name="down" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Switch between start and end type */}
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16, marginBottom: 8, gap: 12 }}>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setDateModalType('start');
+                                    setTempDate(formData.startDate ? new Date(formData.startDate) : new Date());
+                                }}
+                                style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, backgroundColor: dateModalType === 'start' ? '#2ecc71' : 'transparent', borderWidth: 1, borderColor: '#2ecc71' }}
+                            >
+                                <Text style={{ color: dateModalType === 'start' ? '#fff' : '#2ecc71', fontSize: 13, fontFamily: 'Kanit-Medium' }}>เวลาเริ่มต้น</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setDateModalType('end');
+                                    setTempDate(formData.endDate ? new Date(formData.endDate) : new Date(Date.now() + 60 * 60 * 1000));
+                                }}
+                                style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, backgroundColor: dateModalType === 'end' ? '#e74c3c' : 'transparent', borderWidth: 1, borderColor: '#e74c3c' }}
+                            >
+                                <Text style={{ color: dateModalType === 'end' ? '#fff' : '#e74c3c', fontSize: 13, fontFamily: 'Kanit-Medium' }}>เวลาสิ้นสุด</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.reminderActions}>
+                            <TouchableOpacity
+                                style={[styles.reminderConfirmBtn, { backgroundColor: dateModalType === 'start' ? '#2ecc71' : '#e74c3c' }]}
+                                onPress={handleConfirmDate}
+                            >
+                                <AntDesign name="check-circle" size={16} color="#fff" style={{ marginRight: 6 }} />
+                                <Text style={styles.reminderConfirmText}>บันทึกเวลา</Text>
+                            </TouchableOpacity>
+
+                            {((dateModalType === 'start' && formData.startDate) || (dateModalType === 'end' && formData.endDate)) && (
+                                <TouchableOpacity
+                                    style={[styles.reminderRemoveBtn, { borderColor: '#95a5a6' }]}
+                                    onPress={handleRemoveDate}
+                                >
+                                    <Text style={[styles.reminderRemoveText, { color: '#95a5a6' }]}>ลบเวลานี้</Text>
+                                </TouchableOpacity>
+                            )}
+
+                            <TouchableOpacity
+                                style={styles.reminderCancelBtn}
+                                onPress={() => setShowDateModal(false)}
+                            >
+                                <Text style={[styles.reminderCancelText, { color: colors.textSecondary }]}>ปิด</Text>
+                            </TouchableOpacity>
+                        </View>
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>

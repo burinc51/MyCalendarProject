@@ -9,8 +9,8 @@ import { useToast } from '@/components/ui/Toast';
 import type { ToastType } from '@/components/ui/Toast';
 import * as noteService from '@/services/note-service';
 import { scheduleNoteReminder, cancelNoteReminder } from '@/services/notification-service';
-import { DEFAULT_NOTE_FORM, DEFAULT_FOLDER_FORM } from '@/types/note';
-import type { Note, Folder, NoteFormData, FolderFormData, NoteSortOption, SortDirection, NoteViewMode } from '@/types/note';
+import { DEFAULT_NOTE_FORM } from '@/types/note';
+import type { Note, NoteFormData, NoteSortOption, SortDirection, NoteViewMode } from '@/types/note';
 
 interface UseNotesReturn {
     // Toast state
@@ -24,17 +24,10 @@ interface UseNotesReturn {
     isLoading: boolean;
     error: string | null;
 
-    // Folders state
-    folders: Folder[];
-    selectedFolderId: number | null;
-
     // Form state
     noteFormData: NoteFormData;
-    folderFormData: FolderFormData;
     editingNote: Note | null;
-    editingFolder: Folder | null;
     showNoteEditor: boolean;
-    showFolderForm: boolean;
 
     // View state
     viewMode: NoteViewMode;
@@ -54,17 +47,6 @@ interface UseNotesReturn {
     resetNoteForm: () => void;
     initNoteForm: (note?: Note) => void;
 
-    // Folder actions
-    fetchFolders: () => Promise<void>;
-    createFolder: () => Promise<void>;
-    updateFolder: () => Promise<void>;
-    deleteFolder: (folderId: number) => void;
-    setSelectedFolderId: (folderId: number | null) => void;
-    setShowFolderForm: (show: boolean) => void;
-    setEditingFolder: (folder: Folder | null) => void;
-    updateFolderFormData: (key: keyof FolderFormData, value: unknown) => void;
-    resetFolderForm: () => void;
-
     // View actions
     setViewMode: (mode: NoteViewMode) => void;
     setSortBy: (option: NoteSortOption) => void;
@@ -81,17 +63,10 @@ export const useNotes = (): UseNotesReturn => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Folders state
-    const [folders, setFolders] = useState<Folder[]>([]);
-    const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
-
     // Form state
     const [noteFormData, setNoteFormData] = useState<NoteFormData>(DEFAULT_NOTE_FORM);
-    const [folderFormData, setFolderFormData] = useState<FolderFormData>(DEFAULT_FOLDER_FORM);
     const [editingNote, setEditingNote] = useState<Note | null>(null);
-    const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
     const [showNoteEditor, setShowNoteEditor] = useState(false);
-    const [showFolderForm, setShowFolderForm] = useState(false);
 
     // View state
     const [viewMode, setViewMode] = useState<NoteViewMode>('grid');
@@ -114,30 +89,14 @@ export const useNotes = (): UseNotesReturn => {
         }
     }, []);
 
-    // Fetch all folders
-    const fetchFolders = useCallback(async () => {
-        try {
-            const fetchedFolders = await noteService.getFolders();
-            setFolders(fetchedFolders);
-        } catch (err) {
-            console.error('Failed to fetch folders:', err);
-        }
-    }, []);
-
     // Initial fetch
     useEffect(() => {
         fetchNotes();
-        fetchFolders();
-    }, [fetchNotes, fetchFolders]);
+    }, [fetchNotes]);
 
     // Filter and sort notes
     const filteredNotes = useMemo(() => {
         let result = [...notes];
-
-        // Filter by folder
-        if (selectedFolderId !== null) {
-            result = result.filter((note) => note.folderId === selectedFolderId);
-        }
 
         // Filter by search query
         if (searchQuery.trim()) {
@@ -170,7 +129,7 @@ export const useNotes = (): UseNotesReturn => {
         });
 
         return result;
-    }, [notes, selectedFolderId, searchQuery, sortBy, sortDirection]);
+    }, [notes, searchQuery, sortBy, sortDirection]);
 
     // Reset note form
     const resetNoteForm = useCallback(() => {
@@ -185,14 +144,15 @@ export const useNotes = (): UseNotesReturn => {
                 setNoteFormData({
                     title: note.title,
                     content: note.content,
-                    folderId: note.folderId,
                     color: note.color,
                     isPinned: note.isPinned,
                     tags: note.tags || [],
                     reminderDate: note.reminderDate || null,
                     recurrence: note.recurrence || 'none',
                     locationName: note.locationName || null,
-                    locationLink: note.locationLink || null
+                    locationLink: note.locationLink || null,
+                    startDate: note.startDate || null,
+                    endDate: note.endDate || null
                 });
                 setEditingNote(note);
             } else {
@@ -229,12 +189,11 @@ export const useNotes = (): UseNotesReturn => {
             setShowNoteEditor(false);
             resetNoteForm();
             fetchNotes();
-            fetchFolders(); // Update note counts
         } catch (err) {
             Alert.alert('Error', 'Failed to create note');
             console.error('Create note error:', err);
         }
-    }, [noteFormData, resetNoteForm, fetchNotes, fetchFolders]);
+    }, [noteFormData, resetNoteForm, fetchNotes]);
 
     // Update existing note
     const updateNoteAction = useCallback(async () => {
@@ -260,12 +219,11 @@ export const useNotes = (): UseNotesReturn => {
             setShowNoteEditor(false);
             resetNoteForm();
             fetchNotes();
-            fetchFolders();
         } catch (err) {
             Alert.alert('Error', 'Failed to update note');
             console.error('Update note error:', err);
         }
-    }, [editingNote, noteFormData, resetNoteForm, fetchNotes, fetchFolders]);
+    }, [editingNote, noteFormData, resetNoteForm, fetchNotes]);
 
     // Delete note
     const deleteNoteAction = useCallback(
@@ -286,7 +244,6 @@ export const useNotes = (): UseNotesReturn => {
                             await noteService.deleteNote(noteId);
                             showToast('ลบโน้ตสำเร็จ');
                             fetchNotes();
-                            fetchFolders();
                         } catch (err) {
                             Alert.alert('Error', 'Failed to delete note');
                             console.error('Delete note error:', err);
@@ -295,7 +252,7 @@ export const useNotes = (): UseNotesReturn => {
                 }
             ]);
         },
-        [notes, fetchNotes, fetchFolders]
+        [notes, fetchNotes]
     );
 
     // Toggle pin
@@ -311,80 +268,6 @@ export const useNotes = (): UseNotesReturn => {
         [fetchNotes]
     );
 
-    // Reset folder form
-    const resetFolderForm = useCallback(() => {
-        setFolderFormData(DEFAULT_FOLDER_FORM);
-        setEditingFolder(null);
-    }, []);
-
-    // Update folder form field
-    const updateFolderFormData = useCallback((key: keyof FolderFormData, value: unknown) => {
-        setFolderFormData((prev) => ({ ...prev, [key]: value }));
-    }, []);
-
-    // Create folder
-    const createFolderAction = useCallback(async () => {
-        if (!folderFormData.name.trim()) {
-            Alert.alert('Error', 'Please enter a folder name');
-            return;
-        }
-
-        try {
-            await noteService.createFolder(folderFormData);
-            showToast('สร้างโฟลเดอร์สำเร็จ ✓');
-            setShowFolderForm(false);
-            resetFolderForm();
-            fetchFolders();
-        } catch (err) {
-            Alert.alert('Error', 'Failed to create folder');
-            console.error('Create folder error:', err);
-        }
-    }, [folderFormData, resetFolderForm, fetchFolders]);
-
-    // Update folder
-    const updateFolderAction = useCallback(async () => {
-        if (!editingFolder) return;
-
-        try {
-            await noteService.updateFolder(editingFolder.id, folderFormData);
-            showToast('อัปเดตโฟลเดอร์สำเร็จ ✓');
-            setShowFolderForm(false);
-            resetFolderForm();
-            fetchFolders();
-        } catch (err) {
-            Alert.alert('Error', 'Failed to update folder');
-            console.error('Update folder error:', err);
-        }
-    }, [editingFolder, folderFormData, resetFolderForm, fetchFolders]);
-
-    // Delete folder
-    const deleteFolderAction = useCallback(
-        (folderId: number) => {
-            Alert.alert('Delete Folder', 'Notes in this folder will be moved to "All Notes". Continue?', [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await noteService.deleteFolder(folderId);
-                            if (selectedFolderId === folderId) {
-                                setSelectedFolderId(null);
-                            }
-                            showToast('ลบโฟลเดอร์สำเร็จ');
-                            fetchFolders();
-                            fetchNotes();
-                        } catch (err) {
-                            Alert.alert('Error', 'Failed to delete folder');
-                            console.error('Delete folder error:', err);
-                        }
-                    }
-                }
-            ]);
-        },
-        [selectedFolderId, fetchFolders, fetchNotes]
-    );
-
     return {
         // Toast state
         toast,
@@ -397,17 +280,10 @@ export const useNotes = (): UseNotesReturn => {
         isLoading,
         error,
 
-        // Folders state
-        folders,
-        selectedFolderId,
-
         // Form state
         noteFormData,
-        folderFormData,
         editingNote,
-        editingFolder,
         showNoteEditor,
-        showFolderForm,
 
         // View state
         viewMode,
@@ -426,17 +302,6 @@ export const useNotes = (): UseNotesReturn => {
         updateNoteFormData,
         resetNoteForm,
         initNoteForm,
-
-        // Folder actions
-        fetchFolders,
-        createFolder: createFolderAction,
-        updateFolder: updateFolderAction,
-        deleteFolder: deleteFolderAction,
-        setSelectedFolderId,
-        setShowFolderForm,
-        setEditingFolder,
-        updateFolderFormData,
-        resetFolderForm,
 
         // View actions
         setViewMode,
