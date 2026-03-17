@@ -54,16 +54,16 @@ export default function TabLayout() {
                         shadowOffset: { width: 0, height: -2 },
                         elevation: 16,
                         height: TAB_H + insets.bottom,
-                        paddingBottom: insets.bottom,
+                        paddingBottom: insets.bottom
                     },
                     android: {
                         backgroundColor: isDark ? '#111111' : '#ffffff',
                         borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
                         borderTopWidth: 0.5,
                         elevation: 12,
-                        height: TAB_H,
-                    },
-                }),
+                        height: TAB_H
+                    }
+                })
             }}
         >
             <Tabs.Screen
@@ -71,9 +71,12 @@ export default function TabLayout() {
                 options={{
                     title: 'Notes',
                     tabBarIcon: ({ color }) => (
-                        <TabIcon name="book-open" color={color} />
+                        <TabIcon
+                            name="book-open"
+                            color={color}
+                        />
                     ),
-                    tabBarAccessibilityLabel: 'Notes Tab',
+                    tabBarAccessibilityLabel: 'Notes Tab'
                 }}
             />
             <Tabs.Screen
@@ -81,9 +84,12 @@ export default function TabLayout() {
                 options={{
                     title: 'Home',
                     tabBarIcon: ({ color }) => (
-                        <TabIcon name="calendar" color={color} />
+                        <TabIcon
+                            name="calendar"
+                            color={color}
+                        />
                     ),
-                    tabBarAccessibilityLabel: 'Home Tab',
+                    tabBarAccessibilityLabel: 'Home Tab'
                 }}
             />
             <Tabs.Screen
@@ -91,14 +97,23 @@ export default function TabLayout() {
                 options={{
                     title: 'Activity',
                     tabBarIcon: ({ color }) => (
-                        <TabIcon name="bell" color={color} />
+                        <TabIcon
+                            name="bell"
+                            color={color}
+                        />
                     ),
-                    tabBarAccessibilityLabel: 'Activity Tab',
+                    tabBarAccessibilityLabel: 'Activity Tab'
                 }}
             />
             {/* Hidden screens */}
-            <Tabs.Screen name="group" options={{ href: null }} />
-            <Tabs.Screen name="setting" options={{ href: null }} />
+            <Tabs.Screen
+                name="group"
+                options={{ href: null }}
+            />
+            <Tabs.Screen
+                name="setting"
+                options={{ href: null }}
+            />
         </Tabs>
     );
 }
