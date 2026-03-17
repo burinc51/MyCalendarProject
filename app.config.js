@@ -51,6 +51,13 @@ module.exports = {
                     icon: "./assets/images/notification-icon.png",
                     color: "#e74c3c"
                 }
+            ],
+            [
+                "expo-image-picker",
+                {
+                    photosPermission: "Allow access to your photos to insert images into notes",
+                    cameraPermission: "Allow camera access to take photos for notes"
+                }
             ]
         ],
         experiments: {
@@ -64,7 +71,7 @@ module.exports = {
                 projectId: "4b12d89a-d8f0-44eb-b817-7f4640458ad5"
             }
         },
-        owner: "gotzila",
+        owner: "mycalendarproject",
         runtimeVersion: "1.0.0",
         updates: {
             url: "https://u.expo.dev/4b12d89a-d8f0-44eb-b817-7f4640458ad5"

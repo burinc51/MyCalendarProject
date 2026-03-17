@@ -1,5 +1,5 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
+import React, { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
+import { Alert, BackHandler, useColorScheme } from 'react-native';
 
 interface ThemeContextType {
     theme: 'light' | 'dark';
@@ -14,8 +14,20 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const systemColorScheme = useColorScheme();
-    const theme = systemColorScheme || 'light';
+    const initialThemeRef = useRef(systemColorScheme || 'light');
+    const theme = initialThemeRef.current;
     const isDark = theme === 'dark';
+
+    useEffect(() => {
+        const currentSystem = systemColorScheme || 'light';
+        if (currentSystem !== initialThemeRef.current) {
+            Alert.alert(
+                'Theme Changed',
+                'Your system theme pattern changed. Please restart the app to apply the new theme gracefully without freezing.',
+                [{ text: 'Close App', style: 'destructive', onPress: () => BackHandler.exitApp() }]
+            );
+        }
+    }, [systemColorScheme]);
 
     return (
         <ThemeContext.Provider value={{ theme, isDark }}>
@@ -38,8 +50,8 @@ export const useThemeColors = () => {
 
     const colors = {
         // Background
-        background: theme === 'light' ? '#ffffff' : '#0a0a0a',
-        surface: theme === 'light' ? '#f8fafc' : '#1e293b',
+        background: theme === 'light' ? '#ffffff' : '#171717',
+        surface: theme === 'light' ? '#f8fafc' : '#171717',
 
         // Text
         textPrimary: theme === 'light' ? '#1e293b' : '#f1f5f9',

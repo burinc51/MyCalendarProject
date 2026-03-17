@@ -1,9 +1,3 @@
-/**
- * Notes Tab
- * Main notes screen with NoteList, FolderList sidebar, and NoteEditor
- * Uses the new Note components and useNotes hook
- */
-
 import React, { useCallback, useState } from 'react';
 import {
     View,
@@ -20,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 // Components
 import { NoteList, NoteEditor, FolderList } from '@/components/Note';
 import { useTheme } from '@/components/ThemeProvider';
+import Toast from '@/components/ui/Toast';
 
 // Hooks
 import { useNotes } from '@/hooks/useNotes';
@@ -69,7 +64,9 @@ const NotesScreen = () => {
         createFolder,
         deleteFolder,
         resetFolderForm,
-        notes
+        notes,
+        toast,
+        hideToast,
     } = useNotes();
 
     // Handle note press - open editor
@@ -88,6 +85,7 @@ const NotesScreen = () => {
     const handleSaveNote = useCallback(() => {
         if (editingNote) {
             updateNote();
+            console.log('Updated note:', editingNote);
         } else {
             createNote();
         }
@@ -254,6 +252,9 @@ const NotesScreen = () => {
                     </View>
                 </View>
             </Modal>
+
+            {/* Toast notification */}
+            <Toast message={toast} onHide={hideToast} />
         </SafeAreaView>
     );
 };

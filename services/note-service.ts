@@ -77,7 +77,11 @@ export const createNote = async (formData: NoteFormData): Promise<Note> => {
             updatedAt: now,
             isPinned: formData.isPinned,
             color: formData.color,
-            tags: formData.tags
+            tags: formData.tags,
+            reminderDate: formData.reminderDate || null,
+            recurrence: formData.recurrence || 'none',
+            locationName: formData.locationName || null,
+            locationLink: formData.locationLink || null
         };
 
         notes.unshift(newNote); // Add to beginning
