@@ -6,6 +6,7 @@ import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import dayjs from 'dayjs';
+import { useRouter } from 'expo-router';
 import type { CalendarEvent } from '@/types/event';
 import { miniDays } from '@/utils/month-names';
 
@@ -20,6 +21,7 @@ interface Props {
 
 const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
     const scrollRef = useRef<ScrollView>(null);
+    const router = useRouter();
     const now = dayjs();
     const currentDate = dayjs(date);
     const isToday = currentDate.format('YYYY-MM-DD') === now.format('YYYY-MM-DD');
@@ -107,14 +109,16 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
                 {/* Right: event rows */}
                 <View style={styles.allDayRight}>
                     {visibleAllDay.map(e => (
-                        <View
+                        <TouchableOpacity
                             key={e.id}
                             style={[styles.allDayEventRow, { backgroundColor: e.color || colors.allDayEventBg }]}
+                            onPress={() => router.push({ pathname: '/event/[id]', params: { id: e.id, event: JSON.stringify(e) } })}
+                            activeOpacity={0.7}
                         >
                             <Text style={styles.allDayEventText} numberOfLines={1}>
                                 {e.title}
                             </Text>
-                        </View>
+                        </TouchableOpacity>
                     ))}
                     {/* Expand / collapse row */}
                     {hasOverflow && (
@@ -159,13 +163,13 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
 
                     {/* Events */}
                     {positionedEvents.map(({ event, top, height, startLabel }) => (
-                        <View key={event.id} style={[styles.eventBlock, {
+                        <TouchableOpacity key={event.id} style={[styles.eventBlock, {
                             top, height,
                             backgroundColor: event.color || '#2ecc71',
                             left: 64, right: 8
-                        }]}>
+                        }]} onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id, event: JSON.stringify(event) } })} activeOpacity={0.7}>
                             <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-                        </View>
+                        </TouchableOpacity>
                     ))}
                 </View>
             </ScrollView>

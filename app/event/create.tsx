@@ -22,6 +22,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { EVENT_COLORS, CATEGORIES, PRIORITY_COLORS } from '@/constants/Calendar';
 import { DEFAULT_EVENT_FORM } from '@/constants/Calendar';
 import type { CalendarEvent, EventFormData, EventPriority, EventUser } from '@/types/event';
+import ScreenHeader from '@/components/ScreenHeader';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -522,15 +523,16 @@ export default function EventCreateScreen() {
 
     return (
         <View style={[s.root, { backgroundColor: c.bg }]}>
-            {/* Nav Bar */}
-            <View style={[s.navbar, { backgroundColor: c.navBg }]}>
-                <TouchableOpacity onPress={() => router.back()} style={s.navBtn} activeOpacity={0.7}>
-                    <Feather name="x" size={22} color={isDark ? '#e5e5e5' : '#2c3e50'} />
-                </TouchableOpacity>
-                <Text style={[s.navTitle, { color: c.text }]}>{isEditing ? 'Edit Event' : 'New Event'}</Text>
-                {/* Placeholder to balance the left button so title stays centered */}
-                <View style={s.navBtn} />
-            </View>
+            <ScreenHeader
+                title={isEditing ? 'Edit Event' : 'New Event'}
+                actions={[
+                    {
+                        icon: 'x',
+                        onPress: () => router.back(),
+                        accessibilityLabel: 'Close',
+                    },
+                ]}
+            />
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 <ScrollView
@@ -815,9 +817,6 @@ export default function EventCreateScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
     root:           { flex: 1 },
-    navbar:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 4 },
-    navBtn:         { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-    navTitle:       { fontSize: 17, fontFamily: 'Kanit-Bold', flex: 1, textAlign: 'center' },
     scroll:         { paddingHorizontal: 16, paddingTop: 16, gap: 14 },
     accentStrip:    { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2 },
     accentDot:      { width: 12, height: 12, borderRadius: 6, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 3 },

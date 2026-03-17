@@ -1,55 +1,69 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/components/ThemeProvider';
-import { Ionicons } from '@expo/vector-icons';
+
+// Custom tab icon with active indicator dot
+function TabIcon({ name, color }: { name: React.ComponentProps<typeof Feather>['name']; color: string; }) {
+    return (
+        <View style={tabIconStyles.wrap}>
+            <Feather name={name} size={22} color={color} />
+        </View>
+    );
+}
+
+const tabIconStyles = StyleSheet.create({
+    wrap: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+    },
+});
 
 export default function TabLayout() {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
+    const TAB_H = 56;
+
     return (
         <Tabs
             initialRouteName="index"
             screenOptions={{
-                tabBarActiveTintColor: '#007aff',
-                tabBarInactiveTintColor: isDark ? '#6b7280' : '#8e8e93',
+                tabBarActiveTintColor: '#2ecc71',
+                tabBarInactiveTintColor: isDark ? '#4b5563' : '#9ca3af',
+                tabBarShowLabel: false,
                 headerShown: false,
                 tabBarButton: HapticTab,
                 tabBarBackground: TabBarBackground,
                 tabBarStyle: Platform.select({
                     ios: {
                         position: 'absolute',
-                        backgroundColor: isDark ? 'rgba(23,23,23,0.95)' : 'rgba(255,255,255,0.92)',
-                        borderTopWidth: 0,
+                        backgroundColor: isDark ? 'rgba(17,17,17,0.97)' : 'rgba(255,255,255,0.97)',
+                        borderTopWidth: 0.5,
+                        borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
                         shadowColor: '#000',
-                        shadowOpacity: isDark ? 0.3 : 0.08,
-                        shadowRadius: 12,
+                        shadowOpacity: isDark ? 0.5 : 0.1,
+                        shadowRadius: 16,
                         shadowOffset: { width: 0, height: -2 },
-                        elevation: 10,
-                        height: 70 + insets.bottom,
-                        paddingBottom: insets.bottom + 8,
-                        borderTopColor: isDark ? '#262626' : '#e0e0e0'
+                        elevation: 16,
+                        height: TAB_H + insets.bottom,
+                        paddingBottom: insets.bottom
                     },
                     android: {
-                        backgroundColor: isDark ? '#171717' : '#fff',
-                        borderTopColor: isDark ? '#262626' : '#e0e0e0',
-                        elevation: 10,
-                        height: 70
+                        backgroundColor: isDark ? '#111111' : '#ffffff',
+                        borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
+                        borderTopWidth: 0.5,
+                        elevation: 12,
+                        height: TAB_H
                     }
-                }),
-                tabBarLabelStyle: {
-                    fontSize: 13,
-                    fontWeight: '600',
-                    marginBottom: 6,
-                    letterSpacing: 0.3
-                }
+                })
             }}
         >
             <Tabs.Screen
@@ -57,7 +71,10 @@ export default function TabLayout() {
                 options={{
                     title: 'Notes',
                     tabBarIcon: ({ color }) => (
-                        <Ionicons name="document-text" size={24} color={color} />
+                        <TabIcon
+                            name="book-open"
+                            color={color}
+                        />
                     ),
                     tabBarAccessibilityLabel: 'Notes Tab'
                 }}
@@ -67,9 +84,8 @@ export default function TabLayout() {
                 options={{
                     title: 'Home',
                     tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={28}
-                            name="house.fill"
+                        <TabIcon
+                            name="calendar"
                             color={color}
                         />
                     ),
@@ -77,32 +93,26 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="group"
+                name="activity"
                 options={{
-                    title: 'Group',
+                    title: 'Activity',
                     tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={28}
-                            name="rectangle.3.group.fill"
+                        <TabIcon
+                            name="bell"
                             color={color}
                         />
                     ),
-                    tabBarAccessibilityLabel: 'Group Tab'
+                    tabBarAccessibilityLabel: 'Activity Tab'
                 }}
+            />
+            {/* Hidden screens */}
+            <Tabs.Screen
+                name="group"
+                options={{ href: null }}
             />
             <Tabs.Screen
                 name="setting"
-                options={{
-                    title: 'Settings',
-                    tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={28}
-                            name="gearshape.fill"
-                            color={color}
-                        />
-                    ),
-                    tabBarAccessibilityLabel: 'Settings Tab'
-                }}
+                options={{ href: null }}
             />
         </Tabs>
     );

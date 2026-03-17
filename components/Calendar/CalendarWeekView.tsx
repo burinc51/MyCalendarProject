@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import dayjs from 'dayjs';
+import { useRouter } from 'expo-router';
 import type { CalendarEvent } from '@/types/event';
 import { miniDays } from '@/utils/month-names';
 
@@ -38,6 +39,7 @@ const CalendarWeekView: React.FC<Props> = ({
     focusDate, events, isDark = false, onSelectDate
 }) => {
     const scrollRef = useRef<ScrollView>(null);
+    const router = useRouter();
     const now = dayjs();
     const focus = dayjs(focusDate);
     const weekStart = focus.startOf('week');
@@ -217,7 +219,7 @@ const CalendarWeekView: React.FC<Props> = ({
                     {/* Span grid */}
                     <View style={styles.allDayGrid} onLayout={handleGridLayout}>
                         {colWidth > 0 && visibleSpans.map(({ event, startCol, endCol, row }) => (
-                            <View
+                            <TouchableOpacity
                                 key={event.id}
                                 style={[
                                     styles.spanBar,
@@ -229,11 +231,13 @@ const CalendarWeekView: React.FC<Props> = ({
                                         backgroundColor: event.color || '#5C6BC0',
                                     }
                                 ]}
+                                onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id, event: JSON.stringify(event) } })}
+                                activeOpacity={0.7}
                             >
                                 <Text style={styles.spanBarText} numberOfLines={1}>
                                     {event.title}
                                 </Text>
-                            </View>
+                            </TouchableOpacity>
                         ))}
 
                         {/* Per-column overflow counts row */}
@@ -289,12 +293,17 @@ const CalendarWeekView: React.FC<Props> = ({
                                     <View key={h} style={[styles.hourCell, { height: HOUR_HEIGHT, borderTopColor: colors.line }]} />
                                 ))}
                                 {dayEvts.map(({ event, top, height }) => (
-                                    <View key={event.id} style={[styles.eventBlock, {
-                                        top, height,
-                                        backgroundColor: event.color || '#2ecc71'
-                                    }]}>
+                                    <TouchableOpacity
+                                        key={event.id}
+                                        style={[styles.eventBlock, {
+                                            top, height,
+                                            backgroundColor: event.color || '#2ecc71'
+                                        }]}
+                                        onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id, event: JSON.stringify(event) } })}
+                                        activeOpacity={0.7}
+                                    >
                                         <Text style={styles.eventText} numberOfLines={2}>{event.title}</Text>
-                                    </View>
+                                    </TouchableOpacity>
                                 ))}
                                 {isToday && (
                                     <View style={[styles.nowLine, { top: nowY, borderColor: '#e74c3c' }]}>

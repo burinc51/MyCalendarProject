@@ -48,6 +48,10 @@ function ThemedApp() {
                         name="event/create"
                         options={{ headerShown: false, animation: 'slide_from_right' }}
                     />
+                    <Stack.Screen
+                        name="account-settings"
+                        options={{ headerShown: false, animation: 'slide_from_right' }}
+                    />
                     <Stack.Screen name="+not-found" />
                 </Stack>
             </SafeAreaView>

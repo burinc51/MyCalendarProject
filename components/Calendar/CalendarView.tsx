@@ -19,7 +19,7 @@ import {
 import PagerView from 'react-native-pager-view';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import CalendarBody from '@/components/Calendar/CalendarBody';
@@ -31,6 +31,7 @@ import MonthYearPicker, { PickerMode } from '@/components/Calendar/MonthYearPick
 import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 import { useTheme } from '@/components/ThemeProvider';
 import { monthNames } from '@/utils/month-names';
+import Sidebar from '@/components/Sidebar';
 
 // Hooks
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -72,7 +73,15 @@ const VIEW_MODES: { label: string; value: ViewMode; icon: string }[] = [
     { label: 'Year', value: 'year', icon: 'database' }
 ];
 
-const CalendarView: React.FC = () => {
+// Define props interface for CalendarView
+interface CalendarViewProps {
+    isGroupCalendar?: boolean;
+    groupName?: string;
+    groupId?: string;
+    onBack?: () => void;
+}
+
+const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName, groupId, onBack }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const router = useRouter();
@@ -103,6 +112,7 @@ const CalendarView: React.FC = () => {
     const [focusDate, setFocusDate] = useState(dayjs().format('YYYY-MM-DD'));
     const [showPicker, setShowPicker] = useState(false);
     const [showViewMenu, setShowViewMenu] = useState(false);
+    const [showSidebar, setShowSidebar] = useState(false);
     const arrowAnim = useRef(new Animated.Value(0)).current;
 
     const colors = useMemo(() => ({
@@ -118,29 +128,34 @@ const CalendarView: React.FC = () => {
         menuDivider: isDark ? '#2a2a2a' : '#f0f0f0'
     }), [isDark]);
 
-    const dynamicStyles = useMemo(() => ({
-        container: { flex: 1, backgroundColor: colors.background } as ViewStyle,
-        headerContainer: {
-            height: headerHeight,
-            paddingHorizontal: horizontalPadding,
-            backgroundColor: colors.headerBg
-        } as ViewStyle,
-        headerMonthText: {
-            fontSize: isSmallPhone ? 18 : isTablet ? 24 : 20,
-            color: colors.headerText
-        } as TextStyle,
-        redDot: {
-            width: isSmallPhone ? 8 : 10, height: isSmallPhone ? 8 : 10,
-            borderRadius: isSmallPhone ? 4 : 5, marginRight: isSmallPhone ? 10 : 12
-        } as ViewStyle,
-        pageContainer: { width } as ViewStyle,
-        modalHeaderText: {
-            fontSize: isSmallPhone ? 18 : isTablet ? 26 : titleFontSize,
-            color: colors.modalText
-        } as TextStyle,
-        sheetContent: { padding: isSmallPhone ? 12 : isTablet ? 24 : 16 } as ViewStyle,
-        addButtonSize: isSmallPhone ? 26 : isTablet ? 36 : 30
-    }), [width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet, colors]);
+    const dynamicStyles = useMemo(
+        () => ({
+            container: { flex: 1, backgroundColor: colors.background } as ViewStyle,
+            headerContainer: {
+                height: headerHeight,
+                paddingHorizontal: horizontalPadding,
+                backgroundColor: '#171717'
+            } as ViewStyle,
+            headerMonthText: {
+                fontSize: isSmallPhone ? 18 : isTablet ? 24 : 20,
+                color: colors.headerText
+            } as TextStyle,
+            redDot: {
+                width: isSmallPhone ? 8 : 10,
+                height: isSmallPhone ? 8 : 10,
+                borderRadius: isSmallPhone ? 4 : 5,
+                marginRight: isSmallPhone ? 10 : 12
+            } as ViewStyle,
+            pageContainer: { width } as ViewStyle,
+            modalHeaderText: {
+                fontSize: isSmallPhone ? 18 : isTablet ? 26 : titleFontSize,
+                color: colors.modalText
+            } as TextStyle,
+            sheetContent: { padding: isSmallPhone ? 12 : isTablet ? 24 : 16 } as ViewStyle,
+            addButtonSize: isSmallPhone ? 26 : isTablet ? 36 : 30
+        }),
+        [width, headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet, colors]
+    );
 
     const snapPoints = useMemo(() => (isTablet ? ['70%', '100%'] : ['100%']), [isTablet]);
 
@@ -163,7 +178,7 @@ const CalendarView: React.FC = () => {
             handleDeleteEvent(pendingEvent.id);
         }
         clearAction();
-    }, [pendingAction, pendingEvent]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [pendingAction, pendingEvent]);
 
     // ----- Display month/year derived from current view -----
     const getDateFromPageIndex = useCallback((pageIndex: number) => {
@@ -409,31 +424,69 @@ const CalendarView: React.FC = () => {
 
     return (
         <View style={dynamicStyles.container}>
+            {/* ── Sidebar ── */}
+            <Sidebar
+                visible={showSidebar}
+                onClose={() => setShowSidebar(false)}
+            />
+
             {/* ── Header ── */}
             <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
-                {/* Left: red dot + tappable month/year + arrow */}
-                <TouchableOpacity style={styles.headerLeft} onPress={togglePicker} activeOpacity={0.7}>
-                    <View style={[styles.redDot, dynamicStyles.redDot]} />
-                    <Text style={[styles.headerMonthText, dynamicStyles.headerMonthText]}>
-                        {headerTitle}
-                    </Text>
-                    <Animated.View style={{ transform: [{ rotate: arrowRotate }], marginLeft: 4 }}>
-                        <AntDesign name="caret-down" size={12} color={colors.headerText} />
-                    </Animated.View>
+                {/* Left: hamburger + tappable month/year + arrow */}
+                <TouchableOpacity
+                    style={isGroupCalendar ? [styles.iconBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }] : styles.hamburgerBtn}
+                    onPress={() => isGroupCalendar ? (onBack ? onBack() : router.back()) : setShowSidebar(true)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    {isGroupCalendar ? (
+                        <Feather name="arrow-left" size={18} color={colors.headerText} />
+                    ) : (
+                        <AntDesign name="menu-fold" size={22} color="#2ecc71" />
+                    )}
                 </TouchableOpacity>
 
-                {/* Right: view mode toggle button */}
-                <TouchableOpacity
-                    style={[styles.viewModeBtn, { borderColor: colors.menuBorder }]}
-                    onPress={() => setShowViewMenu(v => !v)}
-                    activeOpacity={0.7}
-                >
-                    <AntDesign name={currentViewMode.icon as any} size={14} color="#2ecc71" />
-                    <Text style={[styles.viewModeBtnText, { color: colors.headerText }]}>
-                        {currentViewMode.label}
-                    </Text>
-                    <AntDesign name="down" size={10} color={colors.headerText} style={{ marginLeft: 2 }} />
+                <TouchableOpacity style={styles.headerLeft} onPress={togglePicker} activeOpacity={0.7}>
+                    <View style={{ flexDirection: 'column' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={[styles.headerMonthText, dynamicStyles.headerMonthText]}>
+                                {headerTitle}
+                            </Text>
+                            <Animated.View style={{ transform: [{ rotate: arrowRotate }], marginLeft: 4 }}>
+                                <AntDesign name="caret-down" size={12} color={colors.headerText} />
+                            </Animated.View>
+                        </View>
+                        {isGroupCalendar && groupName ? (
+                            <Text style={styles.groupNameSubtitle}>{groupName}</Text>
+                        ) : null}
+                    </View>
                 </TouchableOpacity>
+
+                {/* Right: view mode toggle button or group actions */}
+                {isGroupCalendar ? (
+                    <TouchableOpacity
+                        style={[
+                            styles.iconBtn, 
+                            { width: 34, height: 34, marginRight: 0, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }
+                        ]}
+                        onPress={() => setShowViewMenu(v => !v)}
+                        activeOpacity={0.7}
+                    >
+                        <Feather name="grid" size={16} color={colors.headerText} />
+                    </TouchableOpacity>
+                ) : (
+                    <TouchableOpacity
+                        style={[styles.viewModeBtn, { borderColor: colors.menuBorder }]}
+                        onPress={() => setShowViewMenu(v => !v)}
+                        activeOpacity={0.7}
+                    >
+                        <AntDesign name={currentViewMode.icon as any} size={14} color="#2ecc71" />
+                        <Text style={[styles.viewModeBtnText, { color: colors.headerText }]}>
+                            {currentViewMode.label}
+                        </Text>
+                        <AntDesign name="down" size={10} color={colors.headerText} style={{ marginLeft: 2 }} />
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* MonthYearPicker overlay — columns adapt to current view mode */}
@@ -458,13 +511,16 @@ const CalendarView: React.FC = () => {
                     }]}>
                         {VIEW_MODES.map((m, i) => {
                             const isActive = m.value === viewMode;
+                            // Add border bottom to all view modes if there will be a settings option
+                            const showBorder = i < VIEW_MODES.length - 1 || isGroupCalendar;
+                            
                             return (
                                 <TouchableOpacity
                                     key={m.value}
                                     style={[
                                         styles.menuItem,
                                         isActive && { backgroundColor: colors.menuActiveBg },
-                                        i < VIEW_MODES.length - 1 && [styles.menuItemBorder, { borderBottomColor: colors.menuDivider }]
+                                        showBorder && [styles.menuItemBorder, { borderBottomColor: colors.menuDivider }]
                                     ]}
                                     onPress={() => handleSwitchMode(m.value)}
                                     activeOpacity={0.7}
@@ -487,6 +543,36 @@ const CalendarView: React.FC = () => {
                                 </TouchableOpacity>
                             );
                         })}
+                        {isGroupCalendar && (
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    setShowViewMenu(false);
+                                    if (groupId) {
+                                        setTimeout(() => {
+                                            router.push({
+                                                pathname: '/group/[id]/settings',
+                                                params: { id: groupId }
+                                            });
+                                        }, 300);
+                                    }
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Feather
+                                    name="settings"
+                                    size={16}
+                                    color={colors.menuText}
+                                    style={{ marginRight: 10 }}
+                                />
+                                <Text style={[styles.menuItemText, {
+                                    color: colors.menuText,
+                                    fontFamily: 'Kanit-Regular'
+                                }]}>
+                                    Settings
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </TouchableOpacity>
             </Modal>
@@ -642,18 +728,24 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3
     },
+    hamburgerBtn: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+        paddingVertical: 4,
+    },
+    iconBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1
-    },
-    redDot: {
-        backgroundColor: '#e74c3c',
-        shadowColor: '#e74c3c',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 4,
-        elevation: 2
     },
     headerMonthText: {
         fontFamily: 'Kanit-Bold',
@@ -732,6 +824,12 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    groupNameSubtitle: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 13,
+        color: '#2ecc71',
+        marginTop: -2,
     },
 });
 
