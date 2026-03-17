@@ -4,7 +4,7 @@ import { Calendar } from '@/components/Calendar';
 import { useTheme } from '@/components/ThemeProvider';
 
 export default function GroupCalendarScreen() {
-    const { name } = useLocalSearchParams<{ id: string; name: string }>();
+    const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
     const { isDark } = useTheme();
     const router = useRouter();
 
@@ -13,6 +13,7 @@ export default function GroupCalendarScreen() {
             <Stack.Screen options={{ headerShown: false }} />
             <Calendar
                 isGroupCalendar={true}
+                groupId={id}
                 groupName={name}
                 onBack={() => router.back()}
             />

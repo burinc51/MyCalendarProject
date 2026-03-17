@@ -77,10 +77,11 @@ const VIEW_MODES: { label: string; value: ViewMode; icon: string }[] = [
 interface CalendarViewProps {
     isGroupCalendar?: boolean;
     groupName?: string;
+    groupId?: string;
     onBack?: () => void;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName, onBack }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName, groupId, onBack }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const router = useRouter();
@@ -547,7 +548,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
                                 style={styles.menuItem}
                                 onPress={() => {
                                     setShowViewMenu(false);
-                                    /* TODO: Settings action */
+                                    if (groupId) {
+                                        setTimeout(() => {
+                                            router.push({
+                                                pathname: '/group/[id]/settings',
+                                                params: { id: groupId }
+                                            });
+                                        }, 300);
+                                    }
                                 }}
                                 activeOpacity={0.7}
                             >
