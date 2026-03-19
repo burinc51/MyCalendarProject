@@ -1,7 +1,5 @@
 import httpClient from '@/lib/httpClient';
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL;
-
 export interface AuthResponse {
     accessToken: string;
     refreshToken: string;

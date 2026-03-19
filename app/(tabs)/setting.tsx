@@ -1,5 +1,5 @@
 import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
 import { sendTestNotification, testScheduledNotification } from '@/services/notificationService';
 import { getExpoPushToken, registerPushToken, triggerNotificationJob } from '@/services/pushNotificationService';

@@ -116,11 +116,10 @@ httpClient.interceptors.response.use(
 );
 
 async function clearAllTokens() {
-    await AsyncStorage.removeItem('access_token');
-    await AsyncStorage.removeItem('refresh_token');
-    await AsyncStorage.removeItem('user');
-    // useAuthStore จะ detect การเปลี่ยนแปลงผ่าน loadAuth ครั้งถัดไป
-    // หรือ auth guard จะ redirect เมื่อ token หายไป
+    // ใช้ clearAuth จาก store เพื่อ sync ทั้ง AsyncStorage และ Zustand state
+    // ทำให้ auth guard redirect ไปหน้า login ทันที
+    const { clearAuth } = await import('@/stores/useAuthStore').then(m => m.useAuthStore.getState());
+    await clearAuth();
 }
 
 export default httpClient;
