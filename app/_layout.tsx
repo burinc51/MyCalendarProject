@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFonts } from 'expo-font';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import 'react-native-gesture-handler';
@@ -11,20 +11,45 @@ import { ThemeProvider, useTheme } from '@/components/ThemeProvider';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { ThemeProvider as NavigationThemeProvider, DefaultTheme, DarkTheme } from '@react-navigation/native';
-import { LogBox } from 'react-native';
+import { LogBox, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import { setupNotificationHandler, registerForPushNotificationsAsync } from '@/services/notificationService';
 import { useNotificationStore } from '@/stores/useNotificationStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 LogBox.ignoreLogs([
     'SafeAreaView has been deprecated',
 ]);
 
+// Auth guard: redirect ไป login ถ้ายังไม่ได้เข้าสู่ระบบ
+function useProtectedRoute() {
+    const { isAuthenticated, isLoading } = useAuthStore();
+    const segments = useSegments();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (isLoading) return; // ยังโหลด auth state อยู่
+
+        const inLoginPage = (segments[0] as string) === 'login';
+
+        if (!isAuthenticated && !inLoginPage) {
+            // ยังไม่ login → ไปหน้า login
+            router.replace('/login' as any);
+        } else if (isAuthenticated && inLoginPage) {
+            // login แล้ว → ไปหน้าหลัก
+            router.replace('/(tabs)');
+        }
+    }, [isAuthenticated, isLoading, segments]);
+}
+
 // Inner component that uses theme context
 function ThemedApp() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+
+    // Auth guard
+    useProtectedRoute();
 
     // Create navigation theme based on our theme context
     const navigationTheme = isDark ? DarkTheme : DefaultTheme;
@@ -36,6 +61,10 @@ function ThemedApp() {
                 edges={['top', 'left', 'right']}
             >
                 <Stack>
+                    <Stack.Screen
+                        name="login"
+                        options={{ headerShown: false, animation: 'fade' }}
+                    />
                     <Stack.Screen
                         name="(tabs)"
                         options={{ headerShown: false }}
@@ -62,9 +91,15 @@ function ThemedApp() {
 
 export default function RootLayout() {
     const { loadNotifications } = useNotificationStore();
+    const { loadAuth, isLoading: authLoading } = useAuthStore();
     const router = useRouter();
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
+
+    // Load auth state on app start
+    useEffect(() => {
+        loadAuth();
+    }, []);
 
     // Setup notifications on app start
     useEffect(() => {
@@ -106,6 +141,15 @@ export default function RootLayout() {
     if (error) {
         console.log('Font loading error:', error);
         return null;
+    }
+
+    // Show loading screen while checking auth state
+    if (authLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' }}>
+                <ActivityIndicator size="large" color="#2ecc71" />
+            </View>
+        );
     }
 
     return (
