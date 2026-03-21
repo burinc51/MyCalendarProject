@@ -15,7 +15,7 @@ import {
     Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { googleSignIn } from '@/services/authService';
@@ -94,6 +94,14 @@ export default function LoginScreen() {
                 authResponse.refreshToken,
             );
 
+            console.log('✅ Google Sign-In success:', {
+                userId: authResponse.userId,
+                email: authResponse.email,
+                name: authResponse.name,
+                hasAccessToken: !!authResponse.accessToken,
+                hasRefreshToken: !!authResponse.refreshToken,
+            });
+
             // Navigate to main app
             router.replace('/(tabs)');
         } catch (error: any) {
@@ -108,7 +116,9 @@ export default function LoginScreen() {
     };
 
     const handleGuestLogin = async () => {
+        console.log('👤 Guest Login: entering guest mode');
         await setGuest();
+        console.log('✅ Guest Login success: redirecting to home');
         router.replace('/(tabs)');
     };
 
@@ -135,11 +145,11 @@ export default function LoginScreen() {
             <View style={styles.topSection}>
                 {/* Accent glow circle */}
                 <View style={[styles.glowCircle, { backgroundColor: C.accentGlow }]} />
-                <View style={[styles.glowCircle2, { backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)' }]} />
+                <View style={[styles.glowCircle2, { backgroundColor: isDark ? 'rgba(220, 255, 238, 0.08)' : 'rgba(99,102,241,0.06)' }]} />
 
                 {/* App Icon */}
                 <View style={[styles.iconContainer, { backgroundColor: C.accent }]}>
-                    <Feather name="calendar" size={36} color="#fff" />
+                    <Ionicons name="calendar-outline" size={36} color="#fff" />
                 </View>
 
                 {/* App Name & Tagline */}
@@ -193,7 +203,7 @@ export default function LoginScreen() {
                     onPress={handleGuestLogin}
                     activeOpacity={0.7}
                 >
-                    <Feather name="user" size={18} color={C.subText} />
+                    <Ionicons name="person-outline" size={20} color={C.subText} />
                     <Text style={[styles.guestButtonText, { color: C.subText }]}>
                         ใช้งานแบบไม่ล็อกอิน
                     </Text>
@@ -204,7 +214,7 @@ export default function LoginScreen() {
 
                 {!isGoogleConfigured && !GoogleSignin && (
                     <View style={styles.devNote}>
-                        <Feather name="info" size={13} color={C.subText} />
+                        <Ionicons name="information-circle-outline" size={14} color={C.subText} />
                         <Text style={[styles.devNoteText, { color: C.subText }]}>
                             Google Sign-In ใช้ได้เฉพาะ Development Build
                         </Text>
