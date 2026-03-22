@@ -13,6 +13,7 @@ import {
     TouchableOpacity,
     Modal,
     Animated,
+    Dimensions,
     ViewStyle,
     TextStyle
 } from 'react-native';
@@ -164,6 +165,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
         events, isLoading, handleDeleteEvent, handleEditEvent
     } = useCalendarEvents();
 
+    console.log('isLoading', isLoading);
+
+    // Shimmer loading bar animation
+    const screenWidth = Dimensions.get('window').width;
+    const shimmerWidth = screenWidth * 0.5;
+    const shimmerAnim = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+        if (!isLoading) {
+            shimmerAnim.setValue(0);
+            return;
+        }
+        const loop = Animated.loop(
+            Animated.timing(shimmerAnim, {
+                toValue: 1,
+                duration: 1200,
+                useNativeDriver: true,
+            })
+        );
+        loop.start();
+        return () => loop.stop();
+    }, [isLoading, shimmerAnim]);
+    const shimmerTranslate = shimmerAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-shimmerWidth, screenWidth + shimmerWidth],
+    });
+
     // Subscribe to edit/delete actions triggered from EventDetailScreen
     const { pendingAction, pendingEvent, clearAction } = useEventActionStore();
     useEffect(() => {
@@ -180,7 +207,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
         clearAction();
     }, [pendingAction, pendingEvent]);
 
-    // ----- Display month/year derived from current view -----
+    // Display month/year derived from current view
     const getDateFromPageIndex = useCallback((pageIndex: number) => {
         const offset = pageIndex - INITIAL_PAGE;
         const d = baseDate.add(offset, 'month');
@@ -466,7 +493,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
                 {isGroupCalendar ? (
                     <TouchableOpacity
                         style={[
-                            styles.iconBtn, 
+                            styles.iconBtn,
                             { width: 34, height: 34, marginRight: 0, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }
                         ]}
                         onPress={() => setShowViewMenu(v => !v)}
@@ -486,6 +513,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
                         </Text>
                         <AntDesign name="down" size={10} color={colors.headerText} style={{ marginLeft: 2 }} />
                     </TouchableOpacity>
+                )}
+            </View>
+
+            {/* ── Loading bar: shown below header for ALL views ── */}
+            <View style={styles.loadingBarTrack}>
+                {isLoading && (
+                    <Animated.View
+                        style={[
+                            styles.loadingBarShimmer,
+                            {
+                                width: shimmerWidth,
+                                transform: [{ translateX: shimmerTranslate }]
+                            }
+                        ]}
+                    />
                 )}
             </View>
 
@@ -513,7 +555,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
                             const isActive = m.value === viewMode;
                             // Add border bottom to all view modes if there will be a settings option
                             const showBorder = i < VIEW_MODES.length - 1 || isGroupCalendar;
-                            
+
                             return (
                                 <TouchableOpacity
                                     key={m.value}
@@ -830,6 +872,20 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#2ecc71',
         marginTop: -2,
+    },
+    loadingBarTrack: {
+        height: 2,
+        width: '100%',
+        overflow: 'hidden',
+    },
+    loadingBarShimmer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        height: '100%',
+        backgroundColor: '#2ecc71',
+        opacity: 0.9,
+        borderRadius: 1,
     },
 });
 

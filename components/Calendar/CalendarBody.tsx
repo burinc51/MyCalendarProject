@@ -389,6 +389,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events, isDark = false }
         [processedEvents, dynamicStyles, eventTopOffset, eventRowHeight, eventFontSize, isSmallPhone]
     );
 
+
     return (
         <View style={dynamicStyles.container}>
             {/* Weekday Header Row */}
@@ -430,8 +431,7 @@ const styles = StyleSheet.create({
     },
     weekRow: {
         flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e5e5',
+        borderBottomWidth: 0,
         backgroundColor: '#fafafa'
     },
     weekDay: {
