@@ -31,6 +31,30 @@ export async function googleSignIn(idToken: string): Promise<AuthResponse> {
 }
 
 /**
+ * Email Sign-Up: สมัครสมาชิกด้วยอีเมลและรหัสผ่าน
+ */
+export async function emailSignUp(email: string, password: string, name: string): Promise<AuthResponse> {
+    const response = await httpClient.post<AuthResponse>(
+        '/api/v1/auth/signup',
+        { email, password, name },
+        { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data;
+}
+
+/**
+ * Email Sign-In: เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน
+ */
+export async function emailSignIn(email: string, password: string): Promise<AuthResponse> {
+    const response = await httpClient.post<AuthResponse>(
+        '/api/v1/auth/login',
+        { email, password },
+        { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data;
+}
+
+/**
  * Refresh access token ด้วย refresh token
  */
 export async function refreshAccessToken(refreshToken: string): Promise<JwtResponse> {

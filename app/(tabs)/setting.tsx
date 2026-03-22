@@ -1,11 +1,10 @@
 import { View, Text, ActivityIndicator, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
 import { sendTestNotification, testScheduledNotification } from '@/services/notificationService';
 import { getExpoPushToken, registerPushToken, triggerNotificationJob } from '@/services/pushNotificationService';
+import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { signOut as authSignOut } from '@/services/authService';
-import { useRouter } from 'expo-router';
 
 let GoogleSignin: any = null;
 let GoogleSigninButton: any = null;
@@ -18,46 +17,117 @@ try {
     console.log('GoogleSignin module not available (likely running in Expo Go)');
 }
 
+type User = {
+    email: string;
+    name: string;
+    imageUrl: string;
+};
+
 export default function SettingsScreen() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    const router = useRouter();
+    const { user, isAuthenticated, clearAuth } = useAuthStore();
 
-    const { user, token, refreshToken, isAuthenticated, isGuest, clearAuth } = useAuthStore();
+    const webClientId = process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
+    const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || 'http://172.29.176.1:9001';
 
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = React.useState(false);
+    const [isGoogleAvailable, setIsGoogleAvailable] = React.useState(false);
     const [pushTokenLoading, setPushTokenLoading] = useState(false);
 
-    const handleSignOut = async () => {
+    useEffect(() => {
+        if (GoogleSignin) {
+            try {
+                GoogleSignin.configure({
+                    webClientId: webClientId,
+                    offlineAccess: true,
+                    forceCodeForRefreshToken: true
+                });
+                setIsGoogleAvailable(true);
+            } catch (err) {
+                console.log('GoogleSignin configure error:', err);
+            }
+        }
+    }, []);
+
+
+
+    const signInWithGoogle = async () => {
+        if (!GoogleSignin) {
+            Alert.alert(
+                'Not Supported',
+                'Google Sign-In requires a Development Build or Native App. It is not supported in Expo Go.'
+            );
+            return;
+        }
+
         try {
             setLoading(true);
+            await GoogleSignin.hasPlayServices();
+            const signInResult = await GoogleSignin.signIn();
+            console.log('signInResult: ', signInResult);
 
-            // Revoke tokens on backend
-            if (token && refreshToken) {
-                try {
-                    await authSignOut(token, refreshToken);
-                } catch (err) {
-                    console.warn('Backend sign-out failed (tokens may already be revoked):', err);
-                }
-            }
+            // Send idToken to backend
+            const idToken = await GoogleSignin.getTokens().then((tokens: any) => tokens.idToken);
+            console.log('idToken: ', idToken);
 
-            // Sign out from Google
-            if (GoogleSignin) {
-                try {
-                    await GoogleSignin.signOut();
-                } catch (err) {
-                    console.warn('Google sign-out failed:', err);
-                }
-            }
+            const response = await fetch(`${SERVER_URL}/api/v1/auth/google-sign-in`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ idToken: idToken })
+            });
 
-            // Clear local auth state → auth guard จะ redirect ไป login
-            await clearAuth();
+            const result = response.status === 204 ? null : await response.json();
+            console.log('Backend response:', result);
         } catch (error) {
-            console.error('Sign-out error:', error);
+            console.error('Google SignIn error:', error);
+            Alert.alert('Error', 'Failed to sign in with Google');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const signOut = async () => {
+        if (!GoogleSignin) return;
+        try {
+            setLoading(true);
+            await GoogleSignin.signOut();
+            await clearAuth();
+            router.replace('/login');
+            console.log('User signed out successfully');
+        } catch (error) {
+            console.error('Google SignOut error:', error);
             Alert.alert('Error', 'Failed to sign out');
         } finally {
             setLoading(false);
         }
+    };
+
+    const renderSignInButton = () => {
+        if (GoogleSigninButton && isGoogleAvailable) {
+            return (
+                <GoogleSigninButton
+                    size={GoogleSigninButton.Size?.Wide || 1}
+                    color={GoogleSigninButton.Color?.Dark || 1}
+                    onPress={signInWithGoogle}
+                    disabled={loading}
+                />
+            );
+        }
+
+        return (
+            <TouchableOpacity
+                className="bg-blue-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg"
+                onPress={signInWithGoogle}
+                disabled={loading}
+            >
+                <Text className="text-white font-semibold text-base">
+                    {isGoogleAvailable ? "Sign in with Google" : "Google Sign-In (Dev Build Only)"}
+                </Text>
+            </TouchableOpacity>
+        );
     };
 
     return (
@@ -87,9 +157,13 @@ export default function SettingsScreen() {
                 className={`rounded-2xl overflow-hidden p-4 ${isDark ? 'bg-neutral-800' : 'bg-neutral-100'
                     }`}
             >
-                {isAuthenticated && user ? (
+                {!isAuthenticated ? (
+                    <View className="items-center py-4">
+                        {renderSignInButton()}
+                    </View>
+                ) : (
                     <View className="items-center p-4">
-                        {user.photoUrl && (
+                        {user?.photoUrl && (
                             <Image
                                 source={{ uri: user.photoUrl }}
                                 className="w-20 h-20 rounded-full mb-4 border-2 border-gray-300"
@@ -100,18 +174,18 @@ export default function SettingsScreen() {
                             className={`text-xl font-bold mb-1 text-center ${isDark ? 'text-neutral-100' : 'text-neutral-800'
                                 }`}
                         >
-                            {user.name || 'User'}
+                            {user?.name || 'User'}
                         </Text>
                         <Text
                             className={`text-sm mb-6 text-center ${isDark ? 'text-neutral-400' : 'text-neutral-600'
                                 }`}
                         >
-                            {user.email}
+                            {user?.email}
                         </Text>
 
                         <TouchableOpacity
                             className="bg-red-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg"
-                            onPress={handleSignOut}
+                            onPress={signOut}
                             disabled={loading}
                         >
                             {loading ? (
@@ -123,38 +197,7 @@ export default function SettingsScreen() {
                             )}
                         </TouchableOpacity>
                     </View>
-                ) : isGuest ? (
-                    <View className="items-center p-4">
-                        <View style={{
-                            width: 64, height: 64, borderRadius: 32,
-                            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                            justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-                        }}>
-                            <Text style={{ fontSize: 28 }}>👤</Text>
-                        </View>
-                        <Text
-                            className={`text-lg font-bold mb-1 text-center ${isDark ? 'text-neutral-100' : 'text-neutral-800'}`}
-                        >
-                            Guest Mode
-                        </Text>
-                        <Text
-                            className={`text-sm mb-5 text-center ${isDark ? 'text-neutral-400' : 'text-neutral-600'}`}
-                        >
-                            เข้าสู่ระบบเพื่อใช้งานทุกฟีเจอร์
-                        </Text>
-
-                        <TouchableOpacity
-                            className="bg-green-600 py-3 px-6 rounded-full items-center justify-center flex-row shadow-lg"
-                            onPress={async () => {
-                                await clearAuth();
-                            }}
-                        >
-                            <Text className="text-white font-semibold text-base">
-                                เข้าสู่ระบบด้วย Google
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : null}
+                )}
             </View>
 
             {/* Divider */}
@@ -224,14 +267,14 @@ export default function SettingsScreen() {
                     onPress={async () => {
                         setPushTokenLoading(true);
                         try {
-                            const pushToken = await getExpoPushToken();
-                            if (pushToken) {
-                                const userId = user?.id || 1;
-                                const success = await registerPushToken(pushToken, userId);
+                            const token = await getExpoPushToken();
+                            if (token) {
+                                // TODO: เปลี่ยน userId เป็น userId ของ user ที่ login อยู่
+                                const success = await registerPushToken(token, 1);
                                 Alert.alert(
                                     success ? '✅ สำเร็จ' : '❌ ผิดพลาด',
                                     success
-                                        ? `Push Token ลงทะเบียนแล้ว\n\nToken: ${pushToken.substring(0, 30)}...`
+                                        ? `Push Token ลงทะเบียนแล้ว\n\nToken: ${token.substring(0, 30)}...`
                                         : 'ไม่สามารถลงทะเบียน Push Token ได้'
                                 );
                             } else {

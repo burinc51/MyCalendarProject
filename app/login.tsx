@@ -1,9 +1,10 @@
 /**
- * Login Screen
- * หน้า Login แบบเต็มจอ — Google Sign-In เป็นวิธีหลัก
+ * Login Screen — v2
+ * ปรับปรุง: แยก loading state, inline validation, show/hide password,
+ *           forgot password, Google logo หลายสี, ดีไซน์ปรับใหม่
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -13,116 +14,159 @@ import {
     Alert,
     Dimensions,
     Platform,
+    KeyboardAvoidingView,
+    TextInput,
+    ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { googleSignIn } from '@/services/authService';
+import { googleSignIn, emailSignIn } from '@/services/authService';
 import { StatusBar } from 'expo-status-bar';
 
+// ──────────────────────────────────────────────────────────────────
+// Optional Google Sign-In module (ไม่มีใน Expo Go)
+// ──────────────────────────────────────────────────────────────────
 let GoogleSignin: any = null;
 try {
-    const googleSigninModule = require('@react-native-google-signin/google-signin');
-    GoogleSignin = googleSigninModule.GoogleSignin;
-} catch (e) {
-    console.log('GoogleSignin module not available (likely running in Expo Go)');
+    const mod = require('@react-native-google-signin/google-signin');
+    GoogleSignin = mod.GoogleSignin;
+} catch {
+    console.log('GoogleSignin not available (Expo Go)');
 }
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const { width: SCREEN_W } = Dimensions.get('window');
 
+// ──────────────────────────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────────────────────────
+const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+
+// ──────────────────────────────────────────────────────────────────
+// Component
+// ──────────────────────────────────────────────────────────────────
 export default function LoginScreen() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const router = useRouter();
-    const { setAuth, setGuest } = useAuthStore();
-    const [loading, setLoading] = useState(false);
-    const [isGoogleConfigured, setIsGoogleConfigured] = useState(false);
+    const { setAuth } = useAuthStore();
 
-    const webClientId = process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
+    // แยก loading ของแต่ละปุ่มออกจากกัน
+    const [emailLoading, setEmailLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
-    // Configure Google Sign-In
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+
+    // Inline validation errors
+    const [emailError, setEmailError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+
+    // ── Google Sign-In config ──────────────────────────────────────
     useEffect(() => {
-        if (GoogleSignin) {
-            try {
-                GoogleSignin.configure({
-                    webClientId,
-                    offlineAccess: true,
-                    forceCodeForRefreshToken: true,
-                });
-                setIsGoogleConfigured(true);
-            } catch (err) {
-                console.log('GoogleSignin configure error:', err);
-            }
+        if (!GoogleSignin) return;
+        try {
+            GoogleSignin.configure({
+                webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+                offlineAccess: true,
+                forceCodeForRefreshToken: true,
+            });
+        } catch (err) {
+            console.warn('GoogleSignin configure error:', err);
         }
     }, []);
 
-    const handleGoogleSignIn = async () => {
+    // ── Validate ──────────────────────────────────────────────────
+    const validateForm = (): boolean => {
+        let valid = true;
+
+        if (!email.trim()) {
+            setEmailError('กรุณากรอกอีเมล');
+            valid = false;
+        } else if (!isValidEmail(email)) {
+            setEmailError('รูปแบบอีเมลไม่ถูกต้อง');
+            valid = false;
+        } else {
+            setEmailError('');
+        }
+
+        if (!password) {
+            setPasswordError('กรุณากรอกรหัสผ่าน');
+            valid = false;
+        } else if (password.length < 6) {
+            setPasswordError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+            valid = false;
+        } else {
+            setPasswordError('');
+        }
+
+        return valid;
+    };
+
+    // ── Handlers ─────────────────────────────────────────────────
+    const handleEmailSignIn = useCallback(async () => {
+        if (!validateForm()) return;
+
+        try {
+            setEmailLoading(true);
+            const res = await emailSignIn(email.trim(), password);
+            await setAuth(
+                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl },
+                res.accessToken,
+                res.refreshToken,
+            );
+            router.replace('/(tabs)');
+        } catch (error: any) {
+            console.error('Email Sign-In error:', error);
+            const msg = error.response?.data?.message ?? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+            Alert.alert('เข้าสู่ระบบไม่สำเร็จ', msg);
+        } finally {
+            setEmailLoading(false);
+        }
+    }, [email, password]);
+
+    const handleGoogleSignIn = useCallback(async () => {
         if (!GoogleSignin) {
             Alert.alert(
-                'Not Supported',
-                'Google Sign-In requires a Development Build. It is not supported in Expo Go.',
+                'ไม่รองรับใน Expo Go',
+                'Google Sign-In ต้องใช้ Development Build',
             );
             return;
         }
 
         try {
-            setLoading(true);
+            setGoogleLoading(true);
             await GoogleSignin.hasPlayServices();
             await GoogleSignin.signIn();
 
-            // Get the idToken
-            const tokens = await GoogleSignin.getTokens();
-            const idToken = tokens.idToken;
+            const { idToken } = await GoogleSignin.getTokens();
+            if (!idToken) throw new Error('ไม่พบ idToken จาก Google');
 
-            if (!idToken) {
-                throw new Error('Failed to get idToken from Google');
-            }
-
-            // Send to backend
-            const authResponse = await googleSignIn(idToken);
-
-            // Store auth data
+            const res = await googleSignIn(idToken);
             await setAuth(
-                {
-                    id: authResponse.userId,
-                    email: authResponse.email,
-                    name: authResponse.name,
-                    photoUrl: authResponse.pictureUrl,
-                },
-                authResponse.accessToken,
-                authResponse.refreshToken,
+                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl },
+                res.accessToken,
+                res.refreshToken,
             );
 
-            console.log('✅ Google Sign-In success:', {
-                userId: authResponse.userId,
-                email: authResponse.email,
-                name: authResponse.name,
-                hasAccessToken: !!authResponse.accessToken,
-                hasRefreshToken: !!authResponse.refreshToken,
-            });
-
-            // Navigate to main app
+            console.log('✅ Google Sign-In success:', res.email);
             router.replace('/(tabs)');
         } catch (error: any) {
             console.error('Google Sign-In error:', error);
-            // Don't show alert if user cancelled
-            if (error?.code !== 'SIGN_IN_CANCELLED' && error?.code !== '12501') {
+            const cancelled = error?.code === 'SIGN_IN_CANCELLED' || error?.code === '12501';
+            if (!cancelled) {
                 Alert.alert('เข้าสู่ระบบไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
             }
         } finally {
-            setLoading(false);
+            setGoogleLoading(false);
         }
-    };
+    }, []);
 
-    const handleGuestLogin = async () => {
-        console.log('👤 Guest Login: entering guest mode');
-        await setGuest();
-        console.log('✅ Guest Login success: redirecting to home');
-        router.replace('/(tabs)');
-    };
+    const anyLoading = emailLoading || googleLoading;
 
-    // --- Colors ---
+    // ── Colors ────────────────────────────────────────────────────
     const C = {
         bg: isDark ? '#0a0a0a' : '#f8fafc',
         card: isDark ? '#18181b' : '#ffffff',
@@ -130,115 +174,262 @@ export default function LoginScreen() {
         text: isDark ? '#fafafa' : '#18181b',
         subText: isDark ? '#a1a1aa' : '#71717a',
         accent: '#2ecc71',
-        accentGlow: isDark ? 'rgba(46,204,113,0.15)' : 'rgba(46,204,113,0.1)',
+        accentGlow: isDark ? 'rgba(46,204,113,0.15)' : 'rgba(46,204,113,0.10)',
         googleBg: isDark ? '#1f1f23' : '#ffffff',
-        googleBorder: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.12)',
+        googleBorder: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.12)',
         googleText: isDark ? '#e4e4e7' : '#3c4043',
         divider: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-    };
+        inputBg: isDark ? '#27272a' : '#f1f5f9',
+        inputBorder: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)',
+        inputText: isDark ? '#fafafa' : '#18181b',
+        error: '#ef4444',
+    } as const;
 
+    // ── Render ────────────────────────────────────────────────────
     return (
-        <View style={[styles.container, { backgroundColor: C.bg }]}>
+        <KeyboardAvoidingView
+            style={[styles.container, { backgroundColor: C.bg }]}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
             <StatusBar style={isDark ? 'light' : 'dark'} />
 
-            {/* Top decorative area */}
-            <View style={styles.topSection}>
-                {/* Accent glow circle */}
-                <View style={[styles.glowCircle, { backgroundColor: C.accentGlow }]} />
-                <View style={[styles.glowCircle2, { backgroundColor: isDark ? 'rgba(220, 255, 238, 0.08)' : 'rgba(99,102,241,0.06)' }]} />
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1 }}
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {/* ── Top decorative section ── */}
+                <View style={styles.topSection}>
+                    <View style={[styles.glowCircle, { backgroundColor: C.accentGlow }]} />
+                    <View style={[styles.glowCircle2, { backgroundColor: isDark ? 'rgba(220,255,238,0.06)' : 'rgba(99,102,241,0.06)' }]} />
 
-                {/* App Icon */}
-                <View style={[styles.iconContainer, { backgroundColor: C.accent }]}>
-                    <Ionicons name="calendar-outline" size={36} color="#fff" />
-                </View>
-
-                {/* App Name & Tagline */}
-                <Text style={[styles.appName, { color: C.text }]}>GRPlan</Text>
-                <Text style={[styles.tagline, { color: C.subText }]}>
-                    วางแผน • บันทึก • จัดการ
-                </Text>
-            </View>
-
-            {/* Bottom card section */}
-            <View style={[styles.bottomSection, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
-                <Text style={[styles.welcomeTitle, { color: C.text }]}>
-                    ยินดีต้อนรับ
-                </Text>
-                <Text style={[styles.welcomeSub, { color: C.subText }]}>
-                    เข้าสู่ระบบเพื่อเริ่มใช้งาน
-                </Text>
-
-                {/* Google Sign-In Button */}
-                <TouchableOpacity
-                    style={[styles.googleButton, { backgroundColor: C.googleBg, borderColor: C.googleBorder }]}
-                    onPress={handleGoogleSignIn}
-                    disabled={loading}
-                    activeOpacity={0.7}
-                >
-                    {loading ? (
-                        <ActivityIndicator size="small" color={C.accent} />
-                    ) : (
-                        <>
-                            {/* Google "G" Logo */}
-                            <View style={styles.googleLogoWrap}>
-                                <Text style={styles.googleG}>G</Text>
-                            </View>
-                            <Text style={[styles.googleButtonText, { color: C.googleText }]}>
-                                เข้าสู่ระบบด้วย Google
-                            </Text>
-                        </>
-                    )}
-                </TouchableOpacity>
-
-                {/* OR Divider */}
-                <View style={styles.orDividerWrap}>
-                    <View style={[styles.orDividerLine, { backgroundColor: C.divider }]} />
-                    <Text style={[styles.orDividerText, { color: C.subText }]}>หรือ</Text>
-                    <View style={[styles.orDividerLine, { backgroundColor: C.divider }]} />
-                </View>
-
-                {/* Guest Button */}
-                <TouchableOpacity
-                    style={[styles.guestButton, { borderColor: C.googleBorder }]}
-                    onPress={handleGuestLogin}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="person-outline" size={20} color={C.subText} />
-                    <Text style={[styles.guestButtonText, { color: C.subText }]}>
-                        ใช้งานแบบไม่ล็อกอิน
-                    </Text>
-                </TouchableOpacity>
-                <Text style={[styles.guestHint, { color: isDark ? '#52525b' : '#a1a1aa' }]}>
-                    บางฟีเจอร์อาจไม่สามารถใช้งานได้
-                </Text>
-
-                {!isGoogleConfigured && !GoogleSignin && (
-                    <View style={styles.devNote}>
-                        <Ionicons name="information-circle-outline" size={14} color={C.subText} />
-                        <Text style={[styles.devNoteText, { color: C.subText }]}>
-                            Google Sign-In ใช้ได้เฉพาะ Development Build
-                        </Text>
+                    <View style={[styles.iconContainer, { backgroundColor: C.accent }]}>
+                        <Ionicons name="calendar-outline" size={36} color="#fff" />
                     </View>
-                )}
 
-                {/* Divider */}
-                <View style={[styles.divider, { backgroundColor: C.divider }]} />
+                    <Text style={[styles.appName, { color: C.text }]}>GRPlan</Text>
+                    <Text style={[styles.tagline, { color: C.subText }]}>
+                        วางแผน • บันทึก • จัดการ
+                    </Text>
+                </View>
 
-                {/* Footer */}
-                <Text style={[styles.footerText, { color: C.subText }]}>
-                    เมื่อเข้าสู่ระบบ คุณยอมรับเงื่อนไขการใช้งาน
-                </Text>
+                {/* ── Bottom card section ── */}
+                <View style={[styles.bottomSection, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
+                    <Text style={[styles.welcomeTitle, { color: C.text }]}>ยินดีต้อนรับ</Text>
+                    <Text style={[styles.welcomeSub, { color: C.subText }]}>เข้าสู่ระบบเพื่อเริ่มใช้งาน</Text>
+
+                    {/* Email input */}
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: C.subText }]}>อีเมล</Text>
+                        <TextInput
+                            style={[
+                                styles.input,
+                                { backgroundColor: C.inputBg, borderColor: emailError ? C.error : C.inputBorder, color: C.inputText },
+                            ]}
+                            placeholder="email@example.com"
+                            placeholderTextColor={C.subText}
+                            value={email}
+                            onChangeText={(v) => { setEmail(v); if (emailError) setEmailError(''); }}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            editable={!anyLoading}
+                            returnKeyType="next"
+                        />
+                        {!!emailError && (
+                            <Text style={[styles.errorText, { color: C.error }]}>{emailError}</Text>
+                        )}
+                    </View>
+
+                    {/* Password input */}
+                    <View style={styles.inputGroup}>
+                        <View style={styles.labelRow}>
+                            <Text style={[styles.label, { color: C.subText }]}>รหัสผ่าน</Text>
+                            <TouchableOpacity
+                                onPress={() => router.push('/forgot-password')}
+                                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                            >
+                                <Text style={[styles.forgotText, { color: C.accent }]}>ลืมรหัสผ่าน?</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.passwordWrap}>
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    styles.passwordInput,
+                                    { backgroundColor: C.inputBg, borderColor: passwordError ? C.error : C.inputBorder, color: C.inputText },
+                                ]}
+                                placeholder="รหัสผ่านของคุณ"
+                                placeholderTextColor={C.subText}
+                                value={password}
+                                onChangeText={(v) => { setPassword(v); if (passwordError) setPasswordError(''); }}
+                                secureTextEntry={!showPassword}
+                                editable={!anyLoading}
+                                returnKeyType="done"
+                                onSubmitEditing={handleEmailSignIn}
+                            />
+                            <TouchableOpacity
+                                style={styles.eyeButton}
+                                onPress={() => setShowPassword((p) => !p)}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <Ionicons
+                                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                                    size={20}
+                                    color={C.subText}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                        {!!passwordError && (
+                            <Text style={[styles.errorText, { color: C.error }]}>{passwordError}</Text>
+                        )}
+                    </View>
+
+                    {/* Email Sign-In button */}
+                    <TouchableOpacity
+                        style={[styles.loginButton, { backgroundColor: C.accent, opacity: anyLoading ? 0.7 : 1 }]}
+                        onPress={handleEmailSignIn}
+                        disabled={anyLoading}
+                        activeOpacity={0.8}
+                    >
+                        {emailLoading
+                            ? <ActivityIndicator color="#fff" />
+                            : <Text style={styles.loginButtonText}>เข้าสู่ระบบ</Text>
+                        }
+                    </TouchableOpacity>
+
+                    {/* OR divider */}
+                    <View style={styles.orDividerWrap}>
+                        <View style={[styles.orDividerLine, { backgroundColor: C.divider }]} />
+                        <Text style={[styles.orDividerText, { color: C.subText }]}>หรือ</Text>
+                        <View style={[styles.orDividerLine, { backgroundColor: C.divider }]} />
+                    </View>
+
+                    {/* Google Sign-In button */}
+                    <TouchableOpacity
+                        style={[
+                            styles.googleButton,
+                            { backgroundColor: C.googleBg, borderColor: C.googleBorder, opacity: anyLoading ? 0.7 : 1 },
+                        ]}
+                        onPress={handleGoogleSignIn}
+                        disabled={anyLoading}
+                        activeOpacity={0.7}
+                    >
+                        {googleLoading ? (
+                            <ActivityIndicator size="small" color={C.accent} />
+                        ) : (
+                            <>
+                                <GoogleColorLogo />
+                                <Text style={[styles.googleButtonText, { color: C.googleText }]}>
+                                    เข้าสู่ระบบด้วย Google
+                                </Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Note สำหรับ Expo Go */}
+                    {!GoogleSignin && (
+                        <View style={styles.devNote}>
+                            <Ionicons name="information-circle-outline" size={14} color={C.subText} />
+                            <Text style={[styles.devNoteText, { color: C.subText }]}>
+                                Google Sign-In ใช้ได้เฉพาะ Development Build
+                            </Text>
+                        </View>
+                    )}
+
+                    <View style={[styles.divider, { backgroundColor: C.divider }]} />
+
+                    {/* Footer */}
+                    <View style={styles.footerRow}>
+                        <Text style={[styles.footerText, { color: C.subText }]}>ยังไม่มีบัญชี?</Text>
+                        <TouchableOpacity
+                            onPress={() => router.push('/signup')}
+                            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                        >
+                            <Text style={[styles.footerText, { color: C.accent, fontFamily: 'Kanit-Bold' }]}>
+                                {' '}สมัครสมาชิก
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Google "G" logo หลายสี (SVG-like ด้วย View)
+// ──────────────────────────────────────────────────────────────────
+function GoogleColorLogo() {
+    return (
+        <View style={googleLogoStyles.wrapper}>
+            {/* แบ่ง circle เป็น 4 ส่วนด้วย border trick */}
+            <View style={googleLogoStyles.ring}>
+                <View style={[googleLogoStyles.half, googleLogoStyles.topLeft, { backgroundColor: '#4285F4' }]} />
+                <View style={[googleLogoStyles.half, googleLogoStyles.topRight, { backgroundColor: '#EA4335' }]} />
+                <View style={[googleLogoStyles.half, googleLogoStyles.bottomLeft, { backgroundColor: '#34A853' }]} />
+                <View style={[googleLogoStyles.half, googleLogoStyles.bottomRight, { backgroundColor: '#FBBC05' }]} />
             </View>
+            {/* ตรงกลาง white cut-out สำหรับ ring effect */}
+            <View style={googleLogoStyles.innerWhite} />
+            {/* stem ของ G */}
+            <View style={googleLogoStyles.stem} />
         </View>
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+const LOGO_SIZE = 22;
+const googleLogoStyles = StyleSheet.create({
+    wrapper: {
+        width: LOGO_SIZE,
+        height: LOGO_SIZE,
+        position: 'relative',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
+    ring: {
+        width: LOGO_SIZE,
+        height: LOGO_SIZE,
+        borderRadius: LOGO_SIZE / 2,
+        overflow: 'hidden',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+    },
+    half: {
+        width: LOGO_SIZE / 2,
+        height: LOGO_SIZE / 2,
+    },
+    topLeft: { borderTopLeftRadius: LOGO_SIZE / 2 },
+    topRight: { borderTopRightRadius: LOGO_SIZE / 2 },
+    bottomLeft: { borderBottomLeftRadius: LOGO_SIZE / 2 },
+    bottomRight: { borderBottomRightRadius: LOGO_SIZE / 2 },
+    innerWhite: {
+        position: 'absolute',
+        width: LOGO_SIZE * 0.55,
+        height: LOGO_SIZE * 0.55,
+        borderRadius: (LOGO_SIZE * 0.55) / 2,
+        backgroundColor: '#fff',
+    },
+    stem: {
+        position: 'absolute',
+        right: 1,
+        top: LOGO_SIZE * 0.38,
+        width: LOGO_SIZE * 0.42,
+        height: LOGO_SIZE * 0.22,
+        backgroundColor: '#4285F4',
+        borderRadius: 2,
+    },
+});
 
-    // --- Top section ---
+// ──────────────────────────────────────────────────────────────────
+// Styles
+// ──────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+    container: { flex: 1 },
+
+    // Top section
     topSection: {
         flex: 1,
         alignItems: 'center',
@@ -246,6 +437,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32,
         position: 'relative',
         overflow: 'hidden',
+        minHeight: 220,
     },
     glowCircle: {
         position: 'absolute',
@@ -288,7 +480,7 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
     },
 
-    // --- Bottom section ---
+    // Bottom card
     bottomSection: {
         paddingHorizontal: 28,
         paddingTop: 32,
@@ -311,10 +503,69 @@ const styles = StyleSheet.create({
     welcomeSub: {
         fontFamily: 'Kanit-Regular',
         fontSize: 14,
-        marginBottom: 28,
+        marginBottom: 20,
     },
 
-    // --- Google Button ---
+    // Form inputs
+    inputGroup: { marginBottom: 16 },
+    labelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    label: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 13,
+        marginLeft: 4,
+    },
+    forgotText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 12,
+    },
+    input: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 15,
+        height: 52,
+        borderRadius: 14,
+        paddingHorizontal: 16,
+        borderWidth: 1,
+    },
+    passwordWrap: { position: 'relative' },
+    passwordInput: { paddingRight: 48 },
+    eyeButton: {
+        position: 'absolute',
+        right: 14,
+        top: 0,
+        bottom: 0,
+        justifyContent: 'center',
+    },
+    errorText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 11,
+        marginTop: 5,
+        marginLeft: 4,
+    },
+
+    // Buttons
+    loginButton: {
+        height: 52,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 8,
+        shadowColor: '#2ecc71',
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
+    },
+    loginButtonText: {
+        color: '#fff',
+        fontFamily: 'Kanit-Bold',
+        fontSize: 16,
+        letterSpacing: 0.5,
+    },
     googleButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -326,26 +577,26 @@ const styles = StyleSheet.create({
         gap: 12,
         minHeight: 52,
     },
-    googleLogoWrap: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: '#4285F4',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    googleG: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '700',
-    },
     googleButtonText: {
         fontFamily: 'Kanit-Regular',
         fontSize: 16,
         letterSpacing: 0.3,
     },
 
-    // --- Dev note ---
+    // OR divider
+    orDividerWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 18,
+        gap: 12,
+    },
+    orDividerLine: { flex: 1, height: 1 },
+    orDividerText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 13,
+    },
+
+    // Dev note
     devNote: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -358,56 +609,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
 
-    // --- Divider & Footer ---
-    divider: {
-        height: 1,
-        marginVertical: 22,
-    },
+    // Divider & footer
+    divider: { height: 1, marginVertical: 22 },
+    footerRow: { flexDirection: 'row', justifyContent: 'center' },
     footerText: {
         fontFamily: 'Kanit-Regular',
         fontSize: 12,
-        textAlign: 'center',
         lineHeight: 18,
-    },
-
-    // --- OR Divider ---
-    orDividerWrap: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 18,
-        gap: 12,
-    },
-    orDividerLine: {
-        flex: 1,
-        height: 1,
-    },
-    orDividerText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 13,
-    },
-
-    // --- Guest Button ---
-    guestButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 13,
-        paddingHorizontal: 20,
-        borderRadius: 14,
-        borderWidth: 1.5,
-        borderStyle: 'dashed',
-        gap: 10,
-        minHeight: 50,
-    },
-    guestButtonText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 15,
-        letterSpacing: 0.3,
-    },
-    guestHint: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 11,
-        textAlign: 'center',
-        marginTop: 8,
     },
 });

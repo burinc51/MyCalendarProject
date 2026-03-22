@@ -19,6 +19,7 @@ import { Feather, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/components/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.80;
@@ -153,8 +154,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
     const backdropAnim = useRef(new Animated.Value(0)).current;
     const [modalVisible, setModalVisible] = useState(false);
+    const { user } = useAuthStore();
 
-    const initial = userInitial ?? userName.charAt(0).toUpperCase();
+    const displayUserName = user?.name || userName;
+    const displayPhotoUrl = user?.photoUrl || userPhotoUrl;
+    const initial = userInitial ?? displayUserName.charAt(0).toUpperCase();
 
     const C = {
         panelBg: isDark ? '#141414' : '#f8f9fb',
@@ -251,8 +255,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </TouchableOpacity>
 
                     {/* Avatar */}
-                    {userPhotoUrl ? (
-                        <Image source={{ uri: userPhotoUrl }} style={styles.avatarImg} />
+                    {displayPhotoUrl ? (
+                        <Image source={{ uri: displayPhotoUrl }} style={styles.avatarImg} />
                     ) : (
                         <View style={styles.avatarWrap}>
                             <View style={styles.avatarRing} />
@@ -264,7 +268,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                     {/* Name + edit */}
                     <View style={styles.nameRow}>
-                        <Text style={styles.nameText}>{userName}</Text>
+                        <Text style={styles.nameText}>{displayUserName}</Text>
                         <TouchableOpacity
                             style={styles.editBtn}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

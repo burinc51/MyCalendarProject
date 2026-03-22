@@ -9,23 +9,6 @@ const httpClient: AxiosInstance = axios.create({
 
 console.log('SERVER_URL :', SERVER_URL);
 
-httpClient.interceptors.request.use(
-    async (config: InternalAxiosRequestConfig) => {
-        const token = await AsyncStorage.getItem('access_token');
-
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-
-        console.log(`LOG API CALL: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
-
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    },
-);
-
 // Flag เพื่อป้องกัน refresh token ซ้ำพร้อมกัน
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -44,20 +27,114 @@ const processQueue = (error: any, token: string | null = null) => {
     failedQueue = [];
 };
 
+async function clearAllTokens() {
+    // ใช้ clearAuth จาก store เพื่อ sync ทั้ง AsyncStorage และ Zustand state
+    // ทำให้ auth guard redirect ไปหน้า login ทันที
+    const { clearAuth } = await import('@/stores/useAuthStore').then(m => m.useAuthStore.getState());
+    await clearAuth();
+}
+
+// ฟังก์ชันเช็ค token หมดอายุล่วงหน้า (เผื่อเวลา 10 วินาที)
+const isTokenExpired = (token: string): boolean => {
+    try {
+        const payloadBase64 = token.split('.')[1];
+        if (!payloadBase64) return true;
+        
+        let base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+        const pad = base64.length % 4;
+        if (pad) {
+            base64 += new Array(5 - pad).join('=');
+        }
+
+        const jsonPayload = atob(base64);
+        const { exp } = JSON.parse(jsonPayload);
+        
+        if (!exp) return false;
+        
+        return Date.now() >= (exp * 1000) - 10000;
+    } catch (error) {
+        return true;
+    }
+};
+
+// ฟังก์ชันศูนย์กลางสำหรับ Refresh Token
+const refreshTokenRequest = async (): Promise<string> => {
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    if (!refreshToken) throw new Error('No refresh token');
+
+    const formData = new URLSearchParams();
+    formData.append('refreshToken', refreshToken);
+
+    const response = await axios.post(
+        `${SERVER_URL}/api/v1/auth/refresh-token`,
+        formData.toString(),
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+
+    const newAccessToken = response.data.accessToken;
+    const newRefreshToken = response.data.refreshToken;
+
+    await AsyncStorage.setItem('access_token', newAccessToken);
+    if (newRefreshToken) {
+        await AsyncStorage.setItem('refresh_token', newRefreshToken);
+    }
+
+    return newAccessToken;
+};
+
+httpClient.interceptors.request.use(
+    async (config: InternalAxiosRequestConfig) => {
+        let token = await AsyncStorage.getItem('access_token');
+
+        // ตรวจสอบ token หมดอายุก่อนยิง API
+        if (token && config.url && !config.url.includes('/auth/refresh-token')) {
+            if (isTokenExpired(token)) {
+                if (!isRefreshing) {
+                    isRefreshing = true;
+                    try {
+                        token = await refreshTokenRequest();
+                        processQueue(null, token);
+                    } catch (error) {
+                        processQueue(error, null);
+                        await clearAllTokens();
+                        return Promise.reject(error);
+                    } finally {
+                        isRefreshing = false;
+                    }
+                } else {
+                    // ถ้ากำลัง refresh อยู่ รอคิวจนกว่าจะได้ token ใหม่
+                    token = await new Promise<string>((resolve, reject) => {
+                        failedQueue.push({ resolve, reject });
+                    });
+                }
+            }
+        }
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        console.log(`LOG API CALL: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    },
+);
+
 httpClient.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
-            // ถ้า request เป็น refresh-token เอง → ไม่ retry
             if (originalRequest.url?.includes('/auth/refresh-token')) {
                 await clearAllTokens();
                 return Promise.reject(error);
             }
 
             if (isRefreshing) {
-                // มี request อื่นกำลัง refresh อยู่ → รอ
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
                 }).then((token) => {
@@ -70,34 +147,7 @@ httpClient.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const refreshToken = await AsyncStorage.getItem('refresh_token');
-
-                if (!refreshToken) {
-                    await clearAllTokens();
-                    processQueue(new Error('No refresh token'), null);
-                    return Promise.reject(error);
-                }
-
-                // เรียก refresh token (ใช้ axios ตรงๆ เพื่อไม่ให้ interceptor วนลูป)
-                const formData = new URLSearchParams();
-                formData.append('refreshToken', refreshToken);
-
-                const response = await axios.post(
-                    `${SERVER_URL}/api/v1/auth/refresh-token`,
-                    formData.toString(),
-                    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
-                );
-
-                const newAccessToken = response.data.accessToken;
-                const newRefreshToken = response.data.refreshToken;
-
-                // อัพเดท tokens ใน AsyncStorage
-                await AsyncStorage.setItem('access_token', newAccessToken);
-                if (newRefreshToken) {
-                    await AsyncStorage.setItem('refresh_token', newRefreshToken);
-                }
-
-                // Retry original request + queued requests
+                const newAccessToken = await refreshTokenRequest();
                 processQueue(null, newAccessToken);
                 originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                 return httpClient(originalRequest);
@@ -114,12 +164,5 @@ httpClient.interceptors.response.use(
         return Promise.reject(error);
     },
 );
-
-async function clearAllTokens() {
-    // ใช้ clearAuth จาก store เพื่อ sync ทั้ง AsyncStorage และ Zustand state
-    // ทำให้ auth guard redirect ไปหน้า login ทันที
-    const { clearAuth } = await import('@/stores/useAuthStore').then(m => m.useAuthStore.getState());
-    await clearAuth();
-}
 
 export default httpClient;

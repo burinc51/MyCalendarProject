@@ -13,12 +13,14 @@ import {
     TextInput,
     Alert,
     ActivityIndicator,
+    Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenHeader from '@/components/ScreenHeader';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 // FieldInput sub-component (defined outside to avoid re-creation on render)
 interface FieldInputProps {
@@ -91,10 +93,10 @@ export default function AccountSettingsScreen() {
     const isDark = theme === 'dark';
     const insets = useSafeAreaInsets();
 
-    const [displayName, setDisplayName] = useState('User');
-    const [email, setEmail] = useState('user@example.com');
+
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
+    const { user } = useAuthStore();
 
     const C = {
         bg: isDark ? '#111111' : '#f5f6f8',
@@ -171,9 +173,16 @@ export default function AccountSettingsScreen() {
                     <View style={styles.avatarWrap}>
                         <View style={[styles.avatarRing, { borderColor: C.accent + '55' }]} />
                         <View style={[styles.avatarCircle, { backgroundColor: C.avatarBg }]}>
-                            <Text style={styles.avatarInitial}>
-                                {displayName.charAt(0).toUpperCase()}
-                            </Text>
+                            {user?.photoUrl ? (
+                                <Image
+                                    source={{ uri: user.photoUrl }}
+                                    style={{ width: 75, height: 75, borderRadius: 37.5 }}
+                                />
+                            ) : (
+                                <Text style={styles.avatarInitial}>
+                                    {user?.name?.charAt(0)?.toUpperCase() || '?'}
+                                </Text>
+                            )}
                         </View>
                         {isEditing && (
                             <TouchableOpacity
@@ -184,8 +193,8 @@ export default function AccountSettingsScreen() {
                             </TouchableOpacity>
                         )}
                     </View>
-                    <Text style={[styles.avatarName, { color: C.text }]}>{displayName}</Text>
-                    <Text style={[styles.avatarSub, { color: C.subText }]}>{email}</Text>
+                    <Text style={[styles.avatarName, { color: C.text }]}>{user?.name}</Text>
+                    <Text style={[styles.avatarSub, { color: C.subText }]}>{user?.email}</Text>
                 </View>
 
                 {/* Profile Info */}
@@ -200,12 +209,13 @@ export default function AccountSettingsScreen() {
 
                     <FieldInput
                         label="Display Name"
-                        value={displayName}
-                        onChangeText={setDisplayName}
+                        value={user?.name}
+                        onChangeText={() => { }}
                         placeholder="Enter your display name"
                         isEditing={isEditing}
                         colors={C}
                     />
+
                     {/*<FieldInput*/}
                     {/*    label="Bio"*/}
                     {/*    value={bio}*/}
@@ -215,6 +225,7 @@ export default function AccountSettingsScreen() {
                     {/*    isEditing={isEditing}*/}
                     {/*    colors={C}*/}
                     {/*/>*/}
+                    
                 </View>
 
                 {/* Contact Info */}
@@ -229,8 +240,8 @@ export default function AccountSettingsScreen() {
 
                     <FieldInput
                         label="Email"
-                        value={email}
-                        onChangeText={setEmail}
+                        value={user?.email}
+                        onChangeText={() => { }}
                         placeholder="your@email.com"
                         editable={false}
                         isEditing={isEditing}
@@ -253,7 +264,7 @@ export default function AccountSettingsScreen() {
                 {/*        <Text style={[styles.cardTitle, { color: C.text }]}>Preferences</Text>*/}
                 {/*    </View>*/}
                 {/*    <View style={[styles.divider, { backgroundColor: C.divider }]} />*/}
-                
+
                 {/*    {[*/}
                 {/*        { icon: 'bell', label: 'Notifications', color: '#f59e0b', onPress: () => Alert.alert('Coming Soon', 'Notification settings will be available soon.') },*/}
                 {/*        { icon: 'lock', label: 'Privacy', color: '#8b5cf6', onPress: () => Alert.alert('Coming Soon', 'Privacy settings will be available soon.') },*/}

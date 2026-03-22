@@ -32,11 +32,12 @@ function useProtectedRoute() {
         if (isLoading) return; // ยังโหลด auth state อยู่
 
         const inLoginPage = (segments[0] as string) === 'login';
+        const inSignupPage = (segments[0] as string) === 'signup';
 
-        if (!isAuthenticated && !inLoginPage) {
+        if (!isAuthenticated && !inLoginPage && !inSignupPage) {
             // ยังไม่ login → ไปหน้า login
             router.replace('/login' as any);
-        } else if (isAuthenticated && inLoginPage) {
+        } else if (isAuthenticated && (inLoginPage || inSignupPage)) {
             // login แล้ว → ไปหน้าหลัก
             router.replace('/(tabs)');
         }
@@ -63,6 +64,10 @@ function ThemedApp() {
                 <Stack>
                     <Stack.Screen
                         name="login"
+                        options={{ headerShown: false, animation: 'fade' }}
+                    />
+                    <Stack.Screen
+                        name="signup"
                         options={{ headerShown: false, animation: 'fade' }}
                     />
                     <Stack.Screen
