@@ -9,6 +9,7 @@ import dayjs from 'dayjs';
 import { getEventsAll, createEvent, updateEvent, deleteEvent } from '@/services/eventService';
 import { mapApiEventToCalendar, buildEventFormData } from '@/utils/calendar-helpers';
 import { DEFAULT_EVENT_FORM, DEFAULT_USER_ID } from '@/constants/Calendar';
+import { useAuthStore } from '@/stores/useAuthStore';
 import type { CalendarEvent, EventFormData } from '@/types/event';
 
 // ---------------------------------------------------------------------------
@@ -289,17 +290,27 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
 
     // Save or Update event
     const handleSaveEvent = useCallback(async () => {
+        // ดึง userId จาก auth store (fallback DEFAULT_USER_ID ถ้า logout)
+        const authUserId = useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
+
         // Basic validation
         if (!formData.title.trim()) {
             Alert.alert('Error', 'Please enter a title');
             return;
         }
 
+        if (!formData.startDate) {
+            Alert.alert('Error', 'Please select a start date');
+            return;
+        }
+
         try {
-            const formDataToSend = buildEventFormData(formData, editingEvent?.userId || DEFAULT_USER_ID);
+            const userId = editingEvent?.userId ?? authUserId;
+            // สำหรับ update ส่ง eventId เข้าไปด้วยเพื่อให้ backend รู้ว่า update event ไหน
+            const eventId = editingEvent ? editingEvent.id : null;
+            const formDataToSend = buildEventFormData(formData, userId, eventId);
 
             if (editingEvent) {
-                const userId = editingEvent.userId || DEFAULT_USER_ID;
                 await updateEvent(editingEvent.id, userId, formDataToSend as unknown as FormData);
                 Alert.alert('Success', 'Event updated!');
             } else {
@@ -310,9 +321,13 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
             setShowAddForm(false);
             setEditingEvent(null);
             resetForm();
-            fetchEvents();
-        } catch (err) {
-            Alert.alert('Error', 'Failed to save event.');
+            await fetchEvents();
+        } catch (err: unknown) {
+            const msg =
+                (err as any)?.response?.data?.message ||
+                (err as any)?.message ||
+                'Failed to save event.';
+            Alert.alert('Error', msg);
             console.error('Save event error:', err);
         }
     }, [formData, editingEvent, resetForm, fetchEvents]);

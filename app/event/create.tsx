@@ -41,19 +41,6 @@ const getInitial = (u: EventUser) => (u.name || u.username || '?').trim().charAt
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock users  (swap with API call when ready)
-// ─────────────────────────────────────────────────────────────────────────────
-const MOCK_USERS: EventUser[] = [
-    { userId: 1, username: 'alice',  name: 'Alice Johnson', imageUrl: null },
-    { userId: 2, username: 'bob',    name: 'Bob Smith',     imageUrl: null },
-    { userId: 3, username: 'carol',  name: 'Carol White',   imageUrl: null },
-    { userId: 4, username: 'dave',   name: 'Dave Brown',    imageUrl: null },
-    { userId: 5, username: 'eve',    name: 'Eve Martinez',  imageUrl: null },
-    { userId: 6, username: 'frank',  name: 'Frank Lee',     imageUrl: null },
-    { userId: 7, username: 'grace',  name: 'Grace Kim',     imageUrl: null },
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Theme colours
 // ─────────────────────────────────────────────────────────────────────────────
 const buildColors = (isDark: boolean) => ({
@@ -320,11 +307,12 @@ const dtb = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 const AssigneeModal: React.FC<{
     visible: boolean; selected: EventUser[];
+    availableUsers: EventUser[];
     isDark: boolean; accent: string; c: Colors;
     onClose: () => void; onToggle: (u: EventUser) => void;
-}> = ({ visible, selected, accent, c, onClose, onToggle }) => {
+}> = ({ visible, selected, availableUsers, accent, c, onClose, onToggle }) => {
     const [query, setQuery] = useState('');
-    const filtered = MOCK_USERS.filter(u =>
+    const filtered = availableUsers.filter(u =>
         u.name.toLowerCase().includes(query.toLowerCase()) ||
         u.username.toLowerCase().includes(query.toLowerCase())
     );
@@ -463,6 +451,42 @@ export default function EventCreateScreen() {
     const [formData, setFormData]       = useState<EventFormData>(initialForm);
     const [assignees, setAssignees]     = useState<EventUser[]>(existingEvent?.assignees ?? []);
     const [showAssignees, setShowAssignees] = useState(false);
+    const [availableUsers, setAvailableUsers] = useState<EventUser[]>([]);
+
+    React.useEffect(() => {
+        const fetchGroupMembers = async () => {
+            try {
+                const { getGroupsByUserId } = await import('@/services/groupService');
+                const { useAuthStore } = await import('@/stores/useAuthStore');
+                const authUser = useAuthStore.getState().user;
+                if (!authUser) return;
+
+                const groups = await getGroupsByUserId(authUser.id);
+                // Extract unique members from all groups the user is in
+                const uniqueMembersMap = new Map<number, EventUser>();
+                groups.forEach(group => {
+                    group.members.forEach(m => {
+                        // ไม่ต้องเพิ่มตัวเองใน list คนที่จะ assign
+                        if (m.userId === authUser.id) return;
+                        if (!uniqueMembersMap.has(m.userId)) {
+                            uniqueMembersMap.set(m.userId, {
+                                userId: m.userId,
+                                name: m.name,
+                                username: m.username,
+                                imageUrl: m.picture_url
+                            });
+                        }
+                    });
+                });
+                
+                setAvailableUsers(Array.from(uniqueMembersMap.values()));
+            } catch (err) {
+                console.error('Failed to load group members:', err);
+            }
+        };
+
+        fetchGroupMembers();
+    }, []);
 
     type ActivePicker = 'startDate' | 'endDate' | 'startTime' | 'endTime' | null;
     const [activePicker, setActivePicker] = useState<ActivePicker>(null);
@@ -510,9 +534,18 @@ export default function EventCreateScreen() {
             const { createEvent, updateEvent } = await import('@/services/eventService');
             const { buildEventFormData }       = await import('@/utils/calendar-helpers');
             const { DEFAULT_USER_ID }          = await import('@/constants/Calendar');
-            const fd = buildEventFormData(formData, existingEvent?.userId || DEFAULT_USER_ID);
+            const { useAuthStore }             = await import('@/stores/useAuthStore');
+
+            const authUserId = useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
+            const targetUserId = existingEvent?.userId ?? authUserId;
+            
+            // เพิ่ม assigneeIds ลงใน formData ก่อน build
+            const assigneeIds = assignees.map(a => a.userId);
+            const formDataWithAssignees = { ...formData, assignees: assigneeIds };
+
+            const fd = buildEventFormData(formDataWithAssignees as any, targetUserId, existingEvent ? existingEvent.id : null);
             if (existingEvent) {
-                await updateEvent(existingEvent.id, existingEvent.userId || DEFAULT_USER_ID, fd as unknown as FormData);
+                await updateEvent(existingEvent.id, targetUserId, fd as unknown as FormData);
                 Alert.alert('Success', 'Event updated!', [{ text: 'OK', onPress: () => router.back() }]);
             } else {
                 await createEvent(fd as unknown as FormData);
@@ -802,6 +835,7 @@ export default function EventCreateScreen() {
             <AssigneeModal
                 visible={showAssignees}
                 selected={assignees}
+                availableUsers={availableUsers}
                 isDark={isDark}
                 accent={accent}
                 c={c}
