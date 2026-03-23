@@ -5,9 +5,8 @@
 // สมาชิกใน group (matches backend GroupMemberResponse)
 export interface GroupMember {
     userId: number;
-    name: string;
-    username: string;
-    role: 'ADMIN' | 'USER';
+    initialText: string | null;
+    avatarColor: string | null;
     picture_url: string | null;
 }
 
@@ -15,6 +14,8 @@ export interface GroupMember {
 export interface GroupWithMembers {
     groupId: number;
     groupName: string;
-    description: string | null;
+    icon: string | null;
+    color: string | null;
+    bg: string | null;
     members: GroupMember[];
 }

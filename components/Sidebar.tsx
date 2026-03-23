@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '@/components/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { getGroupsByUserId } from '@/services/groupService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.80;
@@ -29,6 +30,7 @@ interface GroupMember {
     id: string;
     initial: string;
     bg: string;
+    photoUrl?: string | null;
 }
 
 interface Group {
@@ -48,54 +50,37 @@ interface SidebarProps {
     userPhotoUrl?: string;
 }
 
-// Mock Data
-const MOCK_GROUPS: Group[] = [
-    {
-        id: '1',
-        name: 'Work',
-        icon: 'building',
-        color: '#4ade80',
-        bg: 'rgba(74,222,128,0.15)',
-        members: [
-            { id: 'a', initial: 'ร', bg: '#c084fc' },
-            { id: 'b', initial: 'บ', bg: '#818cf8' },
-        ],
-    },
-    {
-        id: '2',
-        name: 'Home',
-        icon: 'home',
-        color: '#60a5fa',
-        bg: 'rgba(96,165,250,0.15)',
-        members: [
-            { id: 'c', initial: 'บ', bg: '#818cf8' },
-            { id: 'd', initial: 'ม', bg: '#c084fc' },
-        ],
-    },
-    {
-        id: '3',
-        name: 'Friends',
-        icon: 'user-friends',
-        color: '#f472b6',
-        bg: 'rgba(244,114,182,0.15)',
-        members: [
-            { id: 'e', initial: 'บ', bg: '#818cf8' },
-            { id: 'f', initial: 'ส', bg: '#c084fc' },
-        ],
-    },
+// Default styles for groups without specific icon/color from API
+const DEFAULT_GROUPStyles = [
+    { icon: 'users', color: '#4ade80', bg: 'rgba(74,222,128,0.15)' },
+    { icon: 'layer-group', color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
+    { icon: 'hubspot', color: '#f472b6', bg: 'rgba(244,114,182,0.15)' },
+    { icon: 'project-diagram', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+    { icon: 'shapes', color: '#a78bfa', bg: 'rgba(167,139,250,0.15)' }
 ];
 
 // Sub-components 
-const MemberAvatar: React.FC<{ member: GroupMember; index: number }> = ({ member, index }) => (
-    <View
-        style={[
-            styles.memberAvatar,
-            { backgroundColor: member.bg, marginLeft: index > 0 ? -7 : 0 },
-        ]}
-    >
-        <Text style={styles.memberInitialText}>{member.initial}</Text>
-    </View>
-);
+const MemberAvatar: React.FC<{ member: GroupMember; index: number }> = ({ member, index }) => {
+    const style = [
+        styles.memberAvatar,
+        { backgroundColor: member.bg, marginLeft: index > 0 ? -7 : 0 },
+    ];
+
+    if (member.photoUrl) {
+        return (
+            <Image 
+                source={{ uri: member.photoUrl }} 
+                style={style as any} 
+            />
+        );
+    }
+
+    return (
+        <View style={style}>
+            <Text style={styles.memberInitialText}>{member.initial}</Text>
+        </View>
+    );
+};
 
 const GroupItem: React.FC<{ group: Group; isDark: boolean; onPress: () => void }> = ({ group, isDark, onPress }) => (
     <TouchableOpacity
@@ -154,6 +139,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
     const backdropAnim = useRef(new Animated.Value(0)).current;
     const [modalVisible, setModalVisible] = useState(false);
+    const [groups, setGroups] = useState<Group[]>([]);
     const { user } = useAuthStore();
 
     const displayUserName = user?.name || userName;
@@ -208,6 +194,35 @@ const Sidebar: React.FC<SidebarProps> = ({
             });
         }
     }, [visible]);
+
+    useEffect(() => {
+        const fetchGroups = async () => {
+            if (!user?.id || !visible) return;
+            try {
+                const apiGroups = await getGroupsByUserId(user.id);
+                const mappedGroups: Group[] = apiGroups.map((g, idx) => {
+                    const defaultStyle = DEFAULT_GROUPStyles[idx % DEFAULT_GROUPStyles.length];
+                    return {
+                        id: String(g.groupId),
+                        name: g.groupName,
+                        icon: g.icon || defaultStyle.icon,
+                        color: g.color || defaultStyle.color,
+                        bg: g.bg || defaultStyle.bg,
+                        members: g.members.map(m => ({
+                            id: String(m.userId),
+                            initial: m.initialText || '?',
+                            bg: m.avatarColor || '#9ca3af',
+                            photoUrl: m.picture_url
+                        }))
+                    };
+                });
+                setGroups(mappedGroups);
+            } catch (err) {
+                console.error("Failed to fetch groups in sidebar:", err);
+            }
+        };
+        fetchGroups();
+    }, [user?.id, visible]);
 
     const backdropOpacity = backdropAnim.interpolate({
         inputRange: [0, 1],
@@ -295,12 +310,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </Text>
                         <View style={[styles.badge, { backgroundColor: isDark ? '#262626' : '#e5e7eb' }]}>
                             <Text style={[styles.badgeText, { color: C.sectionLabel }]}>
-                                {MOCK_GROUPS.length}
+                                {groups.length}
                             </Text>
                         </View>
                     </View>
 
-                    {MOCK_GROUPS.map(g => (
+                    {groups.map(g => (
                         <GroupItem 
                             key={g.id} 
                             group={g} 

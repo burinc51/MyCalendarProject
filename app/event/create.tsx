@@ -471,8 +471,8 @@ export default function EventCreateScreen() {
                         if (!uniqueMembersMap.has(m.userId)) {
                             uniqueMembersMap.set(m.userId, {
                                 userId: m.userId,
-                                name: m.name,
-                                username: m.username,
+                                name: m.initialText || '', // We don't have name from this API anymore
+                                username: '',              // Don't have username
                                 imageUrl: m.picture_url
                             });
                         }
