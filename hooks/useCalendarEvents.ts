@@ -6,8 +6,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 import dayjs from 'dayjs';
-import { getEventsAll, createEvent, updateEvent, deleteEvent } from '@/services/eventService';
-import { mapApiEventToCalendar, buildEventFormData } from '@/utils/calendar-helpers';
+import { getMonthView, createEvent, updateEvent, deleteEvent } from '@/services/eventService';
+import { mapApiEventToCalendar, mapApiMonthViewToCalendar, buildEventFormData } from '@/utils/calendar-helpers';
 import { DEFAULT_EVENT_FORM, DEFAULT_USER_ID } from '@/constants/Calendar';
 import { useAuthStore } from '@/stores/useAuthStore';
 import type { CalendarEvent, EventFormData } from '@/types/event';
@@ -194,7 +194,7 @@ interface UseCalendarEventsReturn {
     showAddForm: boolean;
 
     // Actions
-    fetchEvents: () => Promise<void>;
+    fetchEvents: (startDate?: string, endDate?: string, groupId?: number) => Promise<void>;
     setShowAddForm: (show: boolean) => void;
     setEditingEvent: (event: CalendarEvent | null) => void;
     updateFormData: (key: keyof EventFormData, value: unknown) => void;
@@ -215,14 +215,26 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
     const [showAddForm, setShowAddForm] = useState(false);
 
     // Fetch events from API
-    const fetchEvents = useCallback(async () => {
+    const fetchEvents = useCallback(async (startDate?: string, endDate?: string, groupId?: number) => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await getEventsAll();
-            if (response.data && response.data.content) {
-                const mappedEvents = response.data.content.map(mapApiEventToCalendar);
-                // Merge real API events with mock events for UI testing
+            // Provide a wide 6-month default window if no precise dates are given
+            const start = startDate || dayjs().subtract(3, 'month').format('YYYY-MM');
+            const end = endDate || dayjs().add(3, 'month').format('YYYY-MM');
+
+            const response = await getMonthView(start, end, groupId);
+
+            let eventsArray = [];
+            // Handle both array response and paginated content response
+            if (Array.isArray(response.data)) {
+                eventsArray = response.data;
+            } else if (response.data && response.data.content) {
+                eventsArray = response.data.content;
+            }
+
+            if (eventsArray.length > 0) {
+                const mappedEvents = eventsArray.map(mapApiMonthViewToCalendar);
                 setEvents([...MOCK_EVENTS, ...mappedEvents]);
             } else {
                 setEvents(MOCK_EVENTS);

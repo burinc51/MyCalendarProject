@@ -439,14 +439,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
         setViewMode('day');
     }, []);
 
-    // if (isLoading) {
-    //     return (
-    //         <View style={[styles.centered, { backgroundColor: colors.background }]}>
-    //             <ActivityIndicator size="large" color="#2ecc71" />
-    //         </View>
-    //     );
-    // }
-
     const currentViewMode = VIEW_MODES.find(m => m.value === viewMode)!;
 
     return (

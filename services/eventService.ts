@@ -29,5 +29,5 @@ export const getEventsByGroup = async (groupId: number) =>
     httpClient.post(`/api/v1/event/all/${groupId}`, pagination);
 
 // ดึง events สำหรับ month view (optimized)
-export const getMonthView = async (startDate: string, endDate: string) =>
-    httpClient.get('/api/v1/event/month-view', { params: { startDate, endDate } });
+export const getMonthView = async (startDate: string, endDate: string, groupId?: number) =>
+    httpClient.get('/api/v1/event/month-view', { params: { startDate, endDate, groupId } });

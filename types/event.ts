@@ -38,6 +38,15 @@ export interface ApiEvent {
     pinned: boolean;
 }
 
+export interface ApiMonthViewEvent {
+    eventId: number;
+    title: string;
+    startDate: string;
+    endDate: string;
+    color: string;
+    allDay: boolean;
+}
+
 // Component's Calendar Event interface
 export interface CalendarEvent {
     id: number;

@@ -4,7 +4,7 @@
  */
 
 import dayjs from 'dayjs';
-import type { ApiEvent, CalendarEvent, EventPriority, EventUser } from '@/types/event';
+import type { ApiEvent, ApiMonthViewEvent, CalendarEvent, EventPriority, EventUser } from '@/types/event';
 import { COLOR_NAME_TO_HEX, HEX_TO_COLOR_NAME, API_PRIORITY_MAP, PRIORITY_TO_API_MAP, DEFAULT_USER_ID } from '@/constants/Calendar';
 
 /**
@@ -72,6 +72,25 @@ export const mapApiEventToCalendar = (apiEvent: ApiEvent): CalendarEvent => {
         pinned: !!apiEvent.pinned,
         groupId: apiEvent.groupId,
         assignees
+    };
+};
+
+/**
+ * Transform an API month-view event into a CalendarEvent for the component
+ * Uses default placeholders for fields not returned by the month-view API
+ */
+export const mapApiMonthViewToCalendar = (apiEvent: ApiMonthViewEvent): CalendarEvent => {
+    return {
+        id: apiEvent.eventId,
+        title: apiEvent.title,
+        startDate: apiEvent.startDate,
+        endDate: apiEvent.endDate,
+        isAllDay: apiEvent.allDay,
+        color: mapApiColorToHex(apiEvent.color),
+        category: 'Event',
+        priority: 'medium',
+        location: '',
+        assignees: []
     };
 };
 
