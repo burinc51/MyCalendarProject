@@ -23,10 +23,9 @@ import { EVENT_COLORS, CATEGORIES, PRIORITY_COLORS } from '@/constants/Calendar'
 import { DEFAULT_EVENT_FORM } from '@/constants/Calendar';
 import type { CalendarEvent, EventFormData, EventPriority, EventUser } from '@/types/event';
 import ScreenHeader from '@/components/ScreenHeader';
+import { useAuthStore } from '@/stores/useAuthStore';
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
-// ─────────────────────────────────────────────────────────────────────────────
 const hexToRgba = (hex: string, alpha: number) => {
     const c = hex?.startsWith('#') ? hex : '#2ecc71';
     const r = parseInt(c.slice(1, 3), 16);
@@ -38,34 +37,30 @@ const hexToRgba = (hex: string, alpha: number) => {
 const AVATAR_COLORS = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f39c12', '#1abc9c', '#e67e22'];
 const avatarBg = (i: number) => AVATAR_COLORS[i % AVATAR_COLORS.length];
 const getInitial = (u: EventUser) => (u.name || u.username || '?').trim().charAt(0).toUpperCase();
-const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Theme colours
-// ─────────────────────────────────────────────────────────────────────────────
 const buildColors = (isDark: boolean) => ({
-    bg:          isDark ? '#111111' : '#f4f6f9',
-    navBg:       isDark ? '#1a1a1a' : '#ffffff',
-    card:        isDark ? '#1e1e1e' : '#ffffff',
-    cardBorder:  isDark ? '#2a2a2a' : '#eef0f4',
-    label:       isDark ? '#a0a0a0' : '#6b7280',
-    text:        isDark ? '#f0f0f0' : '#1a1a2e',
-    input:       isDark ? '#262626' : '#f7f9fc',
-    inputBorder: isDark ? '#333'    : '#e2e8f0',
-    inputText:   isDark ? '#f0f0f0' : '#1a1a2e',
-    placeholder: isDark ? '#555'    : '#9ca3af',
-    divider:     isDark ? '#2a2a2a' : '#eef0f4',
-    searchBg:    isDark ? '#2a2a2a' : '#f0f3f7',
-    wheelBg:     isDark ? '#1a1a1a' : '#f8f9fb',
-    wheelText:   isDark ? '#e0e0e0' : '#1a1a2e',
-    wheelDim:    isDark ? '#555'    : '#aaa',
-    wheelLine:   isDark ? '#333'    : '#dde3ec',
+    bg: isDark ? '#111111' : '#f4f6f9',
+    navBg: isDark ? '#1a1a1a' : '#ffffff',
+    card: isDark ? '#1e1e1e' : '#ffffff',
+    cardBorder: isDark ? '#2a2a2a' : '#eef0f4',
+    label: isDark ? '#a0a0a0' : '#6b7280',
+    text: isDark ? '#f0f0f0' : '#1a1a2e',
+    input: isDark ? '#262626' : '#f7f9fc',
+    inputBorder: isDark ? '#333' : '#e2e8f0',
+    inputText: isDark ? '#f0f0f0' : '#1a1a2e',
+    placeholder: isDark ? '#555' : '#9ca3af',
+    divider: isDark ? '#2a2a2a' : '#eef0f4',
+    searchBg: isDark ? '#2a2a2a' : '#f0f3f7',
+    wheelBg: isDark ? '#1a1a1a' : '#f8f9fb',
+    wheelText: isDark ? '#e0e0e0' : '#1a1a2e',
+    wheelDim: isDark ? '#555' : '#aaa',
+    wheelLine: isDark ? '#333' : '#dde3ec',
 });
 type Colors = ReturnType<typeof buildColors>;
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Avatar
-// ─────────────────────────────────────────────────────────────────────────────
 const UserAvatar: React.FC<{ user: EventUser; index: number; size?: number }> = ({ user, index, size = 38 }) => {
     const bg = avatarBg(index);
     if (user.imageUrl) {
@@ -78,9 +73,7 @@ const UserAvatar: React.FC<{ user: EventUser; index: number; size?: number }> = 
     );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Section Header
-// ─────────────────────────────────────────────────────────────────────────────
 const SectionHeader: React.FC<{ icon: string; title: string; accent: string; isDark: boolean }> = ({ icon, title, accent, isDark }) => (
     <View style={sh.wrap}>
         <View style={[sh.iconBox, { backgroundColor: hexToRgba(accent, 0.15) }]}>
@@ -90,15 +83,13 @@ const SectionHeader: React.FC<{ icon: string; title: string; accent: string; isD
     </View>
 );
 const sh = StyleSheet.create({
-    wrap:    { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14, marginTop: 4 },
+    wrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14, marginTop: 4 },
     iconBox: { width: 30, height: 30, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
-    title:   { fontSize: 12, fontFamily: 'Kanit-Bold', letterSpacing: 0.8, textTransform: 'uppercase' },
+    title: { fontSize: 12, fontFamily: 'Kanit-Bold', letterSpacing: 0.8, textTransform: 'uppercase' },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Drum-roll Wheel Column  (pure-JS, zero native modules)
-// ─────────────────────────────────────────────────────────────────────────────
-const ITEM_H  = 44;
+const ITEM_H = 44;
 const VISIBLE = 5;
 
 const WheelColumn: React.FC<{
@@ -177,12 +168,10 @@ const WheelColumn: React.FC<{
 };
 const wh = StyleSheet.create({
     selBar: { position: 'absolute', left: 0, right: 0, height: ITEM_H, borderTopWidth: 1, borderBottomWidth: 1, zIndex: 2 },
-    fade:   { position: 'absolute', left: 0, right: 0, height: ITEM_H * 2, opacity: 0.6, zIndex: 3 },
+    fade: { position: 'absolute', left: 0, right: 0, height: ITEM_H * 2, opacity: 0.6, zIndex: 3 },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Date / Time Picker Modal
-// ─────────────────────────────────────────────────────────────────────────────
 type PickerKind = 'date' | 'time';
 
 const DTPickerModal: React.FC<{
@@ -196,24 +185,24 @@ const DTPickerModal: React.FC<{
     onCancel: () => void;
 }> = ({ visible, kind, value, accent, c, onConfirm, onCancel }) => {
     const pd = useMemo(() => dayjs(value).isValid() ? dayjs(value) : dayjs(), [value]);
-    const [selYear,  setSelYear]  = useState(pd.year());
+    const [selYear, setSelYear] = useState(pd.year());
     const [selMonth, setSelMonth] = useState(pd.month());
-    const [selDay,   setSelDay]   = useState(pd.date() - 1);
+    const [selDay, setSelDay] = useState(pd.date() - 1);
 
     const pt = useMemo(() => {
         const [h = '9', m = '0'] = value.split(':');
         return { h: parseInt(h, 10), m: parseInt(m, 10) };
     }, [value]);
     const [selHour, setSelHour] = useState(pt.h);
-    const [selMin,  setSelMin]  = useState(pt.m);
+    const [selMin, setSelMin] = useState(pt.m);
 
-    const yearItems   = useMemo(() => Array.from({ length: 21 }, (_, i) => String(dayjs().year() - 10 + i)), []);
-    const yearIdx     = useMemo(() => Math.max(0, yearItems.indexOf(String(selYear))), [yearItems, selYear]);
+    const yearItems = useMemo(() => Array.from({ length: 21 }, (_, i) => String(dayjs().year() - 10 + i)), []);
+    const yearIdx = useMemo(() => Math.max(0, yearItems.indexOf(String(selYear))), [yearItems, selYear]);
     const daysInMonth = useMemo(() => dayjs(`${selYear}-${selMonth + 1}-01`).daysInMonth(), [selYear, selMonth]);
-    const dayItems    = useMemo(() => Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, '0')), [daysInMonth]);
-    const clampedDay  = Math.min(selDay, daysInMonth - 1);
-    const hourItems   = useMemo(() => Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')), []);
-    const minItems    = useMemo(() => Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')), []);
+    const dayItems = useMemo(() => Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, '0')), [daysInMonth]);
+    const clampedDay = Math.min(selDay, daysInMonth - 1);
+    const hourItems = useMemo(() => Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')), []);
+    const minItems = useMemo(() => Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')), []);
 
     const confirm = () => {
         if (kind === 'date') {
@@ -261,21 +250,19 @@ const DTPickerModal: React.FC<{
     );
 };
 const dtp = StyleSheet.create({
-    backdrop:  { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' },
-    sheet:     { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingBottom: 36, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 20 },
-    handle:    { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 2 },
-    header:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
-    title:     { fontSize: 16, fontFamily: 'Kanit-Bold' },
-    hBtn:      { paddingHorizontal: 6, paddingVertical: 4, minWidth: 56 },
+    backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' },
+    sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingBottom: 36, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 20 },
+    handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 2 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+    title: { fontSize: 16, fontFamily: 'Kanit-Bold' },
+    hBtn: { paddingHorizontal: 6, paddingVertical: 4, minWidth: 56 },
     cancelTxt: { fontSize: 15, fontFamily: 'Kanit-Regular' },
-    doneTxt:   { fontSize: 15, fontFamily: 'Kanit-Bold', textAlign: 'right' },
+    doneTxt: { fontSize: 15, fontFamily: 'Kanit-Bold', textAlign: 'right' },
     wheelWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 12, borderRadius: 16, margin: 16 },
-    sep:       { fontSize: 18, fontFamily: 'Kanit-Bold', paddingBottom: 2 },
+    sep: { fontSize: 18, fontFamily: 'Kanit-Bold', paddingBottom: 2 },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // DateTrigger Button
-// ─────────────────────────────────────────────────────────────────────────────
 const DateTrigger: React.FC<{
     icon: string; label: string; value: string;
     onPress: () => void; accent: string; c: Colors;
@@ -295,16 +282,14 @@ const DateTrigger: React.FC<{
     </TouchableOpacity>
 );
 const dtb = StyleSheet.create({
-    wrap:    { flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 12, gap: 10 },
+    wrap: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 12, gap: 10 },
     iconBox: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-    body:    { flex: 1, gap: 2 },
-    lbl:     { fontSize: 10, fontFamily: 'Kanit-Regular', letterSpacing: 0.6, textTransform: 'uppercase' },
-    val:     { fontSize: 15, fontFamily: 'Kanit-Bold' },
+    body: { flex: 1, gap: 2 },
+    lbl: { fontSize: 10, fontFamily: 'Kanit-Regular', letterSpacing: 0.6, textTransform: 'uppercase' },
+    val: { fontSize: 15, fontFamily: 'Kanit-Bold' },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Assignee Modal
-// ─────────────────────────────────────────────────────────────────────────────
 const AssigneeModal: React.FC<{
     visible: boolean; selected: EventUser[];
     availableUsers: EventUser[];
@@ -385,27 +370,25 @@ const AssigneeModal: React.FC<{
     );
 };
 const asm = StyleSheet.create({
-    backdrop:    { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)' },
-    sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingBottom: 32, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 20 },
-    handle:      { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
-    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
-    title:       { fontSize: 18, fontFamily: 'Kanit-Bold' },
-    closeBtn:    { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
-    searchWrap:  { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+    backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)' },
+    sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingBottom: 32, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 20 },
+    handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+    title: { fontSize: 18, fontFamily: 'Kanit-Bold' },
+    closeBtn: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
+    searchWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
     searchInput: { flex: 1, fontSize: 15, fontFamily: 'Kanit-Regular', padding: 0 },
-    badge:       { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
-    badgeTxt:    { fontSize: 13, fontFamily: 'Kanit-Bold' },
-    row:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 13, gap: 14, borderBottomWidth: 1 },
-    rowName:     { fontSize: 15, fontFamily: 'Kanit-Bold' },
-    rowUser:     { fontSize: 12, fontFamily: 'Kanit-Regular' },
-    checkbox:    { width: 26, height: 26, borderRadius: 13, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
-    doneBtn:     { paddingVertical: 15, borderRadius: 16, alignItems: 'center', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
-    doneTxt:     { fontSize: 16, fontFamily: 'Kanit-Bold', color: '#fff' },
+    badge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
+    badgeTxt: { fontSize: 13, fontFamily: 'Kanit-Bold' },
+    row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 13, gap: 14, borderBottomWidth: 1 },
+    rowName: { fontSize: 15, fontFamily: 'Kanit-Bold' },
+    rowUser: { fontSize: 12, fontFamily: 'Kanit-Regular' },
+    checkbox: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
+    doneBtn: { paddingVertical: 15, borderRadius: 16, alignItems: 'center', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
+    doneTxt: { fontSize: 16, fontFamily: 'Kanit-Bold', color: '#fff' },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Main Screen  (default export — required by Expo Router)
-// ─────────────────────────────────────────────────────────────────────────────
 export default function EventCreateScreen() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -422,63 +405,72 @@ export default function EventCreateScreen() {
     const initialForm = useMemo<EventFormData>(() => {
         if (existingEvent) {
             return {
-                title:             existingEvent.title || '',
-                description:       existingEvent.description || '',
-                location:          existingEvent.location || '',
-                startDate:         dayjs(existingEvent.startDate).format('YYYY-MM-DD'),
-                endDate:           dayjs(existingEvent.endDate).format('YYYY-MM-DD'),
-                startTime:         existingEvent.isAllDay ? '09:00' : dayjs(existingEvent.startDate).format('HH:mm'),
-                endTime:           existingEvent.isAllDay ? '10:00' : dayjs(existingEvent.endDate).format('HH:mm'),
-                isAllDay:          existingEvent.isAllDay,
-                color:             existingEvent.color || '#2ecc71',
-                category:          existingEvent.category || 'Work',
-                priority:          existingEvent.priority || 'medium',
-                reminder:          existingEvent.reminder || 15,
-                notificationType:  existingEvent.notificationType  || 'PUSH',
+                title: existingEvent.title || '',
+                description: existingEvent.description || '',
+                location: existingEvent.location || '',
+                startDate: dayjs(existingEvent.startDate).format('YYYY-MM-DD'),
+                endDate: dayjs(existingEvent.endDate).format('YYYY-MM-DD'),
+                startTime: existingEvent.isAllDay ? '09:00' : dayjs(existingEvent.startDate).format('HH:mm'),
+                endTime: existingEvent.isAllDay ? '10:00' : dayjs(existingEvent.endDate).format('HH:mm'),
+                isAllDay: existingEvent.isAllDay,
+                color: existingEvent.color || '#2ecc71',
+                category: existingEvent.category || 'Work',
+                priority: existingEvent.priority || 'medium',
+                reminder: existingEvent.reminder || 15,
+                notificationType: existingEvent.notificationType || 'PUSH',
                 remindBeforeValue: (existingEvent.remindBeforeValue || 15).toString(),
-                remindBeforeUnit:  existingEvent.remindBeforeUnit   || 'MINUTES',
-                repeatType:        existingEvent.repeatType    || 'NONE',
-                repeatInterval:    (existingEvent.repeatInterval || 1).toString(),
-                repeatUntil:       existingEvent.repeatUntil ? dayjs(existingEvent.repeatUntil).format('YYYY-MM-DD') : '',
-                pinned:            !!existingEvent.pinned,
-                groupId:           existingEvent.groupId || null,
+                remindBeforeUnit: existingEvent.remindBeforeUnit || 'MINUTES',
+                repeatType: existingEvent.repeatType || 'NONE',
+                repeatInterval: (existingEvent.repeatInterval || 1).toString(),
+                repeatUntil: existingEvent.repeatUntil ? dayjs(existingEvent.repeatUntil).format('YYYY-MM-DD') : '',
+                pinned: !!existingEvent.pinned,
+                groupId: existingEvent.groupId || null,
             };
         }
         const dateStr = params.date ?? dayjs().format('YYYY-MM-DD');
         return { ...DEFAULT_EVENT_FORM, startDate: dateStr, endDate: dateStr };
     }, [existingEvent, params.date]);
 
-    const [formData, setFormData]       = useState<EventFormData>(initialForm);
-    const [assignees, setAssignees]     = useState<EventUser[]>(existingEvent?.assignees ?? []);
+    const { user: authUser } = useAuthStore();
+    const [formData, setFormData] = useState<EventFormData>(initialForm);
+    const [assignees, setAssignees] = useState<EventUser[]>(() => {
+        if (existingEvent?.assignees) return existingEvent.assignees;
+        if (authUser) {
+            return [{
+                userId: authUser.id,
+                name: authUser.name || authUser.email?.split('@')[0] || 'Me',
+                username: authUser.email?.split('@')[0] || '',
+                imageUrl: authUser.photoUrl || null
+            }];
+        }
+        return [];
+    });
     const [showAssignees, setShowAssignees] = useState(false);
     const [availableUsers, setAvailableUsers] = useState<EventUser[]>([]);
 
     React.useEffect(() => {
         const fetchGroupMembers = async () => {
             try {
-                const { getGroupsByUserId } = await import('@/services/groupService');
+                const { getUserInGroupsByGroupId } = await import('@/services/groupService');
                 const { useAuthStore } = await import('@/stores/useAuthStore');
                 const authUser = useAuthStore.getState().user;
                 if (!authUser) return;
 
-                const groups = await getGroupsByUserId(authUser.id);
-                // Extract unique members from all groups the user is in
+                const users = await getUserInGroupsByGroupId(authUser.id);
+                // Extract unique members from the API response
                 const uniqueMembersMap = new Map<number, EventUser>();
-                groups.forEach(group => {
-                    group.members.forEach(m => {
-                        // ไม่ต้องเพิ่มตัวเองใน list คนที่จะ assign
-                        if (m.userId === authUser.id) return;
-                        if (!uniqueMembersMap.has(m.userId)) {
-                            uniqueMembersMap.set(m.userId, {
-                                userId: m.userId,
-                                name: m.initialText || '', // We don't have name from this API anymore
-                                username: '',              // Don't have username
-                                imageUrl: m.picture_url
-                            });
-                        }
-                    });
+                users.forEach((m: any) => {
+                    // ไม่ต้องเพิ่มตัวเองใน list คนที่จะ assign
+                    if (!uniqueMembersMap.has(m.userId)) {
+                        uniqueMembersMap.set(m.userId, {
+                            userId: m.userId,
+                            name: m.name || m.initialText || '',
+                            username: m.username || '',
+                            imageUrl: m.imageUrl || m.picture_url || null
+                        });
+                    }
                 });
-                
+
                 setAvailableUsers(Array.from(uniqueMembersMap.values()));
             } catch (err) {
                 console.error('Failed to load group members:', err);
@@ -491,7 +483,7 @@ export default function EventCreateScreen() {
     type ActivePicker = 'startDate' | 'endDate' | 'startTime' | 'endTime' | null;
     const [activePicker, setActivePicker] = useState<ActivePicker>(null);
 
-    const c      = useMemo(() => buildColors(isDark), [isDark]);
+    const c = useMemo(() => buildColors(isDark), [isDark]);
     const accent = formData.color || '#2ecc71';
 
     const updateField = useCallback(<K extends keyof EventFormData>(key: K, value: EventFormData[K]) => {
@@ -509,36 +501,36 @@ export default function EventCreateScreen() {
     const pickerKind: PickerKind = (activePicker === 'startTime' || activePicker === 'endTime') ? 'time' : 'date';
     const pickerValue = useMemo(() => {
         if (activePicker === 'startDate') return formData.startDate;
-        if (activePicker === 'endDate')   return formData.endDate;
+        if (activePicker === 'endDate') return formData.endDate;
         if (activePicker === 'startTime') return formData.startTime;
-        if (activePicker === 'endTime')   return formData.endTime;
+        if (activePicker === 'endTime') return formData.endTime;
         return '';
     }, [activePicker, formData]);
 
     const handlePickerConfirm = useCallback((val: string) => {
         if (activePicker === 'startDate') updateField('startDate', val);
-        if (activePicker === 'endDate')   updateField('endDate',   val);
+        if (activePicker === 'endDate') updateField('endDate', val);
         if (activePicker === 'startTime') updateField('startTime', val);
-        if (activePicker === 'endTime')   updateField('endTime',   val);
+        if (activePicker === 'endTime') updateField('endTime', val);
         setActivePicker(null);
     }, [activePicker, updateField]);
 
     const dispStartDate = dayjs(formData.startDate).isValid() ? dayjs(formData.startDate).format('ddd, D MMM YYYY') : '—';
-    const dispEndDate   = dayjs(formData.endDate).isValid()   ? dayjs(formData.endDate).format('ddd, D MMM YYYY')   : '—';
+    const dispEndDate = dayjs(formData.endDate).isValid() ? dayjs(formData.endDate).format('ddd, D MMM YYYY') : '—';
     const dispStartTime = formData.startTime || '—';
-    const dispEndTime   = formData.endTime   || '—';
+    const dispEndTime = formData.endTime || '—';
 
     const handleSave = useCallback(async () => {
         if (!formData.title.trim()) { Alert.alert('Error', 'Please enter a title'); return; }
         try {
             const { createEvent, updateEvent } = await import('@/services/eventService');
-            const { buildEventFormData }       = await import('@/utils/calendar-helpers');
-            const { DEFAULT_USER_ID }          = await import('@/constants/Calendar');
-            const { useAuthStore }             = await import('@/stores/useAuthStore');
+            const { buildEventFormData } = await import('@/utils/calendar-helpers');
+            const { DEFAULT_USER_ID } = await import('@/constants/Calendar');
+            const { useAuthStore } = await import('@/stores/useAuthStore');
 
             const authUserId = useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
             const targetUserId = existingEvent?.userId ?? authUserId;
-            
+
             // เพิ่ม assigneeIds ลงใน formData ก่อน build
             const assigneeIds = assignees.map(a => a.userId);
             const formDataWithAssignees = { ...formData, assignees: assigneeIds };
@@ -685,7 +677,7 @@ export default function EventCreateScreen() {
                         <View style={s.priorityRow}>
                             {(['low', 'medium', 'high'] as EventPriority[]).map(p => {
                                 const meta = PRIORITY_COLORS[p];
-                                const sel  = formData.priority === p;
+                                const sel = formData.priority === p;
                                 const icn: Record<EventPriority, string> = { low: 'check-circle', medium: 'minus-circle', high: 'alert-circle' };
                                 return (
                                     <TouchableOpacity key={p}
@@ -846,50 +838,48 @@ export default function EventCreateScreen() {
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Styles
-// ─────────────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-    root:           { flex: 1 },
-    scroll:         { paddingHorizontal: 16, paddingTop: 16, gap: 14 },
-    accentStrip:    { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2 },
-    accentDot:      { width: 12, height: 12, borderRadius: 6, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 3 },
-    accentLbl:      { fontSize: 13, fontFamily: 'Kanit-Regular' },
-    card:           { borderRadius: 18, padding: 18, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
-    lbl:            { fontSize: 11, fontFamily: 'Kanit-Bold', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 },
-    input:          { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontFamily: 'Kanit-Regular' },
-    inputRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
-    inputRowTxt:    { flex: 1, fontSize: 15, fontFamily: 'Kanit-Regular', padding: 0 },
-    textarea:       { height: 90, textAlignVertical: 'top', paddingTop: 12 },
-    toggleRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 12, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 10 },
-    toggleLeft:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    toggleIcon:     { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-    toggleLbl:      { fontSize: 15, fontFamily: 'Kanit-Regular' },
-    dtRow:          { flexDirection: 'row', gap: 10, marginTop: 14 },
-    colorRow:       { flexDirection: 'row', gap: 12, paddingVertical: 8 },
-    colorCircle:    { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: 'transparent' },
+    root: { flex: 1 },
+    scroll: { paddingHorizontal: 16, paddingTop: 16, gap: 14 },
+    accentStrip: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2 },
+    accentDot: { width: 12, height: 12, borderRadius: 6, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 3 },
+    accentLbl: { fontSize: 13, fontFamily: 'Kanit-Regular' },
+    card: { borderRadius: 18, padding: 18, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+    lbl: { fontSize: 11, fontFamily: 'Kanit-Bold', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 },
+    input: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontFamily: 'Kanit-Regular' },
+    inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
+    inputRowTxt: { flex: 1, fontSize: 15, fontFamily: 'Kanit-Regular', padding: 0 },
+    textarea: { height: 90, textAlignVertical: 'top', paddingTop: 12 },
+    toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 12, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 10 },
+    toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    toggleIcon: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    toggleLbl: { fontSize: 15, fontFamily: 'Kanit-Regular' },
+    dtRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+    colorRow: { flexDirection: 'row', gap: 12, paddingVertical: 8 },
+    colorCircle: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: 'transparent' },
     colorCircleSel: { borderWidth: 3, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 8, elevation: 6, transform: [{ scale: 1.12 }] },
-    chipRow:        { flexDirection: 'row', gap: 8, paddingVertical: 4, flexWrap: 'wrap' },
-    chip:           { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
-    chipTxt:        { fontSize: 12, fontFamily: 'Kanit-Regular' },
-    priorityRow:    { flexDirection: 'row', gap: 10 },
-    priorityBtn:    { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, borderRadius: 12, borderWidth: 1.5 },
-    priorityTxt:    { fontSize: 13, fontFamily: 'Kanit-Regular' },
-    aChips:         { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-    aChip:          { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1.5 },
-    aChipTxt:       { fontSize: 13, fontFamily: 'Kanit-Bold' },
-    aEmpty:         { fontSize: 14, fontFamily: 'Kanit-Regular', marginBottom: 12, marginTop: 2 },
-    aAddBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed' },
-    aAddTxt:        { fontSize: 14, fontFamily: 'Kanit-Bold' },
-    notifRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
-    smallNum:       { width: 64, textAlign: 'center', paddingHorizontal: 10 },
-    repeatExtra:    { marginTop: 12, borderRadius: 12, borderWidth: 1, padding: 14 },
-    repeatRow:      { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    repeatLbl:      { fontSize: 13, fontFamily: 'Kanit-Regular' },
-    bottomBtns:     { flexDirection: 'row', gap: 12, marginTop: 8 },
-    btnCancel:      { flex: 1, paddingVertical: 15, borderRadius: 14, borderWidth: 1.5, alignItems: 'center' },
-    btnCancelTxt:   { fontSize: 15, fontFamily: 'Kanit-Bold' },
-    btnSave:        { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 14, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
-    btnSaveTxt:     { fontSize: 15, fontFamily: 'Kanit-Bold', color: '#fff' },
+    chipRow: { flexDirection: 'row', gap: 8, paddingVertical: 4, flexWrap: 'wrap' },
+    chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
+    chipTxt: { fontSize: 12, fontFamily: 'Kanit-Regular' },
+    priorityRow: { flexDirection: 'row', gap: 10 },
+    priorityBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, borderRadius: 12, borderWidth: 1.5 },
+    priorityTxt: { fontSize: 13, fontFamily: 'Kanit-Regular' },
+    aChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+    aChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1.5 },
+    aChipTxt: { fontSize: 13, fontFamily: 'Kanit-Bold' },
+    aEmpty: { fontSize: 14, fontFamily: 'Kanit-Regular', marginBottom: 12, marginTop: 2 },
+    aAddBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed' },
+    aAddTxt: { fontSize: 14, fontFamily: 'Kanit-Bold' },
+    notifRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+    smallNum: { width: 64, textAlign: 'center', paddingHorizontal: 10 },
+    repeatExtra: { marginTop: 12, borderRadius: 12, borderWidth: 1, padding: 14 },
+    repeatRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    repeatLbl: { fontSize: 13, fontFamily: 'Kanit-Regular' },
+    bottomBtns: { flexDirection: 'row', gap: 12, marginTop: 8 },
+    btnCancel: { flex: 1, paddingVertical: 15, borderRadius: 14, borderWidth: 1.5, alignItems: 'center' },
+    btnCancelTxt: { fontSize: 15, fontFamily: 'Kanit-Bold' },
+    btnSave: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 14, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+    btnSaveTxt: { fontSize: 15, fontFamily: 'Kanit-Bold', color: '#fff' },
 });
 

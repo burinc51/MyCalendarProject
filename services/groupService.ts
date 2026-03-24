@@ -1,4 +1,5 @@
 import httpClient from '@/lib/httpClient';
+import { EventUser } from '@/types/event';
 import type { GroupWithMembers } from '@/types/group';
 
 // ดึง groups ทั้งหมดที่ user คนนี้อยู่ (พร้อม members list)
@@ -12,3 +13,8 @@ export const getGroupsByUserId = async (userId: number): Promise<GroupWithMember
 // GET /api/v1/group/{groupId}
 export const getGroupById = async (groupId: number) =>
     httpClient.get(`/api/v1/group/${groupId}`);
+
+export const getUserInGroupsByGroupId = async (groupId: number): Promise<EventUser[]> => {
+    const res = await httpClient.get(`/api/v1/group/${groupId}/users`);
+    return res.data;
+}
