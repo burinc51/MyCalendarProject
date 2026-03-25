@@ -51,7 +51,7 @@ export const mapApiEventToCalendar = (apiEvent: ApiEvent): CalendarEvent => {
     }));
 
     return {
-        id: apiEvent.eventId,
+        eventId: apiEvent.eventId,
         userId: apiEvent.userId,
         title: apiEvent.title,
         description: apiEvent.description || '',
@@ -81,7 +81,7 @@ export const mapApiEventToCalendar = (apiEvent: ApiEvent): CalendarEvent => {
  */
 export const mapApiMonthViewToCalendar = (apiEvent: ApiMonthViewEvent): CalendarEvent => {
     return {
-        id: apiEvent.eventId,
+        eventId: apiEvent.eventId,
         title: apiEvent.title,
         startDate: apiEvent.startDate,
         endDate: apiEvent.endDate,

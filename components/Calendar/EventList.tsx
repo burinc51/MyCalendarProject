@@ -102,13 +102,14 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
         allDayBg: isDark ? '#1a3028' : '#eafaf1',
         allDayText: isDark ? '#2ecc71' : '#27ae60',
         iconMuted: isDark ? '#555' : '#c0c8d4',
-        emptyText: isDark ? '#555' : '#b0bac5',
+        emptyText: isDark ? '#555' : '#b0bac5'
     };
 
-    const handlePressEvent = (event: CalendarEvent) => {
+    const handlePressEvent = (eventId: number) => {
+        console.log('Event pressed:', eventId);
         router.push({
             pathname: '/event/[id]',
-            params: { id: event.eventId },
+            params: { id: eventId },
         });
     };
 
@@ -133,6 +134,9 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
         );
     }
 
+    console.log("EventList", events);
+
+
     return (
         <ScrollView
             style={styles.list}
@@ -150,7 +154,7 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
                     <TouchableOpacity
                         key={event.eventId}
                         style={[styles.card, { backgroundColor: c.cardBg, borderColor: c.cardBorder }]}
-                        onPress={() => handlePressEvent(event)}
+                        onPress={() => handlePressEvent(event.eventId)}
                         activeOpacity={0.75}
                     >
                         {/* Left accent strip */}

@@ -698,7 +698,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
             {viewMode === 'year' && (
                 <CalendarYearView
                     year={displayYear}
-                    events={events}
+                    groupId={groupId ? Number(groupId) : undefined}
                     isDark={isDark}
                     onSelectMonth={handleSelectMonthFromYear}
                 />

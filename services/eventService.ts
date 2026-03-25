@@ -35,3 +35,7 @@ export const getEventsByGroup = async (groupId: number) =>
 // ดึง events สำหรับ month view (optimized)
 export const getMonthView = async (startDate: string, endDate: string, groupId?: number) =>
     httpClient.get('/api/v1/event/month-view', { params: { startDate, endDate, groupId } });
+
+// ดึง events สำหรับ year summary
+export const getYearSummary = async (year: number, groupId?: number) =>
+    httpClient.get('/api/v1/event/year-summary', { params: { year, groupId } });
