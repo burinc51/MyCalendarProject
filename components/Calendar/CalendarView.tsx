@@ -202,7 +202,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
                 params: { event: JSON.stringify(pendingEvent) },
             });
         } else if (pendingAction === 'delete') {
-            handleDeleteEvent(pendingEvent.id);
+            handleDeleteEvent(pendingEvent.eventId); // skip second confirmation
         }
         clearAction();
     }, [pendingAction, pendingEvent]);
@@ -415,7 +415,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
     const selectedDateEvents = useMemo(() => {
         if (!selectedDate) return [];
         const day = dayjs(selectedDate);
-        console.log('events ', events);
         return events.filter(event =>
             day.isBetween(dayjs(event.startDate), dayjs(event.endDate), 'day', '[]')
         );

@@ -31,7 +31,7 @@ const MOCK_USERS = {
 const MOCK_EVENTS: CalendarEvent[] = [
     // All-day event spanning 3 days — 3 assignees
     {
-        id: 9001,
+        eventId: 9001,
         title: 'ประชุมประจำเดือน',
         isAllDay: true,
         startDate: fmt(today.startOf('week').add(1, 'day')),
@@ -44,7 +44,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Today morning meeting — 2 assignees
     {
-        id: 9002,
+        eventId: 9002,
         title: 'Stand-up Meeting',
         isAllDay: false,
         startDate: fmt(today.hour(9).minute(0)),
@@ -57,7 +57,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Today lunch — 1 assignee (only self)
     {
-        id: 9003,
+        eventId: 9003,
         title: '🍜 พักกินข้าว',
         isAllDay: false,
         startDate: fmt(today.hour(12).minute(0)),
@@ -70,7 +70,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Today afternoon — 4 assignees (tests +N overflow badge)
     {
-        id: 9004,
+        eventId: 9004,
         title: 'Code Review',
         isAllDay: false,
         startDate: fmt(today.hour(14).minute(0)),
@@ -83,7 +83,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Tomorrow — 2 assignees
     {
-        id: 9005,
+        eventId: 9005,
         title: 'Design Workshop',
         isAllDay: false,
         startDate: fmt(today.add(1, 'day').hour(10).minute(0)),
@@ -96,7 +96,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Day after tomorrow — no assignees (tests fallback avatar)
     {
-        id: 9006,
+        eventId: 9006,
         title: 'วันหยุดพิเศษ 🎉',
         isAllDay: true,
         startDate: fmt(today.add(2, 'day').startOf('day')),
@@ -109,7 +109,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Next week — 5 assignees (tests +2 badge)
     {
-        id: 9007,
+        eventId: 9007,
         title: 'Sprint Planning',
         isAllDay: false,
         startDate: fmt(today.add(7, 'day').hour(9).minute(0)),
@@ -122,7 +122,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // End of month — 1 assignee
     {
-        id: 9008,
+        eventId: 9008,
         title: 'Monthly Review 📊',
         isAllDay: false,
         startDate: fmt(today.endOf('month').subtract(1, 'day').hour(14).minute(0)),
@@ -135,7 +135,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Next month — 2 assignees
     {
-        id: 9009,
+        eventId: 9009,
         title: 'Team Outing 🏖️',
         isAllDay: true,
         startDate: fmt(today.add(1, 'month').startOf('month').add(4, 'day')),
@@ -148,7 +148,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Yesterday — 1 assignee
     {
-        id: 9010,
+        eventId: 9010,
         title: 'Retrospective',
         isAllDay: false,
         startDate: fmt(today.subtract(1, 'day').hour(16).minute(0)),
@@ -160,7 +160,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
         assignees: [MOCK_USERS.alice]
     },
     {
-        id: 9011,
+        eventId: 9011,
         title: 'Retrospective',
         isAllDay: true,
         startDate: fmt(today.startOf('week').add(1, 'day')),
@@ -172,7 +172,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
         assignees: [MOCK_USERS.bob, MOCK_USERS.dave]
     },
     {
-        id: 9012,
+        eventId: 9012,
         title: 'Retrospective',
         isAllDay: true,
         startDate: fmt(today.startOf('week').add(1, 'day')),
@@ -323,11 +323,11 @@ export const useCalendarEvents = (initialGroupId?: number): UseCalendarEventsRet
         try {
             const userId = editingEvent?.userId ?? authUserId;
             // สำหรับ update ส่ง eventId เข้าไปด้วยเพื่อให้ backend รู้ว่า update event ไหน
-            const eventId = editingEvent ? editingEvent.id : null;
+            const eventId = editingEvent ? editingEvent.eventId : null;
             const formDataToSend = buildEventFormData(formData, userId, eventId);
 
             if (editingEvent) {
-                await updateEvent(editingEvent.id, userId, formDataToSend as unknown as FormData);
+                await updateEvent(editingEvent.eventId, userId, formDataToSend as unknown as FormData);
                 Alert.alert('Success', 'Event updated!');
             } else {
                 await createEvent(formDataToSend as unknown as FormData);
@@ -350,24 +350,29 @@ export const useCalendarEvents = (initialGroupId?: number): UseCalendarEventsRet
 
     // Delete event
     const handleDeleteEvent = useCallback(
-        (eventId: number) => {
-            Alert.alert('Delete Event', 'Are you sure you want to delete this event?', [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await deleteEvent(eventId);
-                            Alert.alert('Success', 'Event deleted successfully!');
-                            fetchEvents();
-                        } catch (err) {
-                            Alert.alert('Error', 'Failed to delete event.');
-                            console.error('Delete event error:', err);
-                        }
-                    }
+        (eventId: number, skipConfirm = false) => {
+            const executeDelete = async () => {
+                try {
+                    await deleteEvent(eventId);
+                    await fetchEvents();
+                } catch (err) {
+                    Alert.alert('Error', 'Failed to delete event.');
+                    console.error('Delete event error:', err);
                 }
-            ]);
+            };
+
+            if (skipConfirm) {
+                executeDelete();
+            } else {
+                Alert.alert('Delete Event', 'Are you sure you want to delete this event?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: executeDelete
+                    }
+                ]);
+            }
         },
         [fetchEvents]
     );

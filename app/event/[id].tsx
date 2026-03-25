@@ -24,7 +24,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useEventActionStore } from '@/stores/useEventActionStore';
 import type { CalendarEvent, EventUser } from '@/types/event';
 import ScreenHeader from '@/components/ScreenHeader';
-import { getEventById } from '@/services/eventService';
+import { getEventById, deleteEvent } from '@/services/eventService';
 
 const hexToRgba = (hex: string, alpha: number) => {
     const c = hex?.startsWith('#') ? hex : '#2ecc71';
@@ -164,9 +164,15 @@ const EventDetailScreen = () => {
             {
                 text: 'Delete',
                 style: 'destructive',
-                onPress: () => {
-                    requestDelete(event);
-                    router.back();
+                onPress: async () => {
+                    try {
+                        console.log('Deleting event:', event.eventId);
+                        await deleteEvent(event.eventId);
+                        router.back();
+                    } catch (error) {
+                        console.error('Failed to delete event:', error);
+                        Alert.alert('Error', 'Failed to delete event.');
+                    }
                 }
             }
         ]);

@@ -92,23 +92,23 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
     const router = useRouter();
 
     const c = {
-        pageBg:    isDark ? '#141414' : '#f4f6f9',
-        cardBg:    isDark ? '#1e1e1e' : '#ffffff',
-        cardBorder:isDark ? '#2a2a2a' : '#eeeeee',
-        title:     isDark ? '#f0f0f0' : '#1a1a2e',
-        subtitle:  isDark ? '#888'    : '#8e9aad',
-        timeBg:    isDark ? '#262626' : '#f0f3f7',
-        timeText:  isDark ? '#cccccc' : '#4a5568',
-        allDayBg:  isDark ? '#1a3028' : '#eafaf1',
-        allDayText:isDark ? '#2ecc71' : '#27ae60',
-        iconMuted: isDark ? '#555'    : '#c0c8d4',
-        emptyText: isDark ? '#555'    : '#b0bac5',
+        pageBg: isDark ? '#141414' : '#f4f6f9',
+        cardBg: isDark ? '#1e1e1e' : '#ffffff',
+        cardBorder: isDark ? '#2a2a2a' : '#eeeeee',
+        title: isDark ? '#f0f0f0' : '#1a1a2e',
+        subtitle: isDark ? '#888' : '#8e9aad',
+        timeBg: isDark ? '#262626' : '#f0f3f7',
+        timeText: isDark ? '#cccccc' : '#4a5568',
+        allDayBg: isDark ? '#1a3028' : '#eafaf1',
+        allDayText: isDark ? '#2ecc71' : '#27ae60',
+        iconMuted: isDark ? '#555' : '#c0c8d4',
+        emptyText: isDark ? '#555' : '#b0bac5',
     };
 
     const handlePressEvent = (event: CalendarEvent) => {
         router.push({
             pathname: '/event/[id]',
-            params: { id: event.id },
+            params: { id: event.eventId },
         });
     };
 
@@ -140,16 +140,15 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
             contentContainerStyle={styles.listContent}
         >
             {events.map((event) => {
-                const accent   = event.color || '#2ecc71';
+                const accent = event.color || '#2ecc71';
                 const accentBg = hexToRgba(accent, isDark ? 0.15 : 0.08);
                 const hasUsers = event.assignees && event.assignees.length > 0;
-                console.log("HasUser = ", event);
                 const startLabel = event.isAllDay ? 'All Day' : dayjs(event.startDate).format('HH:mm');
-                const endLabel   = event.isAllDay ? null       : dayjs(event.endDate).format('HH:mm');
+                const endLabel = event.isAllDay ? null : dayjs(event.endDate).format('HH:mm');
 
                 return (
                     <TouchableOpacity
-                        key={event.id}
+                        key={event.eventId}
                         style={[styles.card, { backgroundColor: c.cardBg, borderColor: c.cardBorder }]}
                         onPress={() => handlePressEvent(event)}
                         activeOpacity={0.75}
@@ -189,7 +188,7 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
                                     <View style={styles.priorityRow}>
                                         <View style={[styles.priorityDot, {
                                             backgroundColor:
-                                                event.priority === 'high'   ? '#e74c3c' :
+                                                event.priority === 'high' ? '#e74c3c' :
                                                     event.priority === 'medium' ? '#f39c12' : '#2ecc71'
                                         }]} />
                                         <Text style={[styles.priorityLabel, { color: c.subtitle }]}>
@@ -235,7 +234,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15, shadowRadius: 14, elevation: 6,
     },
     emptyTitle: { fontSize: 16, fontFamily: 'Kanit-Bold', marginTop: 4 },
-    emptySub:   { fontSize: 13, fontFamily: 'Kanit-Regular', opacity: 0.8 },
+    emptySub: { fontSize: 13, fontFamily: 'Kanit-Regular', opacity: 0.8 },
 
     card: {
         flexDirection: 'row', alignItems: 'center',
@@ -252,24 +251,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center',
         paddingVertical: 12, gap: 2,
     },
-    timeMain:    { fontSize: 13, fontFamily: 'Kanit-Bold',    textAlign: 'center' },
+    timeMain: { fontSize: 13, fontFamily: 'Kanit-Bold', textAlign: 'center' },
     timeDivider: { width: 20, height: 1, borderRadius: 1, marginVertical: 2, opacity: 0.4 },
-    timeSub:     { fontSize: 11, fontFamily: 'Kanit-Regular', textAlign: 'center' },
-    allDayPill:  { paddingHorizontal: 6, paddingVertical: 4, borderRadius: 8 },
-    allDayText:  { fontSize: 10, fontFamily: 'Kanit-Bold', textAlign: 'center', lineHeight: 14 },
+    timeSub: { fontSize: 11, fontFamily: 'Kanit-Regular', textAlign: 'center' },
+    allDayPill: { paddingHorizontal: 6, paddingVertical: 4, borderRadius: 8 },
+    allDayText: { fontSize: 10, fontFamily: 'Kanit-Bold', textAlign: 'center', lineHeight: 14 },
 
     body: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, gap: 6, justifyContent: 'center' },
     title: { fontSize: 15, fontFamily: 'Kanit-Bold' },
-    meta:  { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-    catPill:      { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-    catText:      { fontSize: 11, fontFamily: 'Kanit-Bold' },
-    priorityRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    priorityDot:  { width: 6, height: 6, borderRadius: 3 },
-    priorityLabel:{ fontSize: 11, fontFamily: 'Kanit-Regular', textTransform: 'capitalize' },
+    meta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    catPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+    catText: { fontSize: 11, fontFamily: 'Kanit-Bold' },
+    priorityRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    priorityDot: { width: 6, height: 6, borderRadius: 3 },
+    priorityLabel: { fontSize: 11, fontFamily: 'Kanit-Regular', textTransform: 'capitalize' },
 
     avatarArea: { marginRight: 12, marginLeft: 4, alignItems: 'center', gap: 4 },
 
-    avatarStack:   { flexDirection: 'row', alignItems: 'center' },
+    avatarStack: { flexDirection: 'row', alignItems: 'center' },
     avatarWrapper: { borderWidth: 2, borderColor: '#fff', borderRadius: 18 },
     extraBadge: {
         width: 34, height: 34, borderRadius: 17,
