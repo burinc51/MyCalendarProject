@@ -108,21 +108,15 @@ export const buildEventFormData = (
     const bodyData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        startDate: formData.isAllDay
-            ? dayjs(formData.startDate).format('YYYY-MM-DDTHH:mm:ss')
-            : dayjs(`${formData.startDate}T${formData.startTime}`).format('YYYY-MM-DDTHH:mm:ss'),
-        endDate: formData.isAllDay
-            ? dayjs(formData.endDate).format('YYYY-MM-DDTHH:mm:ss')
-            : dayjs(`${formData.endDate}T${formData.endTime}`).format('YYYY-MM-DDTHH:mm:ss'),
+        startDate: formData.isAllDay ? dayjs(formData.startDate).format('YYYY-MM-DDTHH:mm:ss') : dayjs(`${formData.startDate}T${formData.startTime}`).format('YYYY-MM-DDTHH:mm:ss'),
+        endDate: formData.isAllDay ? dayjs(formData.endDate).format('YYYY-MM-DDTHH:mm:ss') : dayjs(`${formData.endDate}T${formData.endTime}`).format('YYYY-MM-DDTHH:mm:ss'),
         color: mapColorToApi(formData.color),
         category: formData.category,
         priority: priorityToApiString(formData.priority as EventPriority),
         location: formData.location.trim(),
         repeatType: formData.repeatType,
         repeatInterval: parseInt(formData.repeatInterval, 10) || 1,
-        repeatUntil: formData.repeatUntil
-            ? dayjs(formData.repeatUntil).startOf('day').format('YYYY-MM-DDTHH:mm:ss')
-            : null,
+        repeatUntil: formData.repeatUntil ? dayjs(formData.repeatUntil).startOf('day').format('YYYY-MM-DDTHH:mm:ss') : null,
         notificationTime: null,
         notificationType: formData.notificationType,
         remindBeforeValue: parseInt(formData.remindBeforeValue, 10) || 0,
@@ -131,22 +125,19 @@ export const buildEventFormData = (
         createById: userId,
         groupId: formData.groupId || null,
         // ถ้ามี assignees array ใน formData (เพิ่มมาตอน submit) ให้ใช้, ถ้าไม่มีให้ส่ง array ว่าง หรือ user ตัวเอง
-        assigneeIds: Array.isArray((formData as any).assignees) 
-            ? (formData as any).assignees 
-            : [userId],
+        assigneeIds: Array.isArray((formData as any).assignees) ? (formData as any).assignees : [userId],
         allDay: formData.isAllDay,
         latitude: null,
         longitude: null,
-        eventId: eventId  // null สำหรับ create, ตัวเลข event สำหรับ update
+        eventId: eventId // null สำหรับ create, ตัวเลข event สำหรับ update
     };
 
     const formDataToSend = new FormData();
-    // ต้องส่งเป็น Blob เพื่อให้ multipart part มี content-type: application/json
-    // ถ้าส่งเป็น string ธรรมดา backend จะ reject ด้วย 400
-    formDataToSend.append(
-        'body',
-        new Blob([JSON.stringify(bodyData)], { type: 'application/json' }) as unknown as string
-    );
-
+    formDataToSend.append('body', {
+        uri: 'data:application/json;base64,' + btoa(JSON.stringify(bodyData)),
+        name: 'body.json',
+        type: 'application/json'
+    } as any);
+    formDataToSend.append('file', '');
     return formDataToSend;
 };

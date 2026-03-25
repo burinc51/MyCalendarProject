@@ -15,7 +15,11 @@ export const getEventsAll = async () => httpClient.post('/api/v1/event/all', pag
 export const getEventbyId = async (eventId: number) => httpClient.get(`/api/v1/event/${eventId}`);
 
 // สร้าง event (multipart/form-data — body part เป็น Blob JSON)
-export const createEvent = async (event: FormData) => httpClient.post('/api/v1/event/create', event);
+export const createEvent = async (event: FormData) => httpClient.post('/api/v1/event/create', event, {
+    headers: {
+        'Content-Type': 'multipart/form-data',
+    }
+});
 
 // อัปเดต event — endpoint คือ PUT /api/v1/event/update, eventId อยู่ใน body JSON แล้ว
 export const updateEvent = async (_eventId: number, _userId: number, event: FormData) =>
@@ -30,4 +34,4 @@ export const getEventsByGroup = async (groupId: number) =>
 
 // ดึง events สำหรับ month view (optimized)
 export const getMonthView = async (startDate: string, endDate: string, groupId?: number) =>
-    httpClient.get('/api/v1/event/month-view', { params: { startDate, endDate, groupId } });
+    httpClient.get('/api/v1/event/month-view', { params: { startDate, endDate, groupId } });

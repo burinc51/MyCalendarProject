@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Alert } from 'react-native';
 import dayjs from 'dayjs';
 import { getMonthView, createEvent, updateEvent, deleteEvent } from '@/services/eventService';
@@ -205,7 +206,7 @@ interface UseCalendarEventsReturn {
     initFormForDate: (date: string) => void;
 }
 
-export const useCalendarEvents = (): UseCalendarEventsReturn => {
+export const useCalendarEvents = (initialGroupId?: number): UseCalendarEventsReturn => {
     // State
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -215,15 +216,16 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
     const [showAddForm, setShowAddForm] = useState(false);
 
     // Fetch events from API
-    const fetchEvents = useCallback(async (startDate?: string, endDate?: string, groupId?: number) => {
+    const fetchEvents = useCallback(async (startDate?: string, endDate?: string, overrideGroupId?: number) => {
         setIsLoading(true);
         setError(null);
         try {
             // Provide a wide 6-month default window if no precise dates are given
             const start = startDate || dayjs().subtract(3, 'month').format('YYYY-MM');
             const end = endDate || dayjs().add(3, 'month').format('YYYY-MM');
+            const targetGroupId = overrideGroupId !== undefined ? overrideGroupId : initialGroupId;
 
-            const response = await getMonthView(start, end, groupId);
+            const response = await getMonthView(start, end, targetGroupId);
 
             let eventsArray = [];
             // Handle both array response and paginated content response
@@ -235,7 +237,7 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
 
             if (eventsArray.length > 0) {
                 const mappedEvents = eventsArray.map(mapApiMonthViewToCalendar);
-                setEvents([...MOCK_EVENTS, ...mappedEvents]);
+                setEvents([...mappedEvents]);
             } else {
                 setEvents(MOCK_EVENTS);
             }
@@ -248,10 +250,12 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
         }
     }, []);
 
-    // Initial fetch
-    useEffect(() => {
-        fetchEvents();
-    }, [fetchEvents]);
+    // Initial fetch and refetch on focus
+    useFocusEffect(
+        useCallback(() => {
+            void fetchEvents();
+        }, [fetchEvents])
+    );
 
     // Reset form to defaults
     const resetForm = useCallback(() => {

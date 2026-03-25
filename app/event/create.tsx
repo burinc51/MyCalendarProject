@@ -289,6 +289,58 @@ const dtb = StyleSheet.create({
     val: { fontSize: 15, fontFamily: 'Kanit-Bold' },
 });
 
+// Group Picker Modal
+const GroupPickerModal: React.FC<{
+    visible: boolean;
+    userGroups: import('@/types/group').GroupWithMembers[];
+    selectedGroupId: number | null;
+    isDark: boolean;
+    accent: string;
+    c: Colors;
+    onClose: () => void;
+    onSelect: (groupId: number) => void;
+}> = ({ visible, userGroups, selectedGroupId, isDark, accent, c, onClose, onSelect }) => {
+    const insets = useSafeAreaInsets();
+    if (!visible) return null;
+    return (
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }]}>
+                <View style={{ backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: insets.bottom, maxHeight: '70%' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: c.cardBorder }}>
+                        <Text style={{ fontSize: 18, fontFamily: 'Kanit-Bold', color: c.text }}>Select Group</Text>
+                        <TouchableOpacity onPress={onClose}><Feather name="x" size={24} color={c.text} /></TouchableOpacity>
+                    </View>
+                    <FlatList
+                        data={userGroups}
+                        keyExtractor={item => item.groupId.toString()}
+                        contentContainerStyle={{ padding: 20, gap: 12 }}
+                        showsVerticalScrollIndicator={false}
+                        renderItem={({ item }) => {
+                            const isSel = item.groupId === selectedGroupId;
+                            return (
+                                <TouchableOpacity 
+                                    style={{ flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, backgroundColor: isSel ? hexToRgba(accent, 0.1) : (isDark ? '#222' : '#f8f9fa'), borderWidth: 1, borderColor: isSel ? accent : 'transparent' }}
+                                    onPress={() => onSelect(item.groupId)}
+                                >
+                                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.bg || hexToRgba(accent, 0.2), justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+                                        {item.icon ? <Feather name={item.icon as any} size={20} color={item.color || accent} /> : <Text style={{ fontFamily: 'Kanit-Bold', color: item.color || accent }}>{item.groupName.charAt(0)}</Text>}
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ fontSize: 16, fontFamily: 'Kanit-Bold', color: c.text }}>{item.groupName}</Text>
+                                        <Text style={{ fontSize: 13, fontFamily: 'Kanit-Regular', color: c.placeholder }}>{item.members.length} members</Text>
+                                    </View>
+                                    {isSel && <Feather name="check-circle" size={20} color={accent} />}
+                                </TouchableOpacity>
+                            );
+                        }}
+                    />
+                </View>
+            </View>
+        </Modal>
+    );
+};
+
+
 // Assignee Modal
 const AssigneeModal: React.FC<{
     visible: boolean; selected: EventUser[];
@@ -394,7 +446,7 @@ export default function EventCreateScreen() {
     const isDark = theme === 'dark';
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const params = useLocalSearchParams<{ date?: string; event?: string }>();
+    const params = useLocalSearchParams<{ date?: string; event?: string; groupId?: string }>();
 
     const existingEvent = useMemo<CalendarEvent | null>(() => {
         try { return params.event ? JSON.parse(params.event as string) : null; }
@@ -428,8 +480,8 @@ export default function EventCreateScreen() {
             };
         }
         const dateStr = params.date ?? dayjs().format('YYYY-MM-DD');
-        return { ...DEFAULT_EVENT_FORM, startDate: dateStr, endDate: dateStr };
-    }, [existingEvent, params.date]);
+        return { ...DEFAULT_EVENT_FORM, startDate: dateStr, endDate: dateStr, groupId: params.groupId ? Number(params.groupId) : null };
+    }, [existingEvent, params.date, params.groupId]);
 
     const { user: authUser } = useAuthStore();
     const [formData, setFormData] = useState<EventFormData>(initialForm);
@@ -447,20 +499,43 @@ export default function EventCreateScreen() {
     });
     const [showAssignees, setShowAssignees] = useState(false);
     const [availableUsers, setAvailableUsers] = useState<EventUser[]>([]);
+    
+    // New states for Group Selection
+    const [userGroups, setUserGroups] = useState<import('@/types/group').GroupWithMembers[]>([]);
+    const [showGroupPicker, setShowGroupPicker] = useState(false);
 
+    // Fetch user's groups on mount
+    React.useEffect(() => {
+        const fetchGroups = async () => {
+            if (!authUser) return;
+            try {
+                const { getGroupsByUserId } = await import('@/services/groupService');
+                const groups = await getGroupsByUserId(authUser.id);
+                setUserGroups(groups);
+                
+                // If creating a new event from personal calendar (no groupId anywhere), set default to first group
+                if (!isEditing && !params.groupId && groups.length > 0) {
+                    setFormData(prev => prev.groupId ? prev : { ...prev, groupId: groups[0].groupId });
+                }
+            } catch (err) {
+                console.error('Failed to load user groups:', err);
+            }
+        };
+        fetchGroups();
+    }, [authUser, isEditing, params.groupId]);
+
+    // Fetch members when selected group changes
     React.useEffect(() => {
         const fetchGroupMembers = async () => {
+            if (!formData.groupId) {
+                setAvailableUsers([]);
+                return;
+            }
             try {
                 const { getUserInGroupsByGroupId } = await import('@/services/groupService');
-                const { useAuthStore } = await import('@/stores/useAuthStore');
-                const authUser = useAuthStore.getState().user;
-                if (!authUser) return;
-
-                const users = await getUserInGroupsByGroupId(authUser.id);
-                // Extract unique members from the API response
+                const users = await getUserInGroupsByGroupId(formData.groupId);
                 const uniqueMembersMap = new Map<number, EventUser>();
                 users.forEach((m: any) => {
-                    // ไม่ต้องเพิ่มตัวเองใน list คนที่จะ assign
                     if (!uniqueMembersMap.has(m.userId)) {
                         uniqueMembersMap.set(m.userId, {
                             userId: m.userId,
@@ -470,7 +545,6 @@ export default function EventCreateScreen() {
                         });
                     }
                 });
-
                 setAvailableUsers(Array.from(uniqueMembersMap.values()));
             } catch (err) {
                 console.error('Failed to load group members:', err);
@@ -478,7 +552,7 @@ export default function EventCreateScreen() {
         };
 
         fetchGroupMembers();
-    }, []);
+    }, [formData.groupId]);
 
     type ActivePicker = 'startDate' | 'endDate' | 'startTime' | 'endTime' | null;
     const [activePicker, setActivePicker] = useState<ActivePicker>(null);
@@ -543,8 +617,12 @@ export default function EventCreateScreen() {
                 await createEvent(fd as unknown as FormData);
                 Alert.alert('Success', 'Event created!', [{ text: 'OK', onPress: () => router.back() }]);
             }
-        } catch { router.back(); }
-    }, [formData, existingEvent, router]);
+        } catch (error: any) {
+            console.error('Save event error:', error?.response?.data || error.message || error);
+            const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error.message || 'Unknown error occurred';
+            Alert.alert('Error', `Failed to save event: ${errorMsg}`);
+        }
+    }, [formData, existingEvent, assignees, router]);
 
     return (
         <View style={[s.root, { backgroundColor: c.bg }]}>
@@ -577,6 +655,18 @@ export default function EventCreateScreen() {
                     {/* ── Basic Info ── */}
                     <View style={[s.card, { backgroundColor: c.card, borderColor: c.cardBorder }]}>
                         <SectionHeader icon="edit-3" title="Basic Info" accent={accent} isDark={isDark} />
+                        <Text style={[s.lbl, { color: c.label }]}>Group *</Text>
+                        <TouchableOpacity 
+                            style={[s.inputRow, { backgroundColor: c.input, borderColor: c.inputBorder, marginBottom: 14 }]} 
+                            onPress={() => setShowGroupPicker(true)}
+                        >
+                            <Feather name="users" size={16} color={c.label} />
+                            <Text style={[s.inputRowTxt, { color: formData.groupId ? c.inputText : c.placeholder }]}>
+                                {userGroups.find(g => g.groupId === formData.groupId)?.groupName || 'Select a Group'}
+                            </Text>
+                            <Feather name="chevron-down" size={18} color={c.placeholder} style={{ position: 'absolute', right: 14 }} />
+                        </TouchableOpacity>
+
                         <Text style={[s.lbl, { color: c.label }]}>Title *</Text>
                         <TextInput
                             style={[s.input, { backgroundColor: c.input, borderColor: c.inputBorder, color: c.inputText }]}
@@ -822,6 +912,21 @@ export default function EventCreateScreen() {
                     onCancel={() => setActivePicker(null)}
                 />
             )}
+
+            {/* Group Picker Modal */}
+            <GroupPickerModal
+                visible={showGroupPicker}
+                userGroups={userGroups}
+                selectedGroupId={formData.groupId}
+                isDark={isDark}
+                accent={accent}
+                c={c}
+                onClose={() => setShowGroupPicker(false)}
+                onSelect={(groupId) => {
+                    updateField('groupId', groupId);
+                    setShowGroupPicker(false);
+                }}
+            />
 
             {/* Assignee modal */}
             <AssigneeModal
