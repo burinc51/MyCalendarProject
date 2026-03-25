@@ -403,7 +403,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
 
     useEffect(() => {
         const h = BackHandler.addEventListener('hardwareBackPress', () => {
-            if (sheetRef.current) { closePanel(); return true; }
+            if (sheetRef.current) {
+                closePanel();
+                return true;
+            }
             return false;
         });
         return () => h.remove();
@@ -412,6 +415,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
     const selectedDateEvents = useMemo(() => {
         if (!selectedDate) return [];
         const day = dayjs(selectedDate);
+        console.log('events ', events);
         return events.filter(event =>
             day.isBetween(dayjs(event.startDate), dayjs(event.endDate), 'day', '[]')
         );

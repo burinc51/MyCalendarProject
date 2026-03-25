@@ -5,7 +5,7 @@
  * Action buttons: Edit (navigates back + opens form) | Delete
  */
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -24,6 +24,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useEventActionStore } from '@/stores/useEventActionStore';
 import type { CalendarEvent, EventUser } from '@/types/event';
 import ScreenHeader from '@/components/ScreenHeader';
+import { getEventById } from '@/services/eventService';
 
 const hexToRgba = (hex: string, alpha: number) => {
     const c = hex?.startsWith('#') ? hex : '#2ecc71';
@@ -108,14 +109,37 @@ const EventDetailScreen = () => {
     const isDark = theme === 'dark';
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const params = useLocalSearchParams<{ event: string }>();
+    const params = useLocalSearchParams<{ id: string; event?: string }>();
     const { requestDelete } = useEventActionStore();
 
-    // The whole CalendarEvent is passed as a JSON string via router param
-    const event = useMemo<CalendarEvent | null>(() => {
+    // The whole CalendarEvent might be passed as a JSON string via router param initially
+    const initialEvent = useMemo<CalendarEvent | null>(() => {
         try { return params.event ? JSON.parse(params.event as string) : null; }
         catch { return null; }
     }, [params.event]);
+
+    const [event, setEvent] = useState<CalendarEvent | null>(initialEvent);
+    const [loading, setLoading] = useState<boolean>(!initialEvent);
+
+    useEffect(() => {
+        const fetchEvent = async () => {
+            if (!params.id) return;
+            try {
+                const response = await getEventById(Number(params.id));
+                if (response.data && response.data.data) {
+                    setEvent(response.data.data);
+                } else if (response.data) {
+                    setEvent(response.data); // depends on exact response structure
+                }
+            } catch (error) {
+                console.error("Failed to fetch event:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchEvent();
+    }, [params.id]);
 
     const accent = event?.color || '#2ecc71';
 
@@ -148,7 +172,7 @@ const EventDetailScreen = () => {
         ]);
     }, [event, requestDelete, router]);
 
-    if (!event) {
+    if (!event && !loading) {
         return (
             <View style={[styles.centered, { backgroundColor: bg }]}>
                 <Feather name="alert-circle" size={48} color={subC} />
@@ -159,6 +183,14 @@ const EventDetailScreen = () => {
                 >
                     <Text style={styles.backBtnText}>Go Back</Text>
                 </TouchableOpacity>
+            </View>
+        );
+    }
+
+    if (loading) {
+        return (
+            <View style={[styles.centered, { backgroundColor: bg }]}>
+                <Text style={[styles.loadingText, { color: subC }]}>Loading event details...</Text>
             </View>
         );
     }
@@ -367,6 +399,7 @@ const styles = StyleSheet.create({
     root: { flex: 1 },
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
     notFoundText: { fontSize: 16, fontFamily: 'Kanit-Regular' },
+    loadingText: { fontSize: 16, fontFamily: 'Kanit-Regular' },
     backBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
     backBtnText: { fontFamily: 'Kanit-Bold', color: '#fff', fontSize: 15 },
 

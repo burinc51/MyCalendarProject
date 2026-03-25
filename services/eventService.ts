@@ -12,7 +12,7 @@ const pagination = {
 export const getEventsAll = async () => httpClient.post('/api/v1/event/all', pagination);
 
 // ดึง event ตาม id
-export const getEventbyId = async (eventId: number) => httpClient.get(`/api/v1/event/${eventId}`);
+export const getEventById = async (eventId: number) => httpClient.get(`/api/v1/event/${eventId}`);
 
 // สร้าง event (multipart/form-data — body part เป็น Blob JSON)
 export const createEvent = async (event: FormData) => httpClient.post('/api/v1/event/create', event, {

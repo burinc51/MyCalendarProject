@@ -25,7 +25,7 @@ interface EventListProps {
     isDark?: boolean;
 }
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// helpers
 const hexToRgba = (hex: string, alpha: number) => {
     const clean = hex?.startsWith('#') ? hex : '#2ecc71';
     const r = parseInt(clean.slice(1, 3), 16);
@@ -42,7 +42,7 @@ const getInitial = (user: EventUser) => {
 const AVATAR_COLORS = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f39c12', '#1abc9c'];
 const avatarBg = (index: number) => AVATAR_COLORS[index % AVATAR_COLORS.length];
 
-// ── Avatar components ─────────────────────────────────────────────────────────
+// Avatar components
 const UserAvatar: React.FC<{ user: EventUser; index: number; size?: number }> = ({
     user, index, size = 36,
 }) => {
@@ -87,7 +87,7 @@ const TitleAvatar: React.FC<{ title: string; color: string }> = ({ title, color 
     </View>
 );
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// Main Component
 const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete: _onDelete, isDark = false }) => {
     const router = useRouter();
 
@@ -108,7 +108,7 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
     const handlePressEvent = (event: CalendarEvent) => {
         router.push({
             pathname: '/event/[id]',
-            params: { id: event.id, event: JSON.stringify(event) },
+            params: { id: event.id },
         });
     };
 
@@ -143,6 +143,7 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
                 const accent   = event.color || '#2ecc71';
                 const accentBg = hexToRgba(accent, isDark ? 0.15 : 0.08);
                 const hasUsers = event.assignees && event.assignees.length > 0;
+                console.log("HasUser = ", event);
                 const startLabel = event.isAllDay ? 'All Day' : dayjs(event.startDate).format('HH:mm');
                 const endLabel   = event.isAllDay ? null       : dayjs(event.endDate).format('HH:mm');
 
@@ -214,7 +215,7 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
     );
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+//  Styles
 const styles = StyleSheet.create({
     list: { flex: 1 },
     listContent: { paddingVertical: 8, paddingBottom: 24 },

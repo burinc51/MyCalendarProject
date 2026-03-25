@@ -45,6 +45,9 @@ export interface ApiMonthViewEvent {
     endDate: string;
     color: string;
     allDay: boolean;
+    priority: 'low' | 'medium' | 'high';
+    assignees: EventUser[] | null;
+    createdBy: EventUser[] | null;
 }
 
 // Component's Calendar Event interface

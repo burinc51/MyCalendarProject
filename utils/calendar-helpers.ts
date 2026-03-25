@@ -88,9 +88,9 @@ export const mapApiMonthViewToCalendar = (apiEvent: ApiMonthViewEvent): Calendar
         isAllDay: apiEvent.allDay,
         color: mapApiColorToHex(apiEvent.color),
         category: 'Event',
-        priority: 'medium',
+        priority: apiEvent.priority,
         location: '',
-        assignees: []
+        assignees: apiEvent.assignees || []
     };
 };
 
