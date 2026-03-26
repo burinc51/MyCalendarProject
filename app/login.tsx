@@ -143,7 +143,7 @@ export default function LoginScreen() {
 
             const { idToken } = await GoogleSignin.getTokens();
             if (!idToken) throw new Error('ไม่พบ idToken จาก Google');
-
+            console.log("idToken: ", idToken)
             const res = await googleSignIn(idToken);
             await setAuth(
                 { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl },

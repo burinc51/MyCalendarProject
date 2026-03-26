@@ -8,7 +8,13 @@ const pagination = {
     filter: {}
 };
 
-export const getEventsAll = async () => httpClient.post('/api/v1/event/all', pagination);
+export const getEventsAll = async (groupId?: number | null) => {
+    const payload = {
+        ...pagination,
+        filter: groupId ? { ...pagination.filter, groupId } : pagination.filter,
+    };
+    return httpClient.post('/api/v1/event/all', payload);
+};
 
 export const getEventbyId = async (eventId: number) => httpClient.get(`/api/v1/event/${eventId}`);
 

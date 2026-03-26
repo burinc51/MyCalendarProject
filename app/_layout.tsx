@@ -17,31 +17,54 @@ import * as Notifications from 'expo-notifications';
 import { setupNotificationHandler, registerForPushNotificationsAsync } from '@/services/notificationService';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useGroupStore } from '@/stores/useGroupStore';
 
 LogBox.ignoreLogs([
     'SafeAreaView has been deprecated',
 ]);
 
 // Auth guard: redirect ไป login ถ้ายังไม่ได้เข้าสู่ระบบ
+// และ redirect ไป onboarding ถ้ายังไม่มี Group
 function useProtectedRoute() {
-    const { isAuthenticated, isLoading } = useAuthStore();
+    const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
+    const { groups, fetchGroups, isLoading: groupsLoading } = useGroupStore();
     const segments = useSegments();
     const router = useRouter();
+    const [groupsChecked, setGroupsChecked] = useState(false);
+
+    // เมื่อ authenticated แล้ว → fetch groups เพื่อตรวจสอบ
+    useEffect(() => {
+        if (isAuthenticated && !authLoading && user?.id) {
+            setGroupsChecked(false);
+            fetchGroups(user.id).finally(() => setGroupsChecked(true));
+        } else if (!isAuthenticated) {
+            setGroupsChecked(false);
+        }
+    }, [isAuthenticated, authLoading, user?.id]);
 
     useEffect(() => {
-        if (isLoading) return; // ยังโหลด auth state อยู่
+        if (authLoading) return;
 
         const inLoginPage = (segments[0] as string) === 'login';
         const inSignupPage = (segments[0] as string) === 'signup';
+        const inOnboarding = (segments[0] as string) === 'onboarding';
 
         if (!isAuthenticated && !inLoginPage && !inSignupPage) {
             // ยังไม่ login → ไปหน้า login
             router.replace('/login' as any);
         } else if (isAuthenticated && (inLoginPage || inSignupPage)) {
-            // login แล้ว → ไปหน้าหลัก
-            router.replace('/(tabs)');
+            // login แล้ว — รอตรวจ groups ก่อน
+            if (!groupsChecked || groupsLoading) return;
+            if (groups.length === 0) {
+                router.replace('/onboarding/welcome' as any);
+            } else {
+                router.replace('/(tabs)');
+            }
+        } else if (isAuthenticated && !inOnboarding && groupsChecked && !groupsLoading && groups.length === 0) {
+            // มี auth แต่ไม่มี group และไม่ได้อยู่หน้า onboarding → redirect
+            router.replace('/onboarding/welcome' as any);
         }
-    }, [isAuthenticated, isLoading, segments]);
+    }, [isAuthenticated, authLoading, groups, groupsChecked, groupsLoading, segments]);
 }
 
 // Inner component that uses theme context
@@ -69,6 +92,14 @@ function ThemedApp() {
                     <Stack.Screen
                         name="signup"
                         options={{ headerShown: false, animation: 'fade' }}
+                    />
+                    <Stack.Screen
+                        name="onboarding/welcome"
+                        options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+                    />
+                    <Stack.Screen
+                        name="onboarding/create-group"
+                        options={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: false }}
                     />
                     <Stack.Screen
                         name="(tabs)"

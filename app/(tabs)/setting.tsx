@@ -268,9 +268,8 @@ export default function SettingsScreen() {
                         setPushTokenLoading(true);
                         try {
                             const token = await getExpoPushToken();
-                            if (token) {
-                                // TODO: เปลี่ยน userId เป็น userId ของ user ที่ login อยู่
-                                const success = await registerPushToken(token, 1);
+                            if (token && user?.id) {
+                                const success = await registerPushToken(token, user.id);
                                 Alert.alert(
                                     success ? '✅ สำเร็จ' : '❌ ผิดพลาด',
                                     success

@@ -20,25 +20,11 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '@/components/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useGroupStore } from '@/stores/useGroupStore';
+import { Group, GroupMember } from '@/types/group';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.80;
-
-// Types
-interface GroupMember {
-    id: string;
-    initial: string;
-    bg: string;
-}
-
-interface Group {
-    id: string;
-    name: string;
-    icon: string;
-    color: string;   // icon accent color
-    bg: string;      // icon background
-    members: GroupMember[];
-}
 
 interface SidebarProps {
     visible: boolean;
@@ -48,52 +34,23 @@ interface SidebarProps {
     userPhotoUrl?: string;
 }
 
-// Mock Data
-const MOCK_GROUPS: Group[] = [
-    {
-        id: '1',
-        name: 'Work',
-        icon: 'building',
-        color: '#4ade80',
-        bg: 'rgba(74,222,128,0.15)',
-        members: [
-            { id: 'a', initial: 'ร', bg: '#c084fc' },
-            { id: 'b', initial: 'บ', bg: '#818cf8' },
-        ],
-    },
-    {
-        id: '2',
-        name: 'Home',
-        icon: 'home',
-        color: '#60a5fa',
-        bg: 'rgba(96,165,250,0.15)',
-        members: [
-            { id: 'c', initial: 'บ', bg: '#818cf8' },
-            { id: 'd', initial: 'ม', bg: '#c084fc' },
-        ],
-    },
-    {
-        id: '3',
-        name: 'Friends',
-        icon: 'user-friends',
-        color: '#f472b6',
-        bg: 'rgba(244,114,182,0.15)',
-        members: [
-            { id: 'e', initial: 'บ', bg: '#818cf8' },
-            { id: 'f', initial: 'ส', bg: '#c084fc' },
-        ],
-    },
-];
-
 // Sub-components 
+const AVATAR_COLORS = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f39c12', '#1abc9c', '#e67e22'];
+const avatarBg = (i: number) => AVATAR_COLORS[i % AVATAR_COLORS.length];
+const getInitial = (m: GroupMember) => (m.name || m.username || '?').trim().charAt(0).toUpperCase();
+
 const MemberAvatar: React.FC<{ member: GroupMember; index: number }> = ({ member, index }) => (
     <View
         style={[
             styles.memberAvatar,
-            { backgroundColor: member.bg, marginLeft: index > 0 ? -7 : 0 },
+            { backgroundColor: avatarBg(index), marginLeft: index > 0 ? -7 : 0 },
         ]}
     >
-        <Text style={styles.memberInitialText}>{member.initial}</Text>
+        {member.imageUrl ? (
+            <Image source={{ uri: member.imageUrl }} style={{ width: '100%', height: '100%', borderRadius: 11 }} />
+        ) : (
+            <Text style={styles.memberInitialText}>{getInitial(member)}</Text>
+        )}
     </View>
 );
 
@@ -110,7 +67,7 @@ const GroupItem: React.FC<{ group: Group; isDark: boolean; onPress: () => void }
         onPress={onPress}
     >
         {/* Icon box */}
-        <View style={[styles.groupIconBox, { backgroundColor: group.bg }]}>
+        <View style={[styles.groupIconBox, { backgroundColor: group.bg || `${group.color}20` }]}>
             <FontAwesome5 name={group.icon as any} size={20} color={group.color} />
         </View>
 
@@ -120,11 +77,11 @@ const GroupItem: React.FC<{ group: Group; isDark: boolean; onPress: () => void }
                 {group.name}
             </Text>
             <View style={styles.memberRow}>
-                {group.members.map((m, i) => (
-                    <MemberAvatar key={m.id} member={m} index={i} />
+                {group.members?.map((m, i) => (
+                    <MemberAvatar key={m.userId} member={m} index={i} />
                 ))}
                 <Text style={[styles.memberCount, { color: isDark ? '#6b7280' : '#9ca3af' }]}>
-                    {group.members.length} members
+                    {group.members?.length || 0} members
                 </Text>
             </View>
         </View>
@@ -155,6 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const backdropAnim = useRef(new Animated.Value(0)).current;
     const [modalVisible, setModalVisible] = useState(false);
     const { user } = useAuthStore();
+    const { groups, fetchGroups, setSelectedGroupId } = useGroupStore();
 
     const displayUserName = user?.name || userName;
     const displayPhotoUrl = user?.photoUrl || userPhotoUrl;
@@ -173,6 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     useEffect(() => {
         if (visible) {
+            if (user?.id) fetchGroups(user.id);
             // Reset to hidden position first, then show Modal and animate in
             slideAnim.setValue(-SIDEBAR_WIDTH);
             backdropAnim.setValue(0);
@@ -295,18 +254,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </Text>
                         <View style={[styles.badge, { backgroundColor: isDark ? '#262626' : '#e5e7eb' }]}>
                             <Text style={[styles.badgeText, { color: C.sectionLabel }]}>
-                                {MOCK_GROUPS.length}
+                                {groups.length}
                             </Text>
                         </View>
                     </View>
 
-                    {MOCK_GROUPS.map(g => (
+                    {groups.map(g => (
                         <GroupItem 
                             key={g.id} 
                             group={g} 
                             isDark={isDark} 
                             onPress={() => {
                                 onClose();
+                                setSelectedGroupId(g.id);
                                 setTimeout(() => {
                                     router.push({
                                         pathname: '/group/[id]',
@@ -327,6 +287,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                             },
                         ]}
                         activeOpacity={0.7}
+                        onPress={() => {
+                            onClose();
+                            setTimeout(() => {
+                                router.push('/group/create');
+                            }, 300);
+                        }}
                     >
                         <Feather name="plus" size={15} color="#2ecc71" />
                         <Text style={styles.addGroupText}>Create new group</Text>

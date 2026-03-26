@@ -10,6 +10,7 @@ import { getEventsAll, createEvent, updateEvent, deleteEvent } from '@/services/
 import { mapApiEventToCalendar, buildEventFormData } from '@/utils/calendar-helpers';
 import { DEFAULT_EVENT_FORM, DEFAULT_USER_ID } from '@/constants/Calendar';
 import type { CalendarEvent, EventFormData } from '@/types/event';
+import { useGroupStore } from '@/stores/useGroupStore';
 
 // ---------------------------------------------------------------------------
 // MOCK EVENTS  (for UI testing — remove or comment out before production)
@@ -212,13 +213,16 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
     const [formData, setFormData] = useState<EventFormData>(DEFAULT_EVENT_FORM);
     const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
+    
+    const { selectedGroupId } = useGroupStore();
 
     // Fetch events from API
     const fetchEvents = useCallback(async () => {
+        if (!selectedGroupId) return; // Don't fetch if no group is selected (API requires it)
         setIsLoading(true);
         setError(null);
         try {
-            const response = await getEventsAll();
+            const response = await getEventsAll(selectedGroupId);
             if (response.data && response.data.content) {
                 const mappedEvents = response.data.content.map(mapApiEventToCalendar);
                 // Merge real API events with mock events for UI testing
@@ -237,13 +241,15 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
 
     // Initial fetch
     useEffect(() => {
-        fetchEvents();
-    }, [fetchEvents]);
+        if (selectedGroupId) {
+            fetchEvents();
+        }
+    }, [fetchEvents, selectedGroupId]);
 
     // Reset form to defaults
     const resetForm = useCallback(() => {
-        setFormData(DEFAULT_EVENT_FORM);
-    }, []);
+        setFormData({ ...DEFAULT_EVENT_FORM, groupId: selectedGroupId });
+    }, [selectedGroupId]);
 
     // Update single form field
     const updateFormData = useCallback((key: keyof EventFormData, value: unknown) => {
@@ -255,9 +261,10 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
         setFormData((prev) => ({
             ...prev,
             startDate: date,
-            endDate: date
+            endDate: date,
+            groupId: selectedGroupId
         }));
-    }, []);
+    }, [selectedGroupId]);
 
     // Handle edit event - populate form
     const handleEditEvent = useCallback((event: CalendarEvent) => {
