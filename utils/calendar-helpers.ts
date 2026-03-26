@@ -2,9 +2,10 @@
  * Calendar helper functions
  * Utility functions for data mapping and transformation
  */
+import { encode as btoa } from 'base-64';
 
 import dayjs from 'dayjs';
-import type { ApiEvent, CalendarEvent, EventPriority, EventUser } from '@/types/event';
+import type { ApiEvent, ApiMonthViewEvent, CalendarEvent, EventPriority, EventUser } from '@/types/event';
 import { COLOR_NAME_TO_HEX, HEX_TO_COLOR_NAME, API_PRIORITY_MAP, PRIORITY_TO_API_MAP, DEFAULT_USER_ID } from '@/constants/Calendar';
 
 /**
@@ -51,7 +52,7 @@ export const mapApiEventToCalendar = (apiEvent: ApiEvent): CalendarEvent => {
     }));
 
     return {
-        id: apiEvent.eventId,
+        eventId: apiEvent.eventId,
         userId: apiEvent.userId,
         title: apiEvent.title,
         description: apiEvent.description || '',
@@ -75,37 +76,74 @@ export const mapApiEventToCalendar = (apiEvent: ApiEvent): CalendarEvent => {
     };
 };
 
+/**
+ * Transform an API month-view event into a CalendarEvent for the component
+ * Uses default placeholders for fields not returned by the month-view API
+ */
+export const mapApiMonthViewToCalendar = (apiEvent: ApiMonthViewEvent): CalendarEvent => {
+    return {
+        eventId: apiEvent.eventId,
+        title: apiEvent.title,
+        startDate: apiEvent.startDate,
+        endDate: apiEvent.endDate,
+        isAllDay: apiEvent.allDay,
+        color: mapApiColorToHex(apiEvent.color),
+        category: 'Event',
+        priority: apiEvent.priority,
+        location: '',
+        assignees: apiEvent.assignees || []
+    };
+};
+
+/** Maps component priority (low/medium/high) → API string (LOW/MEDIUM/HIGH) */
+const priorityToApiString = (priority: EventPriority): string => {
+    const map: Record<EventPriority, string> = { low: 'LOW', medium: 'MEDIUM', high: 'HIGH' };
+    return map[priority] ?? 'MEDIUM';
+};
+
 export const buildEventFormData = (
     formData: import('@/types/event').EventFormData,
-    userId = DEFAULT_USER_ID
+    userId = DEFAULT_USER_ID,
+    eventId: number | null = null
 ): FormData => {
     const bodyData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        startDate: formData.isAllDay ? dayjs(formData.startDate).toISOString() : dayjs(`${formData.startDate} ${formData.startTime}`).toISOString(),
-        endDate: formData.isAllDay ? dayjs(formData.endDate).toISOString() : dayjs(`${formData.endDate} ${formData.endTime}`).toISOString(),
+        startDate: formData.isAllDay ? dayjs(formData.startDate).format('YYYY-MM-DDTHH:mm:ss') : dayjs(`${formData.startDate}T${formData.startTime}`).format('YYYY-MM-DDTHH:mm:ss'),
+        endDate: formData.isAllDay ? dayjs(formData.endDate).format('YYYY-MM-DDTHH:mm:ss') : dayjs(`${formData.endDate}T${formData.endTime}`).format('YYYY-MM-DDTHH:mm:ss'),
         color: mapColorToApi(formData.color),
         category: formData.category,
-        priority: mapPriorityToApi(formData.priority),
+        priority: priorityToApiString(formData.priority as EventPriority),
         location: formData.location.trim(),
         repeatType: formData.repeatType,
         repeatInterval: parseInt(formData.repeatInterval, 10) || 1,
-        repeatUntil: formData.repeatUntil ? dayjs(formData.repeatUntil).startOf('day').toISOString() : null,
-        notificationTime: null, // Let backend calculate based on value/unit
+        repeatUntil: formData.repeatUntil ? dayjs(formData.repeatUntil).startOf('day').format('YYYY-MM-DDTHH:mm:ss') : null,
+        notificationTime: null,
         notificationType: formData.notificationType,
         remindBeforeValue: parseInt(formData.remindBeforeValue, 10) || 0,
         remindBeforeUnit: formData.remindBeforeUnit,
         pinned: formData.pinned,
         createById: userId,
         groupId: formData.groupId || null,
-        assigneeIds: [],
-        latitude: 0,
-        longitude: 0,
-        eventId: 0
+        // ถ้ามี assignees array ใน formData (เพิ่มมาตอน submit) ให้ใช้, ถ้าไม่มีให้ส่ง array ว่าง หรือ user ตัวเอง
+        assigneeIds: Array.isArray((formData as any).assignees) ? (formData as any).assignees : [userId],
+        allDay: formData.isAllDay,
+        latitude: null,
+        longitude: null,
+        eventId: eventId // null สำหรับ create, ตัวเลข event สำหรับ update
     };
 
-    const formDataToSend = new FormData();
-    formDataToSend.append('body', JSON.stringify(bodyData));
+    const jsonString = JSON.stringify(bodyData);
 
+    const utf8SafeString = unescape(encodeURIComponent(jsonString));
+    const base64Data = btoa(utf8SafeString);
+
+    const formDataToSend = new FormData();
+    formDataToSend.append('body', {
+        uri: `data:application/json;base64,${base64Data}`,
+        name: 'body.json',
+        type: 'application/json'
+    } as any);
+    formDataToSend.append('file', '');
     return formDataToSend;
 };

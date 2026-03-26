@@ -38,9 +38,21 @@ export interface ApiEvent {
     pinned: boolean;
 }
 
+export interface ApiMonthViewEvent {
+    eventId: number;
+    title: string;
+    startDate: string;
+    endDate: string;
+    color: string;
+    allDay: boolean;
+    priority: 'low' | 'medium' | 'high';
+    assignees: EventUser[] | null;
+    createdBy: EventUser[] | null;
+}
+
 // Component's Calendar Event interface
 export interface CalendarEvent {
-    id: number;
+    eventId: number;
     userId?: number;
     title: string;
     description?: string;
@@ -60,8 +72,8 @@ export interface CalendarEvent {
     repeatUntil?: string | null;
     pinned?: boolean;
     groupId?: number | null;
-    assignees?: EventUser[];  // users associated with this event
-    createdBy?: EventUser;   // user who created this event
+    assignees?: EventUser[]; // users associated with this event
+    createdBy?: EventUser; // user who created this event
     // Extended fields for calendar rendering
     weekSpan?: number;
     isStartOfEvent?: boolean;

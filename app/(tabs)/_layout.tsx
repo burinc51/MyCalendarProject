@@ -1,5 +1,5 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, Redirect } from 'expo-router';
+import React, { useEffect } from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -7,6 +7,8 @@ import { Feather } from '@expo/vector-icons';
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/components/ThemeProvider';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { registerPushTokenForUser } from '@/services/pushNotificationService';
 
 // Custom tab icon with active indicator dot
 function TabIcon({ name, color }: { name: React.ComponentProps<typeof Feather>['name']; color: string; }) {
@@ -29,6 +31,19 @@ export default function TabLayout() {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const { user, isAuthenticated } = useAuthStore();
+
+    // Register/refresh push token every time the app boots while authenticated
+    // This handles token refresh after reinstall or device changes
+    useEffect(() => {
+        if (isAuthenticated && user?.id) {
+            registerPushTokenForUser(user.id);
+        }
+    }, [isAuthenticated, user?.id]);
+
+    if (!isAuthenticated) {
+        return <Redirect href="/login" />;
+    }
 
     const TAB_H = 56;
 

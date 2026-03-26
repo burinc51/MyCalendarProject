@@ -110,9 +110,9 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
                 <View style={styles.allDayRight}>
                     {visibleAllDay.map(e => (
                         <TouchableOpacity
-                            key={e.id}
+                            key={e.eventId}
                             style={[styles.allDayEventRow, { backgroundColor: e.color || colors.allDayEventBg }]}
-                            onPress={() => router.push({ pathname: '/event/[id]', params: { id: e.id, event: JSON.stringify(e) } })}
+                            onPress={() => router.push({ pathname: '/event/[id]', params: { id: e.eventId, event: JSON.stringify(e) } })}
                             activeOpacity={0.7}
                         >
                             <Text style={styles.allDayEventText} numberOfLines={1}>
@@ -163,11 +163,11 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
 
                     {/* Events */}
                     {positionedEvents.map(({ event, top, height, startLabel }) => (
-                        <TouchableOpacity key={event.id} style={[styles.eventBlock, {
+                        <TouchableOpacity key={event.eventId} style={[styles.eventBlock, {
                             top, height,
                             backgroundColor: event.color || '#2ecc71',
                             left: 64, right: 8
-                        }]} onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id, event: JSON.stringify(event) } })} activeOpacity={0.7}>
+                        }]} onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.eventId, event: JSON.stringify(event) } })} activeOpacity={0.7}>
                             <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
                         </TouchableOpacity>
                     ))}

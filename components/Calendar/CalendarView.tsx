@@ -163,7 +163,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
     // Hook for events
     const {
         events, isLoading, handleDeleteEvent, handleEditEvent
-    } = useCalendarEvents();
+    } = useCalendarEvents(isGroupCalendar ? (groupId ? Number(groupId) : undefined) : null);
 
     console.log('isLoading', isLoading);
 
@@ -202,7 +202,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
                 params: { event: JSON.stringify(pendingEvent) },
             });
         } else if (pendingAction === 'delete') {
-            handleDeleteEvent(pendingEvent.id);
+            handleDeleteEvent(pendingEvent.eventId); // skip second confirmation
         }
         clearAction();
     }, [pendingAction, pendingEvent]);
@@ -403,7 +403,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
 
     useEffect(() => {
         const h = BackHandler.addEventListener('hardwareBackPress', () => {
-            if (sheetRef.current) { closePanel(); return true; }
+            if (sheetRef.current) {
+                closePanel();
+                return true;
+            }
             return false;
         });
         return () => h.remove();
@@ -438,14 +441,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
         setFocusDate(date);
         setViewMode('day');
     }, []);
-
-    // if (isLoading) {
-    //     return (
-    //         <View style={[styles.centered, { backgroundColor: colors.background }]}>
-    //             <ActivityIndicator size="large" color="#2ecc71" />
-    //         </View>
-    //     );
-    // }
 
     const currentViewMode = VIEW_MODES.find(m => m.value === viewMode)!;
 
@@ -703,7 +698,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
             {viewMode === 'year' && (
                 <CalendarYearView
                     year={displayYear}
-                    events={events}
+                    groupId={groupId ? Number(groupId) : undefined}
                     isDark={isDark}
                     onSelectMonth={handleSelectMonthFromYear}
                 />

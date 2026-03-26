@@ -126,3 +126,21 @@ export async function triggerNotificationJob(): Promise<boolean> {
     }
 }
 
+/**
+ * ลงทะเบียน Push Token สำหรับ User ที่ login แล้ว
+ * เรียกหลัง login สำเร็จ หรือตอน app boot ขณะที่ยัง authenticated อยู่
+ *
+ * @param userId - User ID จาก auth store
+ */
+export async function registerPushTokenForUser(userId: number): Promise<void> {
+    try {
+        const token = await getExpoPushToken();
+        if (!token) return;
+        await registerPushToken(token, userId);
+    } catch (error) {
+        // silent fail — ไม่ควร block flow การ login
+        console.warn('registerPushTokenForUser failed (non-critical):', error);
+    }
+}
+
+

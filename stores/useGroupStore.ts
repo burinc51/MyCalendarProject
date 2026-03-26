@@ -1,15 +1,15 @@
 import { create } from 'zustand';
-import { getGroupsAll, createGroup as createGroupApi } from '@/services/groupService';
-import type { Group, CreateGroupPayload } from '@/types/group';
+import { getGroupsAllByUserId, createGroup as createGroupApi } from '@/services/groupService';
+import { Group, CreateGroupPayload, GroupApiResponse } from '@/types/group';
 
 interface GroupState {
-    groups: Group[];
+    groups: GroupApiResponse[];
     selectedGroupId: number | null;
     isLoading: boolean;
     error: string | null;
 
     fetchGroups: (userId: number) => Promise<void>;
-    createGroup: (payload: Omit<CreateGroupPayload, 'creatorUserId'>, userId: number) => Promise<Group>;
+    createGroup: (payload: Omit<CreateGroupPayload, 'creatorUserId'>, userId: number) => Promise<GroupApiResponse>;
     setSelectedGroupId: (id: number | null) => void;
 }
 
@@ -22,10 +22,10 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     fetchGroups: async (userId) => {
         set({ isLoading: true, error: null });
         try {
-            const data = await getGroupsAll(userId);
+            const data = await getGroupsAllByUserId(userId);
             set((state) => ({ 
                 groups: data || [], 
-                selectedGroupId: state.selectedGroupId || (data?.length > 0 ? data[0].id : null),
+                selectedGroupId: state.selectedGroupId || (data?.length > 0 ? data[0].groupId : null),
                 isLoading: false 
             }));
         } catch (error: any) {
@@ -40,7 +40,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
             const newGroup = await createGroupApi(fullPayload);
             set((state) => ({ 
                 groups: [...state.groups, newGroup],
-                selectedGroupId: newGroup.id,
+                selectedGroupId: newGroup.groupId,
                 isLoading: false 
             }));
             return newGroup;
