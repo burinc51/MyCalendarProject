@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 // Components
 import { NoteList, NoteEditor } from '@/components/Note';
 import { useTheme } from '@/components/ThemeProvider';
+import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import Toast from '@/components/ui/Toast';
 
 // Hooks
@@ -24,6 +25,7 @@ import type { Note } from '@/types/note';
 const NotesScreen = () => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const { headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet } = useResponsiveDimensions();
 
     const {
         // Notes
@@ -86,21 +88,25 @@ const NotesScreen = () => {
             backgroundColor: isDark ? '#171717' : '#f8f9fa'
         },
         header: {
-            backgroundColor: isDark ? '#262626' : '#fff',
-            paddingHorizontal: 16,
-            paddingVertical: 14,
-            borderBottomWidth: 1,
-            borderBottomColor: isDark ? '#404040' : '#f0f0f0'
+            height: headerHeight,
+            backgroundColor: isDark ? '#171717' : '#fff',
+            flexDirection: 'row' as const,
+            alignItems: 'center' as const,
+            justifyContent: 'space-between' as const,
+            paddingHorizontal: horizontalPadding,
+            borderBottomWidth: 0.25,
+            borderBottomColor: '#424141a9',
         },
         headerTitle: {
             fontFamily: 'Kanit-Bold',
-            fontSize: 20,
-            color: isDark ? '#e5e5e5' : '#2c3e50',
+            fontSize: isSmallPhone ? 18 : isTablet ? 24 : titleFontSize,
+            color: isDark ? '#f5f5f5' : '#2c3e50',
+            letterSpacing: 0.5,
         }
     };
 
     return (
-        <SafeAreaView style={dynamicStyles.container}>
+        <View style={dynamicStyles.container}>
             <StatusBar
                 barStyle={isDark ? 'light-content' : 'dark-content'}
                 backgroundColor={isDark ? '#171717' : '#f8f9fa'}
@@ -146,7 +152,7 @@ const NotesScreen = () => {
 
             {/* Toast notification */}
             <Toast message={toast} onHide={hideToast} />
-        </SafeAreaView>
+        </View>
     );
 };
 

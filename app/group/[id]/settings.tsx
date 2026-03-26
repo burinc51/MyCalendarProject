@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -6,29 +6,54 @@ import {
     TouchableOpacity,
     ScrollView,
     Switch,
-    Alert
+    Alert,
+    ActivityIndicator,
+    Clipboard
 } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { Feather, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
+import { Feather, MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/components/ThemeProvider';
 import ScreenHeader from '@/components/ScreenHeader';
-
-// Mock Data for members matching Sidebar group
-const MOCK_MEMBERS = [
-    { id: '1', name: 'Burin', initial: 'บ', bg: '#818cf8', role: 'Admin' },
-    { id: '2', name: 'Somchai', initial: 'ส', bg: '#c084fc', role: 'Member' },
-    { id: '3', name: 'Mana', initial: 'ม', bg: '#f472b6', role: 'Member' },
-];
+import { getGroupById, removeMemberFromGroup } from '@/services/groupService';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { Group } from '@/types/group';
 
 export default function GroupSettingsScreen() {
-    const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+    const { id, name: initialName } = useLocalSearchParams<{ id: string; name?: string }>();
+    const groupId = parseInt(id as string);
     const router = useRouter();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const insets = useSafeAreaInsets();
+    const { user } = useAuthStore();
 
+    const [group, setGroup] = useState<Group | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const isFirstRun = useRef(true);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            if (groupId) {
+                fetchGroupData(isFirstRun.current);
+                isFirstRun.current = false;
+            }
+        }, [groupId])
+    );
+
+    const fetchGroupData = async (showLoading = false) => {
+        try {
+            if (showLoading) setIsLoading(true);
+            const data = await getGroupById(groupId);
+            setGroup(data);
+        } catch (error) {
+            console.error('Failed to fetch group:', error);
+            Alert.alert('Error', 'Failed to load group details');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const colors = {
         background: isDark ? '#121212' : '#f5f7fa',
@@ -41,6 +66,13 @@ export default function GroupSettingsScreen() {
         accent: '#2ecc71',
     };
 
+    const handleCopyInviteCode = () => {
+        if (group?.inviteCode) {
+            Clipboard.setString(group.inviteCode);
+            Alert.alert("Copied!", "Invite code copied to clipboard.");
+        }
+    };
+
     const handleLeaveGroup = () => {
         Alert.alert(
             "Leave Group",
@@ -50,20 +82,36 @@ export default function GroupSettingsScreen() {
                 {
                     text: "Leave",
                     style: "destructive",
-                    onPress: () => {
-                        // TODO: Implement leave action
-                        router.replace('/(tabs)');
+                    onPress: async () => {
+                        if (user?.id) {
+                            try {
+                                await removeMemberFromGroup(groupId, user.id);
+                                router.replace('/(tabs)');
+                            } catch (e: any) {
+                                Alert.alert("Error", e.message || "Failed to leave group");
+                            }
+                        }
                     }
                 }
             ]
         );
     };
 
+    if (isLoading) {
+        return (
+            <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center' }]}>
+                <ActivityIndicator size="large" color={colors.accent} />
+            </View>
+        );
+    }
+
+    const members = group?.members || [];
+
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Stack.Screen options={{ headerShown: false }} />
 
-            <ScreenHeader title={`${name || 'Group'} Settings`} showBack={true} />
+            <ScreenHeader title={`${group?.name || initialName || 'Group'} Settings`} showBack={true} />
 
             <ScrollView
                 style={styles.scrollView}
@@ -73,32 +121,60 @@ export default function GroupSettingsScreen() {
                 {/* --- Section: Group Profile --- */}
                 <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                     <View style={styles.profileBox}>
-                        <View style={[styles.groupIconLg, { backgroundColor: isDark ? 'rgba(74,222,128,0.15)' : '#eafaf1' }]}>
-                            <FontAwesome5 name="users" size={32} color={colors.accent} />
+                        <View style={[styles.groupIconLg, { backgroundColor: (group?.color || colors.accent) + '20' }]}>
+                            <FontAwesome5 name={group?.icon || "users"} size={32} color={group?.color || colors.accent} />
                         </View>
-                        <Text style={[styles.groupName, { color: colors.textPrimary }]}>{name || 'Group Name'}</Text>
-                        <TouchableOpacity style={styles.editProfileBtn}>
-                            <Text style={[styles.editProfileText, { color: colors.accent }]}>Edit Profile</Text>
+                        <Text style={[styles.groupName, { color: colors.textPrimary }]}>{group?.name || initialName}</Text>
+                        <TouchableOpacity
+                            style={styles.editProfileBtn}
+                            className='bg-blue-500'
+                            onPress={() => router.push({
+                                pathname: '/group/create',
+                                params: { id: group?.id, mode: 'edit' }
+                            })}
+                        >
+                            <Text style={[styles.editProfileText]} className='text-white'>Settings</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* --- Section: Invite Code --- */}
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>INVITE CODE</Text>
+                <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+                    <View style={styles.row}>
+                        <View style={[styles.prefIcon, { backgroundColor: isDark ? '#333' : '#f3f4f6' }]}>
+                            <Ionicons name="key-outline" size={18} color={colors.textPrimary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.rowText, { color: colors.textPrimary, fontFamily: 'Kanit-Bold', fontSize: 18, letterSpacing: 2 }]}>
+                                {group?.inviteCode || '------'}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: 'Kanit-Regular' }}>Share this code with others to join</Text>
+                        </View>
+                        <TouchableOpacity style={styles.copyBtn} onPress={handleCopyInviteCode}>
+                            <Feather name="copy" size={18} color={colors.accent} />
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 {/* --- Section: Members --- */}
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>MEMBERS ({MOCK_MEMBERS.length})</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>MEMBERS ({members.length})</Text>
                 <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-                    {MOCK_MEMBERS.map((member, index) => (
-                        <View key={member.id} style={[
+                    {members.map((member, index) => (
+                        <View key={member.userId} style={[
                             styles.row,
-                            index < MOCK_MEMBERS.length - 1 && [styles.rowBorder, { borderBottomColor: colors.border }]
+                            index < members.length - 1 && [styles.rowBorder, { borderBottomColor: colors.border }]
                         ]}>
-                            <View style={[styles.memberAvatar, { backgroundColor: member.bg }]}>
-                                <Text style={styles.memberInitial}>{member.initial}</Text>
+                            <View style={[styles.memberAvatar, { backgroundColor: member.avatarColor || '#94a3b8' }]}>
+                                <Text style={styles.memberInitial}>{member.initialText || '?'}</Text>
                             </View>
                             <View style={styles.memberInfo}>
-                                <Text style={[styles.memberName, { color: colors.textPrimary }]}>{member.name}</Text>
-                                <Text style={[styles.memberRole, { color: colors.textSecondary }]}>{member.role}</Text>
+                                <Text style={[styles.memberName, { color: colors.textPrimary }]}>
+                                    {member.name} {member.userId === user?.id && <Text style={{ fontSize: 12, fontWeight: 'normal' }}>(You)</Text>}
+                                </Text>
+                                <Text style={[styles.memberRole, { color: colors.textSecondary }]}>{member.role || 'Member'}</Text>
                             </View>
-                            {member.role === 'Admin' && (
+                            {member.role === 'ADMIN' && (
                                 <View style={styles.adminBadge}>
                                     <Text style={styles.adminText}>Admin</Text>
                                 </View>
@@ -106,11 +182,15 @@ export default function GroupSettingsScreen() {
                         </View>
                     ))}
 
-                    <TouchableOpacity style={[styles.row, styles.addMemberRow, styles.rowBorder, { borderBottomColor: colors.border }]} activeOpacity={0.6}>
+                    <TouchableOpacity
+                        style={[styles.row, styles.addMemberRow]}
+                        activeOpacity={0.6}
+                        onPress={handleCopyInviteCode}
+                    >
                         <View style={[styles.addMemberIcon, { backgroundColor: isDark ? 'rgba(46,204,113,0.1)' : '#eafaf1' }]}>
-                            <Feather name="plus" size={18} color={colors.accent} />
+                            <Feather name="user-plus" size={18} color={colors.accent} />
                         </View>
-                        <Text style={[styles.addMemberText, { color: colors.accent }]}>Add Members</Text>
+                        <Text style={[styles.addMemberText, { color: colors.accent }]}>Invite Members via Code</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -130,13 +210,6 @@ export default function GroupSettingsScreen() {
                             style={{ transform: [{ scale: 0.85 }] }}
                         />
                     </View>
-                    <TouchableOpacity style={styles.row} activeOpacity={0.6}>
-                        <View style={[styles.prefIcon, { backgroundColor: isDark ? '#333' : '#f3f4f6' }]}>
-                            <Feather name="link" size={18} color={colors.textPrimary} />
-                        </View>
-                        <Text style={[styles.rowText, { color: colors.textPrimary }]}>Share Invite Link</Text>
-                        <MaterialIcons name="chevron-right" size={20} color={colors.textSecondary} />
-                    </TouchableOpacity>
                 </View>
 
                 {/* --- Section: Danger Zone --- */}
@@ -203,7 +276,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: 20,
-        backgroundColor: 'rgba(46,204,113,0.1)',
     },
     editProfileText: {
         fontFamily: 'Kanit-Bold',
@@ -292,4 +364,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: 14,
     },
+    copyBtn: {
+        padding: 8,
+        backgroundColor: 'rgba(46,204,113,0.1)',
+        borderRadius: 8,
+    }
 });

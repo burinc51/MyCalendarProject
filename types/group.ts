@@ -3,6 +3,10 @@ export interface GroupMember {
     username?: string;
     name?: string;
     imageUrl?: string | null;
+    picture_url?: string | null; // for API response mapping
+    initialText?: string;
+    avatarColor?: string;
+    role?: 'ADMIN' | 'MEMBER';
 }
 
 export interface Group {
@@ -12,10 +16,10 @@ export interface Group {
     color: string;
     bg?: string;
     description?: string;
+    inviteCode?: string;
     members?: GroupMember[];
 }
 
-// Raw shape returned by API (before mapping)
 export interface GroupApiResponse {
     groupId: number;
     groupName: string;
@@ -23,13 +27,11 @@ export interface GroupApiResponse {
     color: string;
     bg?: string;
     description?: string;
-    members?: {
-        userId: number;
-        username?: string;
-        name?: string;
-        picture_url?: string | null;
-    }[];
+    inviteCode?: string;
+    members?: GroupMember[];
 }
+
+
 
 export interface CreateGroupPayload {
     groupName: string;

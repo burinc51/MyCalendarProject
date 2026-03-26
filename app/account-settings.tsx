@@ -96,7 +96,8 @@ export default function AccountSettingsScreen() {
 
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const { user } = useAuthStore();
+    const { user, clearAuth } = useAuthStore();
+    const router = useRouter();
 
     const C = {
         bg: isDark ? '#111111' : '#f5f6f8',
@@ -116,7 +117,26 @@ export default function AccountSettingsScreen() {
         avatarBg: 'rgba(200,180,230,0.55)',
     };
 
+    const handleLogout = () => {
+        Alert.alert(
+            'Logout',
+            'Are you sure you want to sign out?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Logout',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await clearAuth();
+                        router.replace('/');
+                    },
+                },
+            ]
+        );
+    };
+
     const handleSave = async () => {
+// ...
         setSaving(true);
         // Simulate API call
         await new Promise(res => setTimeout(res, 800));
@@ -288,6 +308,21 @@ export default function AccountSettingsScreen() {
                 {/*        </React.Fragment>*/}
                 {/*    ))}*/}
                 {/*</View>*/}
+
+                {/* Account Actions */}
+                <View style={[styles.card, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
+                    <TouchableOpacity
+                        style={styles.actionRow}
+                        onPress={handleLogout}
+                        activeOpacity={0.6}
+                    >
+                        <View style={[styles.actionIconBox, { backgroundColor: 'rgba(239,68,68,0.1)' }]}>
+                            <Feather name="log-out" size={16} color={C.danger} />
+                        </View>
+                        <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Bold' }]}>Logout</Text>
+                        <Feather name="chevron-right" size={20} color={C.subText} />
+                    </TouchableOpacity>
+                </View>
 
                 {/* Danger Zone */}
                 <View style={[styles.card, { backgroundColor: C.card, borderColor: 'rgba(239,68,68,0.2)' }]}>
@@ -483,29 +518,29 @@ const styles = StyleSheet.create({
     },
 
     // Action rows
-    // actionRow: {
-    //     flexDirection: 'row',
-    //     alignItems: 'center',
-    //     gap: 12,
-    //     paddingHorizontal: 16,
-    //     paddingVertical: 12,
-    // },
-    // actionIconBox: {
-    //     width: 34,
-    //     height: 34,
-    //     borderRadius: 10,
-    //     justifyContent: 'center',
-    //     alignItems: 'center',
-    // },
-    // actionLabel: {
-    //     flex: 1,
-    //     fontFamily: 'Kanit-Regular',
-    //     fontSize: 15,
-    // },
-    // rowDivider: {
-    //     height: 1,
-    //     marginHorizontal: 16,
-    // },
+    actionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    actionIconBox: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    actionLabel: {
+        flex: 1,
+        fontFamily: 'Kanit-Regular',
+        fontSize: 15,
+    },
+    rowDivider: {
+        height: 1,
+        marginHorizontal: 16,
+    },
 
     // Danger
     dangerBtn: {

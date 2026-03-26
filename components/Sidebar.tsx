@@ -14,6 +14,7 @@ import {
     ScrollView,
     Dimensions,
     Image,
+    Alert,
 } from 'react-native';
 import { Feather, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -22,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useGroupStore } from '@/stores/useGroupStore';
 import { Group, GroupApiResponse, GroupMember } from '@/types/group';
+import CustomBottomSheetModal, { CustomBottomSheetModalRef } from '@/components/CustomBottomSheetModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.80;
@@ -52,7 +54,7 @@ const MemberAvatar: React.FC<{ member: GroupMember; index: number }> = ({ member
     </View>
 );
 
-const GroupItem: React.FC<{ group: GroupApiResponse; isDark: boolean; onPress: () => void }> = ({ group, isDark, onPress }) => (
+const GroupItem: React.FC<{ group: GroupApiResponse; isDark: boolean; onPress: () => void; onLongPress: () => void }> = ({ group, isDark, onPress, onLongPress }) => (
     <TouchableOpacity
         style={[
             styles.groupCard,
@@ -63,6 +65,8 @@ const GroupItem: React.FC<{ group: GroupApiResponse; isDark: boolean; onPress: (
         ]}
         activeOpacity={0.65}
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={500}
     >
         {/* Icon box */}
         <View style={[styles.groupIconBox, { backgroundColor: group.bg || `${group.color}20` }]}>
@@ -110,7 +114,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     const backdropAnim = useRef(new Animated.Value(0)).current;
     const [modalVisible, setModalVisible] = useState(false);
     const { user } = useAuthStore();
-    const { groups, fetchGroups, setSelectedGroupId } = useGroupStore();
+    const { groups, fetchGroups, setSelectedGroupId, deleteGroup } = useGroupStore();
+
+    const bottomSheetRef = useRef<CustomBottomSheetModalRef>(null);
+    const [selectedGroupForAction, setSelectedGroupForAction] = useState<GroupApiResponse | null>(null);
 
     const displayUserName = user?.name || userName;
     const displayPhotoUrl = user?.photoUrl || userPhotoUrl;
@@ -272,8 +279,34 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     });
                                 }, 300); // Wait for sidebar to close before navigating
                             }} 
+                            onLongPress={() => {
+                                setSelectedGroupForAction(g);
+                                bottomSheetRef.current?.present();
+                            }}
                         />
                     ))}
+
+                    {/* Join group button */}
+                    <TouchableOpacity
+                        style={[
+                            styles.addGroupBtn,
+                            {
+                                borderColor: isDark ? 'rgba(96,165,250,0.3)' : 'rgba(96,165,250,0.4)',
+                                backgroundColor: isDark ? 'rgba(96,165,250,0.05)' : 'rgba(96,165,250,0.06)',
+                                marginBottom: 10
+                            },
+                        ]}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                            onClose();
+                            setTimeout(() => {
+                                router.push('/group/join');
+                            }, 300);
+                        }}
+                    >
+                        <Feather name="user-plus" size={15} color="#3b82f6" />
+                        <Text style={[styles.addGroupText, { color: '#3b82f6' }]}>Join a group</Text>
+                    </TouchableOpacity>
 
                     {/* Add group button */}
                     <TouchableOpacity
@@ -297,6 +330,71 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </TouchableOpacity>
                 </ScrollView>
             </Animated.View>
+
+            {/* Group Action Menu */}
+            <CustomBottomSheetModal ref={bottomSheetRef} isDark={isDark} snapPoints={['35%']}>
+                <View style={[styles.menuContainer, { borderBottomColor: C.divider }]}>
+                    <Text style={[styles.menuTitle, { color: isDark ? '#f5f5f5' : '#1a1a1a' }]}>
+                        {selectedGroupForAction?.groupName || 'Group Options'}
+                    </Text>
+                    <Text style={[styles.menuSubtitle, { color: C.sectionLabel }]}>
+                        Manage this group
+                    </Text>
+                </View>
+
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                        bottomSheetRef.current?.dismiss();
+                        onClose();
+                        if (selectedGroupForAction) {
+                            setTimeout(() => {
+                                router.push({
+                                    pathname: '/group/[id]/settings',
+                                    params: { id: selectedGroupForAction.groupId, name: selectedGroupForAction.groupName }
+                                });
+                            }, 400);
+                        }
+                    }}
+                >
+                    <View style={[styles.menuIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6' }]}>
+                        <Feather name="settings" size={18} color={isDark ? '#e5e7eb' : '#4b5563'} />
+                    </View>
+                    <Text style={[styles.menuItemText, { color: isDark ? '#f5f5f5' : '#1a1a1a' }]}>Group Settings</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                        if (!selectedGroupForAction || !user?.id) return;
+                        
+                        Alert.alert(
+                            "Delete Group",
+                            `Are you sure you want to delete "${selectedGroupForAction.groupName}"? This action cannot be undone.`,
+                            [
+                                { text: "Cancel", style: "cancel" },
+                                { 
+                                    text: "Delete", 
+                                    style: "destructive", 
+                                    onPress: async () => {
+                                        try {
+                                            bottomSheetRef.current?.dismiss();
+                                            await deleteGroup(selectedGroupForAction.groupId, user.id);
+                                        } catch (e: any) {
+                                            Alert.alert("Error", e.message || "Failed to delete group");
+                                        }
+                                    }
+                                }
+                            ]
+                        );
+                    }}
+                >
+                    <View style={[styles.menuIcon, { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }]}>
+                        <Feather name="trash-2" size={18} color="#ef4444" />
+                    </View>
+                    <Text style={[styles.menuItemText, { color: '#ef4444', fontFamily: 'Kanit-Bold' }]}>Delete Group</Text>
+                </TouchableOpacity>
+            </CustomBottomSheetModal>
         </Modal>
     );
 };
@@ -516,6 +614,42 @@ const styles = StyleSheet.create({
         fontFamily: 'Kanit-Regular',
         fontSize: 14,
         color: '#2ecc71',
+        letterSpacing: 0.2,
+    },
+    // Menu styles
+    menuContainer: {
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 16,
+        borderBottomWidth: 1,
+        marginBottom: 8,
+    },
+    menuTitle: {
+        fontFamily: 'Kanit-Bold',
+        fontSize: 18,
+    },
+    menuSubtitle: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 12,
+        marginTop: 2,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        gap: 14,
+    },
+    menuIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    menuItemText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 16,
         letterSpacing: 0.2,
     },
 });
