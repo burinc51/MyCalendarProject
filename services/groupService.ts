@@ -1,20 +1,18 @@
 import httpClient from '@/lib/httpClient';
-import { EventUser } from '@/types/event';
-import type { GroupWithMembers } from '@/types/group';
+import type { Group, CreateGroupPayload } from '@/types/group';
 
-// ดึง groups ทั้งหมดที่ user คนนี้อยู่ (พร้อม members list)
-// GET /api/v1/group/user/{userId}
-export const getGroupsByUserId = async (userId: number): Promise<GroupWithMembers[]> => {
-    const res = await httpClient.get<GroupWithMembers[]>(`/api/v1/group/user/${userId}`);
-    return res.data;
+export const getGroupsAll = async (userId: number): Promise<Group[]> => {
+    const response = await httpClient.get(`/api/v1/group/user/${userId}`);
+    return response.data;
 };
 
-// ดึง group เดียวตาม groupId
-// GET /api/v1/group/{groupId}
-export const getGroupById = async (groupId: number) =>
-    httpClient.get(`/api/v1/group/${groupId}`);
+export const createGroup = async (payload: CreateGroupPayload): Promise<Group> => {
+    console.log("payload create group :", JSON.stringify(payload, null, 2));
+    const response = await httpClient.post('/api/v1/group/create', payload);
+    return response.data;
+};
 
-export const getUserInGroupsByGroupId = async (groupId: number): Promise<EventUser[]> => {
-    const res = await httpClient.get(`/api/v1/group/${groupId}/users`);
-    return res.data;
-}
+export const getGroupById = async (groupId: number): Promise<Group> => {
+    const response = await httpClient.get(`/api/v1/group/${groupId}`);
+    return response.data;
+};

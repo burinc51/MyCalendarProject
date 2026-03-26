@@ -1,21 +1,23 @@
-/**
- * Group-related TypeScript interfaces
- */
-
-// สมาชิกใน group (matches backend GroupMemberResponse)
 export interface GroupMember {
     userId: number;
-    initialText: string | null;
-    avatarColor: string | null;
-    picture_url: string | null;
+    username: string;
+    name: string;
+    imageUrl?: string | null;
 }
 
-// Group พร้อม members (matches GET /api/v1/group/user/{userId} response)
-export interface GroupWithMembers {
-    groupId: number;
+export interface Group {
+    id: number;
+    name: string;
+    icon: string;
+    color: string;
+    bg?: string;
+    members?: GroupMember[];
+}
+
+export interface CreateGroupPayload {
     groupName: string;
-    icon: string | null;
-    color: string | null;
-    bg: string | null;
-    members: GroupMember[];
+    icon: string;
+    color: string;
+    description?: string;
+    bg?: string;
 }

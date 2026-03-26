@@ -8,8 +8,13 @@ const pagination = {
     filter: {}
 };
 
-// ดึง events ทั้งหมด (pagination)
-export const getEventsAll = async () => httpClient.post('/api/v1/event/all', pagination);
+export const getEventsAll = async (groupId?: number | null) => {
+    const payload = {
+        ...pagination,
+        filter: groupId ? { ...pagination.filter, groupId } : pagination.filter,
+    };
+    return httpClient.post('/api/v1/event/all', payload);
+};
 
 // ดึง event ตาม id
 export const getEventById = async (eventId: number) => httpClient.get(`/api/v1/event/${eventId}`);

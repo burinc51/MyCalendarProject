@@ -23,7 +23,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { googleSignIn, emailSignIn } from '@/services/authService';
-import { registerPushTokenForUser } from '@/services/pushNotificationService';
 import { StatusBar } from 'expo-status-bar';
 
 // ──────────────────────────────────────────────────────────────────
@@ -113,9 +112,11 @@ export default function LoginScreen() {
         try {
             setEmailLoading(true);
             const res = await emailSignIn(email.trim(), password);
-            const user = { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl };
-            await setAuth(user, res.accessToken, res.refreshToken);
-            registerPushTokenForUser(res.userId); // fire-and-forget
+            await setAuth(
+                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl },
+                res.accessToken,
+                res.refreshToken,
+            );
             router.replace('/(tabs)');
         } catch (error: any) {
             console.error('Email Sign-In error:', error);
@@ -142,12 +143,13 @@ export default function LoginScreen() {
 
             const { idToken } = await GoogleSignin.getTokens();
             if (!idToken) throw new Error('ไม่พบ idToken จาก Google');
-            console.log("idToken = ", idToken);
-
+            console.log("idToken: ", idToken)
             const res = await googleSignIn(idToken);
-            const user = { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl };
-            await setAuth(user, res.accessToken, res.refreshToken);
-            registerPushTokenForUser(res.userId); // fire-and-forget
+            await setAuth(
+                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl },
+                res.accessToken,
+                res.refreshToken,
+            );
 
             console.log('✅ Google Sign-In success:', res.email);
             router.replace('/(tabs)');
