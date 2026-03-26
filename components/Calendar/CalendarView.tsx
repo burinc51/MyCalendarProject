@@ -163,7 +163,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
     // Hook for events
     const {
         events, isLoading, handleDeleteEvent, handleEditEvent
-    } = useCalendarEvents(groupId ? Number(groupId) : undefined);
+    } = useCalendarEvents(isGroupCalendar ? (groupId ? Number(groupId) : undefined) : null);
 
     console.log('isLoading', isLoading);
 

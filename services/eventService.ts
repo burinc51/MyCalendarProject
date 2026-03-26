@@ -1,4 +1,5 @@
 import httpClient from '@/lib/httpClient';
+import { encode as btoa } from 'base-64';
 
 const pagination = {
     pageNumber: 1,

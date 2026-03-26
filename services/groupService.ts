@@ -1,5 +1,6 @@
 import httpClient from '@/lib/httpClient';
-import type { Group, GroupApiResponse, CreateGroupPayload } from '@/types/group';
+import type { CreateGroupPayload, Group, GroupApiResponse } from '@/types/group';
+import { EventUser } from '@/types/event';
 
 // Map API response shape → local Group type
 const mapGroup = (g: GroupApiResponse): Group => ({
@@ -17,19 +18,22 @@ const mapGroup = (g: GroupApiResponse): Group => ({
     })),
 });
 
-export const getGroupsAll = async (userId: number): Promise<Group[]> => {
+export const getGroupsAllByUserId = async (userId: number): Promise<GroupApiResponse[]> => {
     const response = await httpClient.get(`/api/v1/group/user/${userId}`);
-    const data: GroupApiResponse[] = response.data?.content ?? response.data ?? [];
-    return data.map(mapGroup);
+    return response.data?.content ?? response.data ?? [];
 };
 
-export const createGroup = async (payload: CreateGroupPayload): Promise<Group> => {
-    console.log("payload create group :", JSON.stringify(payload, null, 2));
-    const response = await httpClient.post('/api/v1/group/create', payload);
-    return mapGroup(response.data);
+export const createGroup = async (payload: CreateGroupPayload): Promise<GroupApiResponse> => {
+    console.log('payload create group :', JSON.stringify(payload, null, 2));
+    return await httpClient.post('/api/v1/group/create', payload);
 };
 
 export const getGroupById = async (groupId: number): Promise<Group> => {
     const response = await httpClient.get(`/api/v1/group/${groupId}`);
     return mapGroup(response.data);
+};
+
+export const getUserInGroupsByGroupId = async (groupId: number): Promise<EventUser[]> => {
+    const res = await httpClient.get(`/api/v1/group/${groupId}/users`);
+    return res.data;
 };

@@ -4,13 +4,14 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Alert } from 'react-native';
 import dayjs from 'dayjs';
-import { getEventsAll, createEvent, updateEvent, deleteEvent } from '@/services/eventService';
-import { mapApiEventToCalendar, buildEventFormData } from '@/utils/calendar-helpers';
+import { getMonthView, createEvent, updateEvent, deleteEvent } from '@/services/eventService';
+import { mapApiEventToCalendar, mapApiMonthViewToCalendar, buildEventFormData } from '@/utils/calendar-helpers';
 import { DEFAULT_EVENT_FORM, DEFAULT_USER_ID } from '@/constants/Calendar';
+import { useAuthStore } from '@/stores/useAuthStore';
 import type { CalendarEvent, EventFormData } from '@/types/event';
-import { useGroupStore } from '@/stores/useGroupStore';
 
 // ---------------------------------------------------------------------------
 // MOCK EVENTS  (for UI testing — remove or comment out before production)
@@ -24,13 +25,13 @@ const MOCK_USERS = {
     bob: { userId: 2, username: 'bob', name: 'Bob Smith', imageUrl: null },
     carol: { userId: 3, username: 'carol', name: 'Carol White', imageUrl: null },
     dave: { userId: 4, username: 'dave', name: 'Dave Brown', imageUrl: null },
-    eve: { userId: 5, username: 'eve', name: 'Eve Martinez', imageUrl: null },
+    eve: { userId: 5, username: 'eve', name: 'Eve Martinez', imageUrl: null }
 };
 
 const MOCK_EVENTS: CalendarEvent[] = [
     // All-day event spanning 3 days — 3 assignees
     {
-        id: 9001,
+        eventId: 9001,
         title: 'ประชุมประจำเดือน',
         isAllDay: true,
         startDate: fmt(today.startOf('week').add(1, 'day')),
@@ -43,7 +44,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Today morning meeting — 2 assignees
     {
-        id: 9002,
+        eventId: 9002,
         title: 'Stand-up Meeting',
         isAllDay: false,
         startDate: fmt(today.hour(9).minute(0)),
@@ -56,7 +57,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Today lunch — 1 assignee (only self)
     {
-        id: 9003,
+        eventId: 9003,
         title: '🍜 พักกินข้าว',
         isAllDay: false,
         startDate: fmt(today.hour(12).minute(0)),
@@ -69,7 +70,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Today afternoon — 4 assignees (tests +N overflow badge)
     {
-        id: 9004,
+        eventId: 9004,
         title: 'Code Review',
         isAllDay: false,
         startDate: fmt(today.hour(14).minute(0)),
@@ -82,7 +83,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Tomorrow — 2 assignees
     {
-        id: 9005,
+        eventId: 9005,
         title: 'Design Workshop',
         isAllDay: false,
         startDate: fmt(today.add(1, 'day').hour(10).minute(0)),
@@ -95,7 +96,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Day after tomorrow — no assignees (tests fallback avatar)
     {
-        id: 9006,
+        eventId: 9006,
         title: 'วันหยุดพิเศษ 🎉',
         isAllDay: true,
         startDate: fmt(today.add(2, 'day').startOf('day')),
@@ -108,7 +109,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Next week — 5 assignees (tests +2 badge)
     {
-        id: 9007,
+        eventId: 9007,
         title: 'Sprint Planning',
         isAllDay: false,
         startDate: fmt(today.add(7, 'day').hour(9).minute(0)),
@@ -121,7 +122,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // End of month — 1 assignee
     {
-        id: 9008,
+        eventId: 9008,
         title: 'Monthly Review 📊',
         isAllDay: false,
         startDate: fmt(today.endOf('month').subtract(1, 'day').hour(14).minute(0)),
@@ -134,7 +135,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Next month — 2 assignees
     {
-        id: 9009,
+        eventId: 9009,
         title: 'Team Outing 🏖️',
         isAllDay: true,
         startDate: fmt(today.add(1, 'month').startOf('month').add(4, 'day')),
@@ -147,7 +148,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
     },
     // Yesterday — 1 assignee
     {
-        id: 9010,
+        eventId: 9010,
         title: 'Retrospective',
         isAllDay: false,
         startDate: fmt(today.subtract(1, 'day').hour(16).minute(0)),
@@ -159,7 +160,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
         assignees: [MOCK_USERS.alice]
     },
     {
-        id: 9011,
+        eventId: 9011,
         title: 'Retrospective',
         isAllDay: true,
         startDate: fmt(today.startOf('week').add(1, 'day')),
@@ -171,7 +172,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
         assignees: [MOCK_USERS.bob, MOCK_USERS.dave]
     },
     {
-        id: 9012,
+        eventId: 9012,
         title: 'Retrospective',
         isAllDay: true,
         startDate: fmt(today.startOf('week').add(1, 'day')),
@@ -194,7 +195,7 @@ interface UseCalendarEventsReturn {
     showAddForm: boolean;
 
     // Actions
-    fetchEvents: () => Promise<void>;
+    fetchEvents: (startDate?: string, endDate?: string, groupId?: number) => Promise<void>;
     setShowAddForm: (show: boolean) => void;
     setEditingEvent: (event: CalendarEvent | null) => void;
     updateFormData: (key: keyof EventFormData, value: unknown) => void;
@@ -205,7 +206,7 @@ interface UseCalendarEventsReturn {
     initFormForDate: (date: string) => void;
 }
 
-export const useCalendarEvents = (): UseCalendarEventsReturn => {
+export const useCalendarEvents = (initialGroupId?: number): UseCalendarEventsReturn => {
     // State
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -213,20 +214,30 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
     const [formData, setFormData] = useState<EventFormData>(DEFAULT_EVENT_FORM);
     const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
-    
-    const { selectedGroupId } = useGroupStore();
 
     // Fetch events from API
-    const fetchEvents = useCallback(async () => {
-        if (!selectedGroupId) return; // Don't fetch if no group is selected (API requires it)
+    const fetchEvents = useCallback(async (startDate?: string, endDate?: string, overrideGroupId?: number) => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await getEventsAll(selectedGroupId);
-            if (response.data && response.data.content) {
-                const mappedEvents = response.data.content.map(mapApiEventToCalendar);
-                // Merge real API events with mock events for UI testing
-                setEvents([...MOCK_EVENTS, ...mappedEvents]);
+            // Provide a wide 6-month default window if no precise dates are given
+            const start = startDate || dayjs().subtract(3, 'month').format('YYYY-MM');
+            const end = endDate || dayjs().add(3, 'month').format('YYYY-MM');
+            const targetGroupId = overrideGroupId !== undefined ? overrideGroupId : initialGroupId;
+
+            const response = await getMonthView(start, end, targetGroupId);
+
+            let eventsArray = [];
+            // Handle both array response and paginated content response
+            if (Array.isArray(response.data)) {
+                eventsArray = response.data;
+            } else if (response.data && response.data.content) {
+                eventsArray = response.data.content;
+            }
+
+            if (eventsArray.length > 0) {
+                const mappedEvents = eventsArray.map(mapApiMonthViewToCalendar);
+                setEvents([...mappedEvents]);
             } else {
                 setEvents(MOCK_EVENTS);
             }
@@ -239,17 +250,17 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
         }
     }, []);
 
-    // Initial fetch
-    useEffect(() => {
-        if (selectedGroupId) {
-            fetchEvents();
-        }
-    }, [fetchEvents, selectedGroupId]);
+    // Initial fetch and refetch on focus
+    useFocusEffect(
+        useCallback(() => {
+            void fetchEvents();
+        }, [fetchEvents])
+    );
 
     // Reset form to defaults
     const resetForm = useCallback(() => {
-        setFormData({ ...DEFAULT_EVENT_FORM, groupId: selectedGroupId });
-    }, [selectedGroupId]);
+        setFormData(DEFAULT_EVENT_FORM);
+    }, []);
 
     // Update single form field
     const updateFormData = useCallback((key: keyof EventFormData, value: unknown) => {
@@ -261,10 +272,9 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
         setFormData((prev) => ({
             ...prev,
             startDate: date,
-            endDate: date,
-            groupId: selectedGroupId
+            endDate: date
         }));
-    }, [selectedGroupId]);
+    }, []);
 
     // Handle edit event - populate form
     const handleEditEvent = useCallback((event: CalendarEvent) => {
@@ -296,18 +306,28 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
 
     // Save or Update event
     const handleSaveEvent = useCallback(async () => {
+        // ดึง userId จาก auth store (fallback DEFAULT_USER_ID ถ้า logout)
+        const authUserId = useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
+
         // Basic validation
         if (!formData.title.trim()) {
             Alert.alert('Error', 'Please enter a title');
             return;
         }
 
+        if (!formData.startDate) {
+            Alert.alert('Error', 'Please select a start date');
+            return;
+        }
+
         try {
-            const formDataToSend = buildEventFormData(formData, editingEvent?.userId || DEFAULT_USER_ID);
+            const userId = editingEvent?.userId ?? authUserId;
+            // สำหรับ update ส่ง eventId เข้าไปด้วยเพื่อให้ backend รู้ว่า update event ไหน
+            const eventId = editingEvent ? editingEvent.eventId : null;
+            const formDataToSend = buildEventFormData(formData, userId, eventId);
 
             if (editingEvent) {
-                const userId = editingEvent.userId || DEFAULT_USER_ID;
-                await updateEvent(editingEvent.id, userId, formDataToSend as unknown as FormData);
+                await updateEvent(editingEvent.eventId, userId, formDataToSend as unknown as FormData);
                 Alert.alert('Success', 'Event updated!');
             } else {
                 await createEvent(formDataToSend as unknown as FormData);
@@ -317,33 +337,39 @@ export const useCalendarEvents = (): UseCalendarEventsReturn => {
             setShowAddForm(false);
             setEditingEvent(null);
             resetForm();
-            fetchEvents();
-        } catch (err) {
-            Alert.alert('Error', 'Failed to save event.');
+            await fetchEvents();
+        } catch (err: unknown) {
+            const msg = (err as any)?.response?.data?.message || (err as any)?.message || 'Failed to save event.';
+            Alert.alert('Error', msg);
             console.error('Save event error:', err);
         }
     }, [formData, editingEvent, resetForm, fetchEvents]);
 
     // Delete event
     const handleDeleteEvent = useCallback(
-        (eventId: number) => {
-            Alert.alert('Delete Event', 'Are you sure you want to delete this event?', [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await deleteEvent(eventId);
-                            Alert.alert('Success', 'Event deleted successfully!');
-                            fetchEvents();
-                        } catch (err) {
-                            Alert.alert('Error', 'Failed to delete event.');
-                            console.error('Delete event error:', err);
-                        }
-                    }
+        (eventId: number, skipConfirm = false) => {
+            const executeDelete = async () => {
+                try {
+                    await deleteEvent(eventId);
+                    await fetchEvents();
+                } catch (err) {
+                    Alert.alert('Error', 'Failed to delete event.');
+                    console.error('Delete event error:', err);
                 }
-            ]);
+            };
+
+            if (skipConfirm) {
+                executeDelete();
+            } else {
+                Alert.alert('Delete Event', 'Are you sure you want to delete this event?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: executeDelete
+                    }
+                ]);
+            }
         },
         [fetchEvents]
     );

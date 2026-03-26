@@ -21,7 +21,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useGroupStore } from '@/stores/useGroupStore';
-import { Group, GroupMember } from '@/types/group';
+import { Group, GroupApiResponse, GroupMember } from '@/types/group';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.80;
@@ -40,21 +40,19 @@ const avatarBg = (i: number) => AVATAR_COLORS[i % AVATAR_COLORS.length];
 const getInitial = (m: GroupMember) => (m.name || m.username || '?').trim().charAt(0).toUpperCase();
 
 const MemberAvatar: React.FC<{ member: GroupMember; index: number }> = ({ member, index }) => (
-    <View
-        style={[
-            styles.memberAvatar,
-            { backgroundColor: avatarBg(index), marginLeft: index > 0 ? -7 : 0 },
-        ]}
-    >
+    <View style={[styles.memberAvatar, { backgroundColor: avatarBg(index), marginLeft: index > 0 ? -7 : 0 }]}>
         {member.imageUrl ? (
-            <Image source={{ uri: member.imageUrl }} style={{ width: '100%', height: '100%', borderRadius: 11 }} />
+            <Image
+                source={{ uri: member.imageUrl }}
+                style={{ width: '100%', height: '100%', borderRadius: 11 }}
+            />
         ) : (
             <Text style={styles.memberInitialText}>{getInitial(member)}</Text>
         )}
     </View>
 );
 
-const GroupItem: React.FC<{ group: Group; isDark: boolean; onPress: () => void }> = ({ group, isDark, onPress }) => (
+const GroupItem: React.FC<{ group: GroupApiResponse; isDark: boolean; onPress: () => void }> = ({ group, isDark, onPress }) => (
     <TouchableOpacity
         style={[
             styles.groupCard,
@@ -74,7 +72,7 @@ const GroupItem: React.FC<{ group: Group; isDark: boolean; onPress: () => void }
         {/* Name + members */}
         <View style={styles.groupMeta}>
             <Text style={[styles.groupName, { color: isDark ? '#f5f5f5' : '#1a1a1a' }]}>
-                {group.name}
+                {group.groupName}
             </Text>
             <View style={styles.memberRow}>
                 {group.members?.map((m, i) => (
@@ -261,16 +259,16 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                     {groups.map(g => (
                         <GroupItem 
-                            key={g.id} 
-                            group={g} 
+                            key={g.groupId}
+                            group={g}
                             isDark={isDark} 
                             onPress={() => {
                                 onClose();
-                                setSelectedGroupId(g.id);
+                                setSelectedGroupId(g.groupId);
                                 setTimeout(() => {
                                     router.push({
                                         pathname: '/group/[id]',
-                                        params: { id: g.id, name: g.name }
+                                        params: { id: g.groupId, name: g.groupName }
                                     });
                                 }, 300); // Wait for sidebar to close before navigating
                             }} 

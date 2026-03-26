@@ -124,6 +124,7 @@ const CalendarWeekView: React.FC<Props> = ({
             if (startCol > 6 || endCol < 0) return;
 
             let row = 0;
+            // eslint-disable-next-line no-constant-condition
             while (true) {
                 const occupied = rowRanges[row] || [];
                 const conflict = occupied.some(([sc, ec]) => startCol <= ec && endCol >= sc);
@@ -150,7 +151,7 @@ const CalendarWeekView: React.FC<Props> = ({
         Array.from({ length: 7 }, (_, col) =>
             spanEvents.filter(sp => sp.row >= MAX_ROWS && sp.startCol <= col && sp.endCol >= col).length
         )
-        , [spanEvents]);
+    , [spanEvents]);
 
     // Section height: rows + optional overflow row
     const OVERFLOW_ROW_H = 20;
@@ -220,7 +221,7 @@ const CalendarWeekView: React.FC<Props> = ({
                     <View style={styles.allDayGrid} onLayout={handleGridLayout}>
                         {colWidth > 0 && visibleSpans.map(({ event, startCol, endCol, row }) => (
                             <TouchableOpacity
-                                key={event.id}
+                                key={event.eventId}
                                 style={[
                                     styles.spanBar,
                                     {
@@ -231,7 +232,7 @@ const CalendarWeekView: React.FC<Props> = ({
                                         backgroundColor: event.color || '#5C6BC0',
                                     }
                                 ]}
-                                onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id, event: JSON.stringify(event) } })}
+                                onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.eventId, event: JSON.stringify(event) } })}
                                 activeOpacity={0.7}
                             >
                                 <Text style={styles.spanBarText} numberOfLines={1}>
@@ -294,12 +295,12 @@ const CalendarWeekView: React.FC<Props> = ({
                                 ))}
                                 {dayEvts.map(({ event, top, height }) => (
                                     <TouchableOpacity
-                                        key={event.id}
+                                        key={event.eventId}
                                         style={[styles.eventBlock, {
                                             top, height,
                                             backgroundColor: event.color || '#2ecc71'
                                         }]}
-                                        onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id, event: JSON.stringify(event) } })}
+                                        onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.eventId, event: JSON.stringify(event) } })}
                                         activeOpacity={0.7}
                                     >
                                         <Text style={styles.eventText} numberOfLines={2}>{event.title}</Text>

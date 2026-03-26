@@ -2,6 +2,7 @@
  * Calendar helper functions
  * Utility functions for data mapping and transformation
  */
+import { encode as btoa } from 'base-64';
 
 import dayjs from 'dayjs';
 import type { ApiEvent, ApiMonthViewEvent, CalendarEvent, EventPriority, EventUser } from '@/types/event';
@@ -132,9 +133,14 @@ export const buildEventFormData = (
         eventId: eventId // null สำหรับ create, ตัวเลข event สำหรับ update
     };
 
+    const jsonString = JSON.stringify(bodyData);
+
+    const utf8SafeString = unescape(encodeURIComponent(jsonString));
+    const base64Data = btoa(utf8SafeString);
+
     const formDataToSend = new FormData();
     formDataToSend.append('body', {
-        uri: 'data:application/json;base64,' + btoa(JSON.stringify(bodyData)),
+        uri: `data:application/json;base64,${base64Data}`,
         name: 'body.json',
         type: 'application/json'
     } as any);

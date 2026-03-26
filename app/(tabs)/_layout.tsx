@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,12 +33,17 @@ export default function TabLayout() {
     const isDark = theme === 'dark';
     const { user, isAuthenticated } = useAuthStore();
 
+    // Register/refresh push token every time the app boots while authenticated
     // This handles token refresh after reinstall or device changes
     useEffect(() => {
         if (isAuthenticated && user?.id) {
             registerPushTokenForUser(user.id);
         }
     }, [isAuthenticated, user?.id]);
+
+    if (!isAuthenticated) {
+        return <Redirect href="/login" />;
+    }
 
     const TAB_H = 56;
 
@@ -122,7 +127,16 @@ export default function TabLayout() {
             />
             <Tabs.Screen
                 name="setting"
-                options={{ href: null }}
+                options={{
+                    title: 'Settings',
+                    tabBarIcon: ({ color }) => (
+                        <TabIcon
+                            name="settings"
+                            color={color}
+                        />
+                    ),
+                    tabBarAccessibilityLabel: 'Settings Tab'
+                }}
             />
         </Tabs>
     );

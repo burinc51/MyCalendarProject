@@ -24,6 +24,8 @@ import { DEFAULT_EVENT_FORM } from '@/constants/Calendar';
 import type { CalendarEvent, EventFormData, EventPriority, EventUser } from '@/types/event';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { GroupApiResponse, GroupMember } from '@/types/group';
+import { getGroupsAllByUserId } from '@/services/groupService';
 
 // Helpers
 const hexToRgba = (hex: string, alpha: number) => {
@@ -292,7 +294,7 @@ const dtb = StyleSheet.create({
 // Group Picker Modal
 const GroupPickerModal: React.FC<{
     visible: boolean;
-    userGroups: import('@/types/group').GroupWithMembers[];
+    userGroups: import('@/types/group').GroupApiResponse[];
     selectedGroupId: number | null;
     isDark: boolean;
     accent: string;
@@ -303,33 +305,78 @@ const GroupPickerModal: React.FC<{
     const insets = useSafeAreaInsets();
     if (!visible) return null;
     return (
-        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+        <Modal
+            visible={visible}
+            transparent
+            animationType="fade"
+            onRequestClose={onClose}
+        >
             <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }]}>
                 <View style={{ backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: insets.bottom, maxHeight: '70%' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: c.cardBorder }}>
+                    <View
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: c.cardBorder }}
+                    >
                         <Text style={{ fontSize: 18, fontFamily: 'Kanit-Bold', color: c.text }}>Select Group</Text>
-                        <TouchableOpacity onPress={onClose}><Feather name="x" size={24} color={c.text} /></TouchableOpacity>
+                        <TouchableOpacity onPress={onClose}>
+                            <Feather
+                                name="x"
+                                size={24}
+                                color={c.text}
+                            />
+                        </TouchableOpacity>
                     </View>
                     <FlatList
                         data={userGroups}
-                        keyExtractor={item => item.groupId.toString()}
+                        keyExtractor={(item) => item.groupId.toString()}
                         contentContainerStyle={{ padding: 20, gap: 12 }}
                         showsVerticalScrollIndicator={false}
                         renderItem={({ item }) => {
                             const isSel = item.groupId === selectedGroupId;
                             return (
-                                <TouchableOpacity 
-                                    style={{ flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, backgroundColor: isSel ? hexToRgba(accent, 0.1) : (isDark ? '#222' : '#f8f9fa'), borderWidth: 1, borderColor: isSel ? accent : 'transparent' }}
+                                <TouchableOpacity
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        padding: 14,
+                                        borderRadius: 14,
+                                        backgroundColor: isSel ? hexToRgba(accent, 0.1) : isDark ? '#222' : '#f8f9fa',
+                                        borderWidth: 1,
+                                        borderColor: isSel ? accent : 'transparent'
+                                    }}
                                     onPress={() => onSelect(item.groupId)}
                                 >
-                                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.bg || hexToRgba(accent, 0.2), justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
-                                        {item.icon ? <Feather name={item.icon as any} size={20} color={item.color || accent} /> : <Text style={{ fontFamily: 'Kanit-Bold', color: item.color || accent }}>{item.groupName.charAt(0)}</Text>}
+                                    <View
+                                        style={{
+                                            width: 40,
+                                            height: 40,
+                                            borderRadius: 20,
+                                            backgroundColor: item.bg || hexToRgba(accent, 0.2),
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            marginRight: 14
+                                        }}
+                                    >
+                                        {item.icon ? (
+                                            <Feather
+                                                name={item.icon as any}
+                                                size={20}
+                                                color={item.color || accent}
+                                            />
+                                        ) : (
+                                            <Text style={{ fontFamily: 'Kanit-Bold', color: item.color || accent }}>{item.groupName.charAt(0)}</Text>
+                                        )}
                                     </View>
                                     <View style={{ flex: 1 }}>
                                         <Text style={{ fontSize: 16, fontFamily: 'Kanit-Bold', color: c.text }}>{item.groupName}</Text>
                                         <Text style={{ fontSize: 13, fontFamily: 'Kanit-Regular', color: c.placeholder }}>{item.members.length} members</Text>
                                     </View>
-                                    {isSel && <Feather name="check-circle" size={20} color={accent} />}
+                                    {isSel && (
+                                        <Feather
+                                            name="check-circle"
+                                            size={20}
+                                            color={accent}
+                                        />
+                                    )}
                                 </TouchableOpacity>
                             );
                         }}
@@ -488,12 +535,14 @@ export default function EventCreateScreen() {
     const [assignees, setAssignees] = useState<EventUser[]>(() => {
         if (existingEvent?.assignees) return existingEvent.assignees;
         if (authUser) {
-            return [{
-                userId: authUser.id,
-                name: authUser.name || authUser.email?.split('@')[0] || 'Me',
-                username: authUser.email?.split('@')[0] || '',
-                imageUrl: authUser.photoUrl || null
-            }];
+            return [
+                {
+                    userId: authUser.id,
+                    name: authUser.name || authUser.email?.split('@')[0] || 'Me',
+                    username: authUser.email?.split('@')[0] || '',
+                    imageUrl: authUser.photoUrl || null
+                }
+            ];
         }
         return [];
     });
@@ -501,7 +550,7 @@ export default function EventCreateScreen() {
     const [availableUsers, setAvailableUsers] = useState<EventUser[]>([]);
     
     // New states for Group Selection
-    const [userGroups, setUserGroups] = useState<import('@/types/group').GroupWithMembers[]>([]);
+    const [userGroups, setUserGroups] = useState<import('@/types/group').GroupApiResponse[]>([]);
     const [showGroupPicker, setShowGroupPicker] = useState(false);
 
     // Fetch user's groups on mount
@@ -509,8 +558,8 @@ export default function EventCreateScreen() {
         const fetchGroups = async () => {
             if (!authUser) return;
             try {
-                const { getGroupsByUserId } = await import('@/services/groupService');
-                const groups = await getGroupsByUserId(authUser.id);
+                const { getGroupsAllByUserId } = await import('@/services/groupService');
+                const groups = await getGroupsAllByUserId(authUser.id);
                 setUserGroups(groups);
                 
                 // If creating a new event from personal calendar (no groupId anywhere), set default to first group
@@ -609,9 +658,9 @@ export default function EventCreateScreen() {
             const assigneeIds = assignees.map(a => a.userId);
             const formDataWithAssignees = { ...formData, assignees: assigneeIds };
 
-            const fd = buildEventFormData(formDataWithAssignees as any, targetUserId, existingEvent ? existingEvent.id : null);
+            const fd = buildEventFormData(formDataWithAssignees as any, targetUserId, existingEvent ? existingEvent.eventId : null);
             if (existingEvent) {
-                await updateEvent(existingEvent.id, targetUserId, fd as unknown as FormData);
+                await updateEvent(existingEvent.eventId, targetUserId, fd as unknown as FormData);
                 Alert.alert('Success', 'Event updated!', [{ text: 'OK', onPress: () => router.back() }]);
             } else {
                 await createEvent(fd as unknown as FormData);
