@@ -8,7 +8,8 @@ import {
     Switch,
     Alert,
     ActivityIndicator,
-    Clipboard
+    Clipboard,
+    Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { Feather, MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
@@ -166,7 +167,14 @@ export default function GroupSettingsScreen() {
                             index < members.length - 1 && [styles.rowBorder, { borderBottomColor: colors.border }]
                         ]}>
                             <View style={[styles.memberAvatar, { backgroundColor: member.avatarColor || '#94a3b8' }]}>
-                                <Text style={styles.memberInitial}>{member.initialText || '?'}</Text>
+                                {member.imageUrl ? (
+                                    <Image 
+                                        source={{ uri: member.imageUrl }} 
+                                        style={{ width: '100%', height: '100%', borderRadius: 18 }} 
+                                    />
+                                ) : (
+                                    <Text style={styles.memberInitial}>{member.initialText || (member.name ? member.name.charAt(0).toUpperCase() : '?')}</Text>
+                                )}
                             </View>
                             <View style={styles.memberInfo}>
                                 <Text style={[styles.memberName, { color: colors.textPrimary }]}>

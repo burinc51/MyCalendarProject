@@ -21,6 +21,15 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { router } from 'expo-router';
+
+let GoogleSignin: any = null;
+try {
+    const googleSigninModule = require('@react-native-google-signin/google-signin');
+    GoogleSignin = googleSigninModule.GoogleSignin;
+} catch (e) {
+    console.log('GoogleSignin module not available in account settings');
+}
 
 // FieldInput sub-component (defined outside to avoid re-creation on render)
 interface FieldInputProps {
@@ -96,8 +105,25 @@ export default function AccountSettingsScreen() {
 
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
     const { user, clearAuth } = useAuthStore();
     const router = useRouter();
+
+    const webClientId = process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
+
+    React.useEffect(() => {
+        if (GoogleSignin) {
+            try {
+                GoogleSignin.configure({
+                    webClientId: webClientId,
+                    offlineAccess: true,
+                    forceCodeForRefreshToken: true
+                });
+            } catch (err) {
+                console.log('GoogleSignin configure error in account settings:', err);
+            }
+        }
+    }, []);
 
     const C = {
         bg: isDark ? '#111111' : '#f5f6f8',
@@ -127,8 +153,24 @@ export default function AccountSettingsScreen() {
                     text: 'Logout',
                     style: 'destructive',
                     onPress: async () => {
-                        await clearAuth();
-                        router.replace('/');
+                        try {
+                            setLoggingOut(true);
+                            if (GoogleSignin) {
+                                try {
+                                    await GoogleSignin.hasPlayServices();
+                                    await GoogleSignin.signOut();
+                                } catch (e) {
+                                    console.log('Google sign-out skip (likely not signed in with Google or module error)');
+                                }
+                            }
+                            await clearAuth();
+                            router.replace('/login');
+                        } catch (error) {
+                            console.error('Logout error:', error);
+                            Alert.alert('Error', 'Failed to sign out properly');
+                        } finally {
+                            setLoggingOut(false);
+                        }
                     },
                 },
             ]
@@ -315,11 +357,18 @@ export default function AccountSettingsScreen() {
                         style={styles.actionRow}
                         onPress={handleLogout}
                         activeOpacity={0.6}
+                        disabled={loggingOut}
                     >
                         <View style={[styles.actionIconBox, { backgroundColor: 'rgba(239,68,68,0.1)' }]}>
-                            <Feather name="log-out" size={16} color={C.danger} />
+                            {loggingOut ? (
+                                <ActivityIndicator size="small" color={C.danger} />
+                            ) : (
+                                <Feather name="log-out" size={16} color={C.danger} />
+                            )}
                         </View>
-                        <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Bold' }]}>Logout</Text>
+                        <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Bold' }]}>
+                            {loggingOut ? 'Signing out...' : 'Logout'}
+                        </Text>
                         <Feather name="chevron-right" size={20} color={C.subText} />
                     </TouchableOpacity>
                 </View>
