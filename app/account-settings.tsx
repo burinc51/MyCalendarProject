@@ -16,7 +16,8 @@ import {
     Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/components/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -106,8 +107,11 @@ export default function AccountSettingsScreen() {
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
-    const { user, clearAuth } = useAuthStore();
+    const { user, clearAuth, updateUser } = useAuthStore();
     const router = useRouter();
+
+    const [displayName, setDisplayName] = useState(user?.name || '');
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     const webClientId = process.env.EXPO_PUBLIC_WEB_CLIENT_ID;
 
@@ -178,13 +182,46 @@ export default function AccountSettingsScreen() {
     };
 
     const handleSave = async () => {
-// ...
+        if (!displayName.trim()) {
+            Alert.alert('Error', 'Name cannot be empty');
+            return;
+        }
+
         setSaving(true);
-        // Simulate API call
-        await new Promise(res => setTimeout(res, 800));
-        setSaving(false);
-        setIsEditing(false);
-        Alert.alert('Saved', 'Your account information has been updated.');
+        try {
+            const { updateProfile } = await import('@/services/authService');
+            if (user?.id) {
+                // Actually call the API
+                await updateProfile(user.id, displayName, selectedImage || user.photoUrl);
+                
+                // Update local store
+                await updateUser({ 
+                    name: displayName, 
+                    photoUrl: selectedImage || user.photoUrl 
+                });
+                
+                setIsEditing(false);
+                Alert.alert('Success', 'Profile updated successfully!');
+            }
+        } catch (error: any) {
+            console.error('Update profile error:', error);
+            Alert.alert('Error', error.message || 'Failed to update profile');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+        });
+
+        if (!result.canceled) {
+            setSelectedImage(result.assets[0].uri);
+        }
     };
 
     const handleDeleteAccount = () => {
@@ -235,9 +272,9 @@ export default function AccountSettingsScreen() {
                     <View style={styles.avatarWrap}>
                         <View style={[styles.avatarRing, { borderColor: C.accent + '55' }]} />
                         <View style={[styles.avatarCircle, { backgroundColor: C.avatarBg }]}>
-                            {user?.photoUrl ? (
+                            {selectedImage || user?.photoUrl ? (
                                 <Image
-                                    source={{ uri: user.photoUrl }}
+                                    source={{ uri: selectedImage || user?.photoUrl || '' }}
                                     style={{ width: 75, height: 75, borderRadius: 37.5 }}
                                 />
                             ) : (
@@ -249,7 +286,7 @@ export default function AccountSettingsScreen() {
                         {isEditing && (
                             <TouchableOpacity
                                 style={[styles.cameraBtn, { backgroundColor: C.accent }]}
-                                onPress={() => Alert.alert('Coming Soon', 'Profile photo change will be available soon.')}
+                                onPress={pickImage}
                             >
                                 <Feather name="camera" size={12} color="#fff" />
                             </TouchableOpacity>
@@ -271,8 +308,8 @@ export default function AccountSettingsScreen() {
 
                     <FieldInput
                         label="Display Name"
-                        value={user?.name}
-                        onChangeText={() => { }}
+                        value={displayName}
+                        onChangeText={setDisplayName}
                         placeholder="Enter your display name"
                         isEditing={isEditing}
                         colors={C}

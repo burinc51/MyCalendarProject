@@ -14,6 +14,7 @@ import {
     ScrollView,
     Image,
     Alert,
+    Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -178,6 +179,27 @@ const EventDetailScreen = () => {
         ]);
     }, [event, requestDelete, router]);
 
+    const handleShare = useCallback(async () => {
+        if (!event) return;
+        try {
+            const startStr = dayjs(event.startDate).format('ddd, D MMM YYYY, HH:mm');
+            const endStr = dayjs(event.endDate).format('ddd, D MMM YYYY, HH:mm');
+            const msg = `📅 ${event.title}\n\n` +
+                (event.description ? `📝 ${event.description}\n\n` : '') +
+                `⏰ Start: ${startStr}\n` +
+                `🏁 End: ${endStr}\n` +
+                (event.location ? `📍 Location: ${event.location}\n` : '') +
+                `\nShared via MyCalendar`;
+
+            await Share.share({
+                message: msg,
+                title: event.title,
+            });
+        } catch (error) {
+            console.error('Sharing failed:', error);
+        }
+    }, [event]);
+
     if (!event && !loading) {
         return (
             <View style={[styles.centered, { backgroundColor: bg }]}>
@@ -225,6 +247,13 @@ const EventDetailScreen = () => {
                 title="Event Detail"
                 showBack
                 actions={[
+                    {
+                        icon: 'share-2',
+                        onPress: handleShare,
+                        backgroundColor: 'rgba(52,152,219,0.1)',
+                        color: '#3498db',
+                        accessibilityLabel: 'Share event',
+                    },
                     {
                         icon: 'edit-2',
                         onPress: handleEdit,

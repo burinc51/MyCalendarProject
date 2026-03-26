@@ -91,3 +91,22 @@ export async function getCurrentUser() {
     const response = await httpClient.get('/api/v1/auth/current-user');
     return response.data;
 }
+
+/**
+ * อัปเดตข้อมูลโปรไฟล์ผู้ใช้
+ */
+export async function updateProfile(userId: number, name: string, photoUrl?: string) {
+    const response = await httpClient.put(`/api/v1/users/${userId}`, {
+        name,
+        pictureUrl: photoUrl // Match backend field name
+    });
+    return response.data;
+}
+
+/**
+ * ดึงข้อมูลสถิติสำหรับผู้ดูแลระบบ
+ */
+export async function getAdminStats() {
+    const response = await httpClient.get('/api/v1/admin/stats');
+    return response.data;
+}

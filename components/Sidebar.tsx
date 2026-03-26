@@ -252,6 +252,39 @@ const Sidebar: React.FC<SidebarProps> = ({
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.bodyContent}
                 >
+                    {/* Section: Admin (Conditional) */}
+                    {user?.role === 'ADMIN' && (
+                        <View style={{ marginBottom: 20 }}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={[styles.sectionLabel, { color: C.sectionLabel }]}>
+                                    ADMINISTRATION
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={[
+                                    styles.adminBtn,
+                                    {
+                                        backgroundColor: isDark ? 'rgba(52,152,219,0.1)' : 'rgba(52,152,219,0.06)',
+                                        borderColor: isDark ? 'rgba(52,152,219,0.3)' : 'rgba(52,152,219,0.4)',
+                                    },
+                                ]}
+                                onPress={() => {
+                                    onClose();
+                                    setTimeout(() => router.push('/admin-dashboard'), 300);
+                                }}
+                            >
+                                <View style={[styles.adminIconBox, { backgroundColor: '#3498db' }]}>
+                                    <Feather name="shield" size={14} color="#fff" />
+                                </View>
+                                <Text style={[styles.adminBtnText, { color: isDark ? '#eee' : '#1a1a1a' }]}>
+                                    Admin Dashboard
+                                </Text>
+                                <MaterialIcons name="chevron-right" size={18} color={isDark ? '#444' : '#d1d5db'} />
+                            </TouchableOpacity>
+                            <View style={[styles.sectionDivider, { backgroundColor: C.divider, marginTop: 20 }]} />
+                        </View>
+                    )}
+
                     {/* Section header */}
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionLabel, { color: C.sectionLabel }]}>
@@ -615,6 +648,32 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#2ecc71',
         letterSpacing: 0.2,
+    },
+    // Admin
+    adminBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        gap: 12,
+    },
+    adminIconBox: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    adminBtnText: {
+        flex: 1,
+        fontFamily: 'Kanit-Bold',
+        fontSize: 14,
+    },
+    sectionDivider: {
+        height: 1,
+        width: '100%',
     },
     // Menu styles
     menuContainer: {

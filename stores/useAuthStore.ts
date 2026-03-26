@@ -6,6 +6,7 @@ interface User {
     email: string;
     name?: string;
     photoUrl?: string;
+    role?: 'ADMIN' | 'USER';
 }
 
 interface AuthState {
@@ -18,6 +19,7 @@ interface AuthState {
     clearAuth: () => Promise<void>;
     loadAuth: () => Promise<void>;
     updateToken: (token: string) => Promise<void>;
+    updateUser: (userData: Partial<User>) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -31,7 +33,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         await AsyncStorage.setItem('access_token', token);
         await AsyncStorage.setItem('refresh_token', refreshToken);
         await AsyncStorage.setItem('user', JSON.stringify(user));
-        set({ user, token, refreshToken, isAuthenticated: true, isLoading: false });
+        set({ user: { ...user, role: user.role || 'USER' }, token, refreshToken, isAuthenticated: true, isLoading: false });
     },
 
     clearAuth: async () => {
@@ -62,5 +64,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     updateToken: async (token: string) => {
         await AsyncStorage.setItem('access_token', token);
         set({ token });
+    },
+
+    updateUser: async (userData: Partial<User>) => {
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+            const updatedUser = { ...currentUser, ...userData };
+            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+            set({ user: updatedUser });
+        }
     },
 }));
