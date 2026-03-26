@@ -27,8 +27,8 @@ export const getGroupsAllByUserId = async (userId: number): Promise<GroupApiResp
 };
 
 export const createGroup = async (payload: CreateGroupPayload): Promise<GroupApiResponse> => {
-    console.log('payload create group :', JSON.stringify(payload, null, 2));
-    return await httpClient.post('/api/v1/group/create', payload);
+    const response = await httpClient.post('/api/v1/group/create', payload);
+    return response.data;
 };
 
 export const getGroupById = async (groupId: number): Promise<Group> => {

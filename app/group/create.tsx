@@ -77,7 +77,7 @@ export default function CreateGroupScreen() {
                 const newGroup = await createGroup(payload, user.id);
                 Alert.alert(
                     'Success', 
-                    `Group "${newGroup.name}" created successfully!\n\nInvite Code: ${newGroup.inviteCode}`, 
+                    `Group "${newGroup.groupName}" created successfully!\n\nInvite Code: ${newGroup.inviteCode}`, 
                     [{ text: 'Great!', onPress: () => router.back() }]
                 );
             }

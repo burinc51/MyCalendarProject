@@ -93,12 +93,47 @@ export async function getCurrentUser() {
 }
 
 /**
- * อัปเดตข้อมูลโปรไฟล์ผู้ใช้
+ * อัปเดตข้อมูลโปรไฟล์ผู้ใช้ (รองรับการอัปโหลดรูปภาพ)
  */
-export async function updateProfile(userId: number, name: string, photoUrl?: string) {
-    const response = await httpClient.put(`/api/v1/users/${userId}`, {
+export async function updateProfile(userId: number, name: string, photoUri?: string) {
+    const { encode: btoa } = await import('base-64');
+    const formData = new FormData();
+    
+    // สร้าง body JSON สำหรับส่วนข้อมูล
+    const body = {
         name,
-        pictureUrl: photoUrl // Match backend field name
+        pictureUrl: photoUri && !photoUri.startsWith('file://') ? photoUri : undefined
+    };
+    
+    const jsonString = JSON.stringify(body);
+    const utf8SafeString = unescape(encodeURIComponent(jsonString));
+    const base64Data = btoa(utf8SafeString);
+
+    formData.append('body', {
+        uri: `data:application/json;base64,${base64Data}`,
+        name: 'body.json',
+        type: 'application/json'
+    } as any);
+
+    // ถ้าเป็น file:// แสดงว่าเป็นรูปใหม่จากเครื่อง ให้แนบไฟล์ไปใน FormData
+    if (photoUri && photoUri.startsWith('file://')) {
+        const filename = photoUri.split('/').pop() || 'profile.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image`;
+
+        formData.append('file', {
+            uri: photoUri,
+            name: filename,
+            type: type
+        } as any);
+    } else {
+        formData.append('file', '');
+    }
+
+    const response = await httpClient.put(`/api/v1/users/${userId}`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
     });
     return response.data;
 }

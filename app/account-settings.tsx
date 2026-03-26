@@ -192,16 +192,16 @@ export default function AccountSettingsScreen() {
             const { updateProfile } = await import('@/services/authService');
             if (user?.id) {
                 // Actually call the API
-                await updateProfile(user.id, displayName, selectedImage || user.photoUrl);
-                
-                // Update local store
-                await updateUser({ 
-                    name: displayName, 
-                    photoUrl: selectedImage || user.photoUrl 
-                });
-                
-                setIsEditing(false);
-                Alert.alert('Success', 'Profile updated successfully!');
+                const updatedUserData = await updateProfile(user.id, displayName, selectedImage || user.photoUrl);
+            
+            // อัปเดตข้อมูลใน store (โดยใช้รูปที่ได้มาจาก server ถ้ามี)
+            updateUser({
+                name: updatedUserData.name || displayName,
+                photoUrl: updatedUserData.pictureUrl || selectedImage || user.photoUrl
+            });
+            
+            setIsEditing(false);
+            Alert.alert('Success', 'Profile updated successfully');
             }
         } catch (error: any) {
             console.error('Update profile error:', error);
