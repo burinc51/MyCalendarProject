@@ -124,7 +124,7 @@ export default function SettingsScreen() {
                 disabled={loading}
             >
                 <Text className="text-white font-semibold text-base">
-                    {isGoogleAvailable ? "Sign in with Google" : "Google Sign-In (Dev Build Only)"}
+                    {isGoogleAvailable ? 'Sign in with Google' : 'Google Sign-In (Dev Build Only)'}
                 </Text>
             </TouchableOpacity>
         );
@@ -138,7 +138,7 @@ export default function SettingsScreen() {
             {/* Settings Title */}
             <Text
                 className={`text-2xl font-bold mb-6 ${isDark ? 'text-neutral-100' : 'text-neutral-800'
-                    }`}
+                }`}
             >
                 ⚙️ Settings
             </Text>
@@ -147,7 +147,7 @@ export default function SettingsScreen() {
             <View className="mb-3 px-1">
                 <Text
                     className={`text-base font-semibold ${isDark ? 'text-neutral-200' : 'text-neutral-700'
-                        }`}
+                    }`}
                 >
                     👤 Account
                 </Text>
@@ -155,7 +155,7 @@ export default function SettingsScreen() {
 
             <View
                 className={`rounded-2xl overflow-hidden p-4 ${isDark ? 'bg-neutral-800' : 'bg-neutral-100'
-                    }`}
+                }`}
             >
                 {!isAuthenticated ? (
                     <View className="items-center py-4">
@@ -172,13 +172,13 @@ export default function SettingsScreen() {
 
                         <Text
                             className={`text-xl font-bold mb-1 text-center ${isDark ? 'text-neutral-100' : 'text-neutral-800'
-                                }`}
+                            }`}
                         >
                             {user?.name || 'User'}
                         </Text>
                         <Text
                             className={`text-sm mb-6 text-center ${isDark ? 'text-neutral-400' : 'text-neutral-600'
-                                }`}
+                            }`}
                         >
                             {user?.email}
                         </Text>

@@ -108,16 +108,16 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="activity"
+                name="notification"
                 options={{
-                    title: 'Activity',
+                    title: 'การแจ้งเตือน',
                     tabBarIcon: ({ color }) => (
                         <TabIcon
                             name="bell"
                             color={color}
                         />
                     ),
-                    tabBarAccessibilityLabel: 'Activity Tab'
+                    tabBarAccessibilityLabel: 'Notification Tab'
                 }}
             />
             {/* Hidden screens */}
@@ -127,7 +127,16 @@ export default function TabLayout() {
             />
             <Tabs.Screen
                 name="setting"
-                options={{ href: null }}
+                options={{
+                    title: 'Settings',
+                    tabBarIcon: ({ color }) => (
+                        <TabIcon
+                            name="settings"
+                            color={color}
+                        />
+                    ),
+                    tabBarAccessibilityLabel: 'Settings Tab'
+                }}
             />
         </Tabs>
     );

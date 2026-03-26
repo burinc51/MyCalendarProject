@@ -44,12 +44,12 @@ const parseCreatedAt = (arr: number[]): dayjs.Dayjs => {
 };
 
 const ACTION_META: Record<ActionType, { label: string; icon: string; color: string }> = {
-    EVENT_CREATED: { label: 'created event', icon: 'plus-circle', color: '#2ecc71' },
-    EVENT_UPDATED: { label: 'updated event', icon: 'edit-2', color: '#60a5fa' },
-    EVENT_DELETED: { label: 'deleted event', icon: 'trash-2', color: '#ef4444' },
-    MEMBER_JOINED: { label: 'joined group', icon: 'user-plus', color: '#a78bfa' },
-    MEMBER_LEFT: { label: 'left group', icon: 'user-minus', color: '#f97316' },
-    GROUP_SHARED: { label: 'shared group', icon: 'share-2', color: '#fbbf24' },
+    EVENT_CREATED: { label: 'สร้างกิจกรรม', icon: 'plus-circle', color: '#2ecc71' },
+    EVENT_UPDATED: { label: 'อัปเดตกิจกรรม', icon: 'edit-2', color: '#60a5fa' },
+    EVENT_DELETED: { label: 'ลบกิจกรรม', icon: 'trash-2', color: '#ef4444' },
+    MEMBER_JOINED: { label: 'เข้าร่วมกลุ่ม', icon: 'user-plus', color: '#a78bfa' },
+    MEMBER_LEFT: { label: 'ออกจากกลุ่ม', icon: 'user-minus', color: '#f97316' },
+    GROUP_SHARED: { label: 'แชร์กลุ่ม', icon: 'share-2', color: '#fbbf24' },
 };
 
 const AVATAR_COLORS = ['#c084fc', '#818cf8', '#60a5fa', '#4ade80', '#fb923c', '#f472b6'];
@@ -127,7 +127,7 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
                             {item.eventTitle ?? '—'}
                         </Text>
                         <Text style={[styles.groupLabel, { color: C.sub }]}>
-                            Group #{item.groupId}
+                            กลุ่ม #{item.groupId}
                         </Text>
                     </View>
                     <Avatar name={item.actorName} actorId={item.actorId} />
@@ -165,7 +165,7 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
 
 // Main Screen
 
-export default function ActivityScreen() {
+export default function NotificationScreen() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const insets = useSafeAreaInsets();
@@ -207,7 +207,7 @@ export default function ActivityScreen() {
                         }
                     ]}
                 >
-                    Activity
+                    การแจ้งเตือน
                 </Text>
             </View>
 
@@ -238,7 +238,7 @@ export default function ActivityScreen() {
                             size={40}
                             color={isDark ? '#333' : '#d1d5db'}
                         />
-                        <Text style={[styles.emptyText, { color: C.sub }]}>No activity yet</Text>
+                        <Text style={[styles.emptyText, { color: C.sub }]}>ยังไม่มีการแจ้งเตือน</Text>
                     </View>
                 }
             />
