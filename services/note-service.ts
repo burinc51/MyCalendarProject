@@ -1,176 +1,189 @@
-/**
- * Note Service
- * API operations for notes and folders
- * Currently uses local storage (AsyncStorage) as backend is not ready
- */
+import type { AxiosError, AxiosResponse } from 'axios';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Note, NoteFormData } from '@/types/note';
+import httpClient from '@/lib/httpClient';
+import type { Note, NoteFormData, NoteListQuery, PaginatedNotes } from '@/types/note';
 
-// Storage keys
-const NOTES_STORAGE_KEY = '@MyCalendar:notes';
+const BASE_PATH = '/api/v1/notes';
 
-// Helper to generate unique IDs
-const generateId = (): number => {
-    return Date.now() + Math.floor(Math.random() * 1000);
+type ApiErrorItem = {
+    field: string;
+    reason: string;
 };
 
-// ==================== NOTES ====================
+type ApiEnvelope<T> = {
+    status: 'success' | 'error';
+    message: string;
+    data: T;
+    errors?: ApiErrorItem[];
+};
 
-/**
- * Get all notes from storage
- */
-export const getNotes = async (): Promise<Note[]> => {
+type NoteImageUploadResult = {
+    url: string;
+    fileName: string;
+    mimeType: string;
+    size: number;
+};
+
+type DeleteImageResult = {
+    url: string;
+    deleted: boolean;
+};
+
+type DeleteNoteResult = {
+    id: number;
+};
+
+type UploadNoteImageInput = {
+    uri: string;
+    fileName?: string;
+    mimeType?: string;
+};
+
+const buildApiError = (error: unknown, fallbackMessage: string): Error => {
+    const axiosError = error as AxiosError<ApiEnvelope<null>>;
+    const message = axiosError.response?.data?.message ?? fallbackMessage;
+    return new Error(message);
+};
+
+const unwrapEnvelope = <T>(response: AxiosResponse<ApiEnvelope<T>>): T => {
+    return response.data.data;
+};
+
+const normalizeTags = (tags: string[] | undefined): string[] => {
+    if (!tags) return [];
+    return tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0);
+};
+
+const toCreatePayload = (formData: NoteFormData): NoteFormData => ({
+    ...formData,
+    title: formData.title.trim(),
+    content: formData.content,
+    tags: normalizeTags(formData.tags),
+});
+
+const toUpdatePayload = (formData: Partial<NoteFormData>): Partial<NoteFormData> => {
+    const payload: Partial<NoteFormData> = {};
+
+    if (typeof formData.title === 'string') payload.title = formData.title.trim();
+    if (typeof formData.content === 'string') payload.content = formData.content;
+    if (typeof formData.color === 'string') payload.color = formData.color;
+    if (typeof formData.isPinned === 'boolean') payload.isPinned = formData.isPinned;
+    if (Array.isArray(formData.tags)) payload.tags = normalizeTags(formData.tags);
+    if (formData.reminderDate !== undefined) payload.reminderDate = formData.reminderDate;
+    if (formData.recurrence !== undefined) payload.recurrence = formData.recurrence;
+    if (formData.locationName !== undefined) payload.locationName = formData.locationName;
+    if (formData.locationLink !== undefined) payload.locationLink = formData.locationLink;
+    if (formData.startDate !== undefined) payload.startDate = formData.startDate;
+    if (formData.endDate !== undefined) payload.endDate = formData.endDate;
+
+    return payload;
+};
+
+export const getNotes = async (query: NoteListQuery = {}): Promise<PaginatedNotes> => {
     try {
-        const data = await AsyncStorage.getItem(NOTES_STORAGE_KEY);
-        return data ? JSON.parse(data) : [];
+        const response = await httpClient.get<ApiEnvelope<PaginatedNotes>>(BASE_PATH, {
+            params: {
+                pageNo: query.pageNo ?? 1,
+                pageSize: query.pageSize ?? 20,
+                search: query.search || undefined,
+                sortBy: query.sortBy ?? 'updatedAt',
+                sortDirection: query.sortDirection ?? 'desc',
+                isPinned: query.isPinned,
+            },
+        });
+        return unwrapEnvelope(response);
     } catch (error) {
-        console.error('Error getting notes:', error);
-        return [];
+        throw buildApiError(error, 'Failed to load notes');
     }
 };
 
-
-/**
- * Get a single note by ID
- */
-export const getNoteById = async (noteId: number): Promise<Note | null> => {
+export const getNoteById = async (noteId: number): Promise<Note> => {
     try {
-        const notes = await getNotes();
-        return notes.find((note) => note.id === noteId) || null;
+        const response = await httpClient.get<ApiEnvelope<Note>>(`${BASE_PATH}/${noteId}`);
+        return unwrapEnvelope(response);
     } catch (error) {
-        console.error('Error getting note:', error);
-        return null;
+        throw buildApiError(error, 'Failed to fetch note');
     }
 };
 
-/**
- * Create a new note
- */
 export const createNote = async (formData: NoteFormData): Promise<Note> => {
     try {
-        const notes = await getNotes();
-        const now = new Date().toISOString();
-
-        const newNote: Note = {
-            id: generateId(),
-            title: formData.title.trim() || 'Untitled',
-            content: formData.content,
-            createdAt: now,
-            updatedAt: now,
-            isPinned: formData.isPinned,
-            color: formData.color,
-            tags: formData.tags,
-            reminderDate: formData.reminderDate || null,
-            recurrence: formData.recurrence || 'none',
-            locationName: formData.locationName || null,
-            locationLink: formData.locationLink || null,
-            startDate: formData.startDate || null,
-            endDate: formData.endDate || null
-        };
-
-        notes.unshift(newNote); // Add to beginning
-        await AsyncStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
-
-        return newNote;
+        const response = await httpClient.post<ApiEnvelope<Note>>(BASE_PATH, toCreatePayload(formData));
+        return unwrapEnvelope(response);
     } catch (error) {
-        console.error('Error creating note:', error);
-        throw error;
+        throw buildApiError(error, 'Failed to create note');
     }
 };
 
-/**
- * Update an existing note
- */
-export const updateNote = async (noteId: number, formData: Partial<NoteFormData>): Promise<Note | null> => {
+export const updateNote = async (noteId: number, formData: Partial<NoteFormData>): Promise<Note> => {
     try {
-        const notes = await getNotes();
-        const index = notes.findIndex((note) => note.id === noteId);
-
-        if (index === -1) {
-            throw new Error('Note not found');
-        }
-
-        notes[index] = {
-            ...notes[index],
-            ...formData,
-            title: formData.title?.trim() || notes[index].title,
-            updatedAt: new Date().toISOString()
-        };
-
-        await AsyncStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
-
-        return notes[index];
+        const response = await httpClient.put<ApiEnvelope<Note>>(`${BASE_PATH}/${noteId}`, toUpdatePayload(formData));
+        return unwrapEnvelope(response);
     } catch (error) {
-        console.error('Error updating note:', error);
-        throw error;
+        throw buildApiError(error, 'Failed to update note');
     }
 };
 
-/**
- * Delete a note
- */
-export const deleteNote = async (noteId: number): Promise<void> => {
+export const deleteNote = async (noteId: number): Promise<DeleteNoteResult> => {
     try {
-        const notes = await getNotes();
-        const noteToDelete = notes.find((note) => note.id === noteId);
-        const filteredNotes = notes.filter((note) => note.id !== noteId);
-
-        await AsyncStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(filteredNotes));
+        const response = await httpClient.delete<ApiEnvelope<DeleteNoteResult>>(`${BASE_PATH}/${noteId}`);
+        return unwrapEnvelope(response);
     } catch (error) {
-        console.error('Error deleting note:', error);
-        throw error;
+        throw buildApiError(error, 'Failed to delete note');
     }
 };
 
-/**
- * Toggle note pin status
- */
-export const toggleNotePin = async (noteId: number): Promise<Note | null> => {
-    try {
-        const notes = await getNotes();
-        const index = notes.findIndex((note) => note.id === noteId);
-
-        if (index === -1) return null;
-
-        notes[index].isPinned = !notes[index].isPinned;
-        notes[index].updatedAt = new Date().toISOString();
-
-        await AsyncStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
-        return notes[index];
-    } catch (error) {
-        console.error('Error toggling pin:', error);
-        throw error;
-    }
+export const toggleNotePin = async (noteId: number): Promise<Note> => {
+    const currentNote = await getNoteById(noteId);
+    return updateNote(noteId, { isPinned: !currentNote.isPinned });
 };
 
-/**
- * Search notes by title or content
- */
-export const searchNotes = async (query: string): Promise<Note[]> => {
+export const uploadNoteImage = async ({ uri, fileName, mimeType }: UploadNoteImageInput): Promise<string> => {
     try {
-        const notes = await getNotes();
-        const lowerQuery = query.toLowerCase();
+        const formData = new FormData();
+        const safeFileName = fileName || `note-${Date.now()}.jpg`;
+        const safeMimeType = mimeType || 'image/jpeg';
 
-        return notes.filter(
-            (note) =>
-                note.title.toLowerCase().includes(lowerQuery) || note.content.toLowerCase().includes(lowerQuery) || note.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery))
+        formData.append('image', {
+            uri,
+            name: safeFileName,
+            type: safeMimeType,
+        } as any);
+
+        const response = await httpClient.post<ApiEnvelope<NoteImageUploadResult>>(
+            `${BASE_PATH}/upload-image`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
         );
+
+        return unwrapEnvelope(response).url;
     } catch (error) {
-        console.error('Error searching notes:', error);
-        return [];
+        throw buildApiError(error, 'Failed to upload image');
     }
 };
 
-// ==================== EXPORT DEFAULT ====================
+export const deleteUploadedNoteImage = async (url: string): Promise<DeleteImageResult> => {
+    try {
+        const response = await httpClient.delete<ApiEnvelope<DeleteImageResult>>(`${BASE_PATH}/upload-image`, {
+            data: { url },
+        });
+        return unwrapEnvelope(response);
+    } catch (error) {
+        throw buildApiError(error, 'Failed to delete uploaded image');
+    }
+};
 
 export default {
-    // Notes
     getNotes,
     getNoteById,
     createNote,
     updateNote,
     deleteNote,
     toggleNotePin,
-    searchNotes,
+    uploadNoteImage,
+    deleteUploadedNoteImage,
 };

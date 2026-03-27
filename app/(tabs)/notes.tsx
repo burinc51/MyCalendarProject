@@ -1,14 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
     View,
-    StyleSheet,
     StatusBar,
     Modal,
-    Dimensions,
-    TouchableOpacity,
     Text
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Components
 import { NoteList, NoteEditor } from '@/components/Note';
@@ -49,7 +45,6 @@ const NotesScreen = () => {
         setViewMode,
         setSortBy,
         setSearchQuery,
-        notes,
         toast,
         hideToast,
     } = useNotes();
@@ -156,6 +151,5 @@ const NotesScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({});
 
 export default NotesScreen;

@@ -47,19 +47,38 @@ export const DEFAULT_NOTE_FORM: NoteFormData = {
 
 export interface Note {
     id: number;
+    userId: number;
     title: string;
     content: string;
     createdAt: string;
     updatedAt: string;
     isPinned: boolean;
     color: string;
-    tags?: string[];
+    tags: string[];
     reminderDate: string | null;
     recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
     locationName: string | null;
     locationLink: string | null;
     startDate: string | null;
     endDate: string | null;
+}
+
+export interface PaginatedNotes {
+    content: Note[];
+    pageNo: number;
+    pageSize: number;
+    totalElements: number;
+    totalPages: number;
+    last: boolean;
+}
+
+export interface NoteListQuery {
+    pageNo?: number;
+    pageSize?: number;
+    search?: string;
+    sortBy?: NoteSortOption;
+    sortDirection?: SortDirection;
+    isPinned?: boolean;
 }
 
 // ==================== View Types ====================
@@ -71,3 +90,4 @@ export interface Note {
 export type NoteViewMode = 'grid' | 'list';
 export type NoteSortOption = 'updatedAt' | 'createdAt' | 'title';
 export type SortDirection = 'asc' | 'desc';
+

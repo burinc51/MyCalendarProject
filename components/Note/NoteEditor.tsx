@@ -11,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import dayjs from 'dayjs';
 import type { NoteFormData } from '@/types/note';
 import { NOTE_COLORS } from '@/types/note';
+import { uploadNoteImage } from '@/services/note-service';
 import { useTheme, useThemeColors } from '../ThemeProvider';
 
 interface NoteEditorProps {
@@ -23,7 +24,7 @@ interface NoteEditorProps {
 
 const NoteEditor: React.FC<NoteEditorProps> = ({
     formData,
-    isEditing,
+    isEditing: _isEditing,
     onUpdateField,
     onSave,
     onCancel,
@@ -331,26 +332,36 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
     // ========== Image Handlers ==========
 
+    const handleUploadAndInsertImage = useCallback(async (asset: ImagePicker.ImagePickerAsset) => {
+        const imageUrl = await uploadNoteImage({
+            uri: asset.uri,
+            fileName: asset.fileName || `note-${Date.now()}.jpg`,
+            mimeType: asset.mimeType || 'image/jpeg',
+        });
+        richTextEditorRef.current?.insertImage(
+            imageUrl,
+            'width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;'
+        );
+    }, []);
+
     const handlePickImageFromGallery = useCallback(async () => {
         setShowImagePickerModal(false);
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
-                quality: 0.6,
-                base64: true,
+                quality: 0.8,
+                base64: false,
                 allowsEditing: true,
             });
-            if (!result.canceled && result.assets[0]?.base64) {
-                const asset = result.assets[0];
-                const mimeType = asset.mimeType || 'image/jpeg';
-                const dataUri = `data:${mimeType};base64,${asset.base64}`;
-                richTextEditorRef.current?.insertImage(dataUri, 'width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;');
+            if (!result.canceled && result.assets[0]?.uri) {
+                await handleUploadAndInsertImage(result.assets[0]);
             }
         } catch (error) {
-            Alert.alert('Error', 'ไม่สามารถเลือกรูปภาพได้');
+            const message = error instanceof Error ? error.message : 'ไม่สามารถเลือกรูปภาพได้';
+            Alert.alert('Error', message);
             console.error('Image picker error:', error);
         }
-    }, []);
+    }, [handleUploadAndInsertImage]);
 
     const handleTakePhoto = useCallback(async () => {
         setShowImagePickerModal(false);
@@ -361,25 +372,33 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                 return;
             }
             const result = await ImagePicker.launchCameraAsync({
-                quality: 0.6,
-                base64: true,
+                quality: 0.8,
+                base64: false,
                 allowsEditing: true,
             });
-            if (!result.canceled && result.assets[0]?.base64) {
-                const asset = result.assets[0];
-                const mimeType = asset.mimeType || 'image/jpeg';
-                const dataUri = `data:${mimeType};base64,${asset.base64}`;
-                richTextEditorRef.current?.insertImage(dataUri, 'width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;');
+            if (!result.canceled && result.assets[0]?.uri) {
+                await handleUploadAndInsertImage(result.assets[0]);
             }
         } catch (error) {
-            Alert.alert('Error', 'ไม่สามารถถ่ายรูปได้');
+            const message = error instanceof Error ? error.message : 'ไม่สามารถถ่ายรูปได้';
+            Alert.alert('Error', message);
             console.error('Camera error:', error);
         }
-    }, []);
+    }, [handleUploadAndInsertImage]);
 
     const handlePressAddImage = useCallback(() => {
         setShowImagePickerModal(true);
     }, []);
+
+    const handleSave = () => {
+        if (!formData.title.trim() && !formData.content.trim()) return;
+
+        console.log('--- Note Saved Data ---');
+        console.log(JSON.stringify(formData, null, 2));
+        console.log('-----------------------');
+
+        onSave();
+    };
 
     return (
         <SafeAreaView
@@ -401,7 +420,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                             {/* Reminder button in header */}
                             <TouchableOpacity onPress={handleOpenReminderModal}>
-                                <Ionicons name='notifications' size={24} color={formData.reminderDate ? '#ffffff' : colors.textSecondary} />
+                                <Ionicons name="notifications" size={24} color={formData.reminderDate ? '#ffffff' : colors.textSecondary} />
                             </TouchableOpacity>
                             {/* Location button */}
                             <TouchableOpacity onPress={() => {
@@ -409,13 +428,13 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 setTempLocationLink(formData.locationLink || '');
                                 setShowLocationModal(true);
                             }}>
-                                <Ionicons name='location' size={24} color={formData.locationName ? colors.primary : colors.textSecondary} />
+                                <Ionicons name="location" size={24} color={formData.locationName ? colors.primary : colors.textSecondary} />
                             </TouchableOpacity>
                             {/* Start/End Date button */}
                             <TouchableOpacity onPress={() => handleOpenDateModal('start')}>
                                 <AntDesign name="calendar" size={24} color={(formData.startDate || formData.endDate) ? colors.primary : colors.textSecondary} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={onSave}><Ionicons name='checkmark' size={24} color={colors.textPrimary} /></TouchableOpacity>
+                            <TouchableOpacity onPress={handleSave}><Ionicons name="checkmark" size={24} color={colors.textPrimary} /></TouchableOpacity>
                         </View>
                     </View>
 
@@ -432,7 +451,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 }
                             ]}
                         >
-                            <Ionicons name='notifications' size={16} color={isReminderPast ? '#e74c3c' : '#e67e22'} />
+                            <Ionicons name="notifications" size={16} color={isReminderPast ? '#e74c3c' : '#e67e22'} />
                             <Text style={[
                                 styles.reminderBadgeText,
                                 { color: isReminderPast ? '#e74c3c' : '#ffffff' }
@@ -465,7 +484,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 { backgroundColor: isDark ? 'rgba(52,152,219,0.15)' : 'rgba(52,152,219,0.1)' }
                             ]}
                         >
-                            <Ionicons name='location' size={16} color={colors.primary} />
+                            <Ionicons name="location" size={16} color={colors.primary} />
                             <Text style={[styles.reminderBadgeText, { color: colors.primary }]} numberOfLines={1}>
                                 {formData.locationName}
                             </Text>
@@ -507,7 +526,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                     </TouchableOpacity>
                                 </TouchableOpacity>
                             )}
-                            
+
                             {formData.endDate && (
                                 <TouchableOpacity
                                     onPress={() => handleOpenDateModal('end')}
@@ -564,25 +583,23 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                             <TouchableOpacity
                                                 key={color}
                                                 activeOpacity={0.8}
-                                                style={[
-                                                    {
-                                                        width: 44,
-                                                        height: 44,
-                                                        borderRadius: 22,
-                                                        marginHorizontal: 8,
-                                                        marginVertical: 4,
-                                                        backgroundColor: color,
-                                                        borderWidth: isSelected ? 3 : 1,
-                                                        borderColor: isSelected ? colors.primary : (color === '#ffffff' ? colors.border : 'transparent'),
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        shadowColor: '#000',
-                                                        shadowOffset: { width: 0, height: 1 },
-                                                        shadowOpacity: 0.1,
-                                                        shadowRadius: 2,
-                                                        elevation: isSelected ? 4 : 2,
-                                                    }
-                                                ]}
+                                                style={{
+                                                    width: 44,
+                                                    height: 44,
+                                                    borderRadius: 22,
+                                                    marginHorizontal: 8,
+                                                    marginVertical: 4,
+                                                    backgroundColor: color,
+                                                    borderWidth: isSelected ? 3 : 1,
+                                                    borderColor: isSelected ? colors.primary : (color === '#ffffff' ? colors.border : 'transparent'),
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    shadowColor: '#000',
+                                                    shadowOffset: { width: 0, height: 1 },
+                                                    shadowOpacity: 0.1,
+                                                    shadowRadius: 2,
+                                                    elevation: isSelected ? 4 : 2,
+                                                }}
                                                 onPress={() => {
                                                     onUpdateField('color', color);
                                                     setShowColorPicker(false);
@@ -602,7 +619,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             </ScrollView>
                         </View>
                     )}
-                    <View className='p-7'>
+                    <View className="p-7">
                         <View style={{ borderRadius: 10, overflow: 'hidden' }}>
                             <RichEditor
                                 ref={richTextEditorRef}
@@ -712,32 +729,32 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
                             {/* Time picker row */}
                             <View style={styles.customPickerRow}>
-                            <AntDesign name="clock-circle" size={16} color={colors.primary} />
-                            {/* Hour */}
-                            <View style={styles.timeUnit}>
-                                <TouchableOpacity onPress={() => adjustHour(1)} style={styles.timeArrow}>
-                                    <AntDesign name="up" size={16} color={colors.textSecondary} />
-                                </TouchableOpacity>
-                                <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>
-                                    {dayjs(tempReminderDate).format('HH')}
-                                </Text>
-                                <TouchableOpacity onPress={() => adjustHour(-1)} style={styles.timeArrow}>
-                                    <AntDesign name="down" size={16} color={colors.textSecondary} />
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={[styles.timeSeparator, { color: colors.textPrimary }]}>:</Text>
-                            {/* Minute */}
-                            <View style={styles.timeUnit}>
-                                <TouchableOpacity onPress={() => adjustMinute(1)} style={styles.timeArrow}>
-                                    <AntDesign name="up" size={16} color={colors.textSecondary} />
-                                </TouchableOpacity>
-                                <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>
-                                    {dayjs(tempReminderDate).format('mm')}
-                                </Text>
-                                <TouchableOpacity onPress={() => adjustMinute(-1)} style={styles.timeArrow}>
-                                    <AntDesign name="down" size={16} color={colors.textSecondary} />
-                                </TouchableOpacity>
-                            </View>
+                                <AntDesign name="clock-circle" size={16} color={colors.primary} />
+                                {/* Hour */}
+                                <View style={styles.timeUnit}>
+                                    <TouchableOpacity onPress={() => adjustHour(1)} style={styles.timeArrow}>
+                                        <AntDesign name="up" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                    <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>
+                                        {dayjs(tempReminderDate).format('HH')}
+                                    </Text>
+                                    <TouchableOpacity onPress={() => adjustHour(-1)} style={styles.timeArrow}>
+                                        <AntDesign name="down" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={[styles.timeSeparator, { color: colors.textPrimary }]}>:</Text>
+                                {/* Minute */}
+                                <View style={styles.timeUnit}>
+                                    <TouchableOpacity onPress={() => adjustMinute(1)} style={styles.timeArrow}>
+                                        <AntDesign name="up" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                    <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>
+                                        {dayjs(tempReminderDate).format('mm')}
+                                    </Text>
+                                    <TouchableOpacity onPress={() => adjustMinute(-1)} style={styles.timeArrow}>
+                                        <AntDesign name="down" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </View>
 
@@ -756,16 +773,16 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                         key={preset.minutes}
                                         style={[
                                             styles.quickPresetBtn,
-                                                { backgroundColor: remindBefore === preset.minutes ? '#e67e22' : (isDark ? 'rgba(230,126,34,0.15)' : 'rgba(230,126,34,0.1)') }
-                                            ]}
-                                            onPress={() => handleSelectRemindBefore(preset.minutes)}
-                                        >
-                                            <Text style={[
-                                                styles.quickPresetText,
-                                                { color: remindBefore === preset.minutes ? '#fff' : '#e67e22' }
-                                            ]}>{preset.label}</Text>
-                                        </TouchableOpacity>
-                                    ))}
+                                            { backgroundColor: remindBefore === preset.minutes ? '#e67e22' : (isDark ? 'rgba(230,126,34,0.15)' : 'rgba(230,126,34,0.1)') }
+                                        ]}
+                                        onPress={() => handleSelectRemindBefore(preset.minutes)}
+                                    >
+                                        <Text style={[
+                                            styles.quickPresetText,
+                                            { color: remindBefore === preset.minutes ? '#fff' : '#e67e22' }
+                                        ]}>{preset.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
                             </ScrollView>
                         </View>
 
@@ -1199,23 +1216,23 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             </Modal>
         </SafeAreaView>
     );
-}
+};
 
 const styles = StyleSheet.create({
-    colorPickerContainer: {
-        backgroundColor: '#fff',
-        padding: 16,
-    },
-    colorPickerItem: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        margin: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
+    // colorPickerContainer: {
+    //     backgroundColor: '#fff',
+    //     padding: 16,
+    // },
+    // colorPickerItem: {
+    //     borderWidth: 1,
+    //     borderColor: '#ccc',
+    //     width: 40,
+    //     height: 40,
+    //     borderRadius: 20,
+    //     margin: 8,
+    //     alignItems: 'center',
+    //     justifyContent: 'center',
+    // },
     toolbarContainer: {
         borderTopWidth: 1,
         borderTopColor: '#e0e0e0',
