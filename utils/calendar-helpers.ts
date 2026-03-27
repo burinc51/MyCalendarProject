@@ -6,7 +6,7 @@ import { encode as btoa } from 'base-64';
 
 import dayjs from 'dayjs';
 import type { ApiEvent, ApiMonthViewEvent, CalendarEvent, EventPriority, EventUser } from '@/types/event';
-import { COLOR_NAME_TO_HEX, HEX_TO_COLOR_NAME, API_PRIORITY_MAP, PRIORITY_TO_API_MAP, DEFAULT_USER_ID } from '@/constants/Calendar';
+import { COLOR_NAME_TO_HEX, API_PRIORITY_MAP, PRIORITY_TO_API_MAP, DEFAULT_USER_ID } from '@/constants/Calendar';
 
 /**
  * Maps API priority ("1", "2", "3") to component's priority
@@ -26,14 +26,9 @@ export const mapPriorityToApi = (priority: EventPriority): string => {
  * Maps API color name to a hex code
  */
 export const mapApiColorToHex = (colorName: string): string => {
-    return COLOR_NAME_TO_HEX[colorName] || '#34495e';
-};
-
-/**
- * Maps hex color to API color name
- */
-export const mapColorToApi = (hexColor: string): string => {
-    return HEX_TO_COLOR_NAME[hexColor] || 'Blue';
+    if (!colorName) return '#34495e';
+    if (colorName.startsWith('#')) return colorName; // Already a hex code
+    return COLOR_NAME_TO_HEX[colorName] || colorName;
 };
 
 /**
@@ -111,7 +106,7 @@ export const buildEventFormData = (
         description: formData.description.trim(),
         startDate: formData.isAllDay ? dayjs(formData.startDate).format('YYYY-MM-DDTHH:mm:ss') : dayjs(`${formData.startDate}T${formData.startTime}`).format('YYYY-MM-DDTHH:mm:ss'),
         endDate: formData.isAllDay ? dayjs(formData.endDate).format('YYYY-MM-DDTHH:mm:ss') : dayjs(`${formData.endDate}T${formData.endTime}`).format('YYYY-MM-DDTHH:mm:ss'),
-        color: mapColorToApi(formData.color),
+        color: formData.color,
         category: formData.category,
         priority: priorityToApiString(formData.priority as EventPriority),
         location: formData.location.trim(),
