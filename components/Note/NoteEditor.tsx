@@ -11,7 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import dayjs from 'dayjs';
 import type { NoteFormData } from '@/types/note';
 import { NOTE_COLORS } from '@/types/note';
-import { uploadNoteImage } from '@/services/note-service';
+import { uploadNoteImage } from '@/services/noteService';
 import { useTheme, useThemeColors } from '../ThemeProvider';
 
 interface NoteEditorProps {
@@ -34,6 +34,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [showTitleEditor, setShowTitleEditor] = useState(false);
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+    const [editorHeight, setEditorHeight] = useState(400);
 
     // Track unsaved changes
     const initialFormData = useRef<NoteFormData>({
@@ -338,10 +339,21 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             fileName: asset.fileName || `note-${Date.now()}.jpg`,
             mimeType: asset.mimeType || 'image/jpeg',
         });
+
+        const editor = richTextEditorRef.current as unknown as {
+            insertImage?: (url: string, style?: string) => void;
+            insertHTML?: (html: string) => void;
+            focusContentEditor?: () => void;
+        };
+
         richTextEditorRef.current?.insertImage(
             imageUrl,
             'width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;'
         );
+
+        // Force a new editable line after image so text typed next is visible immediately.
+        editor.insertHTML?.('<div><br/></div>');
+        editor.focusContentEditor?.();
     }, []);
 
     const handlePickImageFromGallery = useCallback(async () => {
@@ -626,15 +638,36 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 initialContentHTML={formData.content}
                                 onChange={handleChangeText}
                                 onCursorPosition={handleCursorPosition}
+                                onHeightChange={(height) => setEditorHeight(Math.max(400, height + 24))}
                                 placeholder=""
+                                style={{ minHeight: editorHeight }}
                                 editorStyle={{
                                     backgroundColor: editorBgColor,
                                     color: editorTextColor,
                                     placeholderColor: colors.textSecondary,
-                                    contentCSSText: `font-size: 13px; line-height: 1.6; font-family: sans-serif; padding: 10px; hr { border-top: 1px solid ${colors.border}; }`,
+                                    contentCSSText: `
+                                        font-size: 13px;
+                                        line-height: 1.6;
+                                        font-family: sans-serif;
+                                        padding: 10px;
+                                        img {
+                                            display: block;
+                                            width: 100%;
+                                            max-width: 100%;
+                                            height: auto;
+                                            margin: 8px 0;
+                                            border-radius: 8px;
+                                        }
+                                        p, div {
+                                            min-height: 1em;
+                                        }
+                                        hr {
+                                            border-top: 1px solid ${colors.border};
+                                        }
+                                    `,
                                 }}
                                 useContainer={true}
-                                initialHeight={400}
+                                initialHeight={editorHeight}
                             />
                         </View>
                     </View>

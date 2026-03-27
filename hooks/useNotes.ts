@@ -7,7 +7,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useToast } from '@/components/ui/Toast';
 import type { ToastType } from '@/components/ui/Toast';
-import * as noteService from '@/services/note-service';
+import * as noteService from '@/services/noteService';
 import { scheduleNoteReminder, cancelNoteReminder } from '@/services/notification-service';
 import { DEFAULT_NOTE_FORM } from '@/types/note';
 import type { Note, NoteFormData, NoteSortOption, SortDirection, NoteViewMode } from '@/types/note';
