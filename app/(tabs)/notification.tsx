@@ -8,6 +8,7 @@ import {
     RefreshControl,
     Image,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import dayjs from 'dayjs';
@@ -80,6 +81,7 @@ const Avatar: React.FC<{ name: string; actorId: number; size?: number; avatarUrl
 };
 
 const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, isDark }) => {
+    const router = useRouter();
     const meta = ACTION_META[item.actionType as string] || ACTION_META.DEFAULT;
     const time = dayjs(item.createdAt);
     const isToday = time.isSame(dayjs(), 'day');
@@ -125,8 +127,32 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
         rowBorder: isDark ? '#3a3a3a' : '#ebebeb',
     };
 
+    const isDeleted = item.actionType === 'EVENT_DELETED';
+    const textDecorationStyle = isDeleted ? 'line-through' : 'none';
+    const textOpacity = isDeleted ? 0.5 : 1;
+
+    const isClickable = (item.actionType.startsWith('EVENT_') && !isDeleted && item.eventId) ||
+                        (['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT'].includes(item.actionType) && item.groupId);
+
+    const handlePress = () => {
+        if (item.actionType.startsWith('EVENT_') && !isDeleted && item.eventId) {
+            router.push(`/event/${item.eventId}`);
+        } else if (
+            ['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT'].includes(item.actionType) && 
+            item.groupId
+        ) {
+            router.push(`/group/${item.groupId}/settings`);
+        }
+    };
+
+    const CardContainer = isClickable ? TouchableOpacity : View;
+
     return (
-        <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
+        <CardContainer 
+            style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}
+            activeOpacity={0.7}
+            onPress={isClickable ? handlePress : undefined}
+        >
             {/* Left accent bar */}
             <View style={styles.cardInner}>
                 {/* Event header */}
@@ -134,22 +160,35 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
                     <View style={styles.cardHeaderLeft}>
                         <View style={styles.titleRow}>
                             <View style={[styles.titleLine, { backgroundColor: dynamicColor }]} />
-                            <View>
+                            <View style={{ opacity: textOpacity }}>
                                 <Text
-                                    style={[styles.eventTitle, { color: C.title }]}
+                                    style={[
+                                        styles.eventTitle,
+                                        { color: C.title, textDecorationLine: textDecorationStyle }
+                                    ]}
                                     numberOfLines={1}
                                 >
                                     {item.eventTitle ?? meta.label}
                                 </Text>
                                 {dateStr ? (
                                     <Text
-                                        style={[styles.eventDateText, { color: C.sub }]}
+                                        style={[
+                                            styles.eventDateText,
+                                            { color: C.sub, textDecorationLine: textDecorationStyle }
+                                        ]}
                                         numberOfLines={1}
                                     >
                                         {dateStr}
                                     </Text>
                                 ) : null}
-                                <Text style={[styles.groupLabel, { color: C.sub }]}>{item.groupName ? `กลุ่ม ${item.groupName}` : `กลุ่ม #${item.groupId}`}</Text>
+                                <Text
+                                    style={[
+                                        styles.groupLabel,
+                                        { color: C.sub, textDecorationLine: textDecorationStyle }
+                                    ]}
+                                >
+                                    {item.groupName ? `กลุ่ม ${item.groupName}` : `กลุ่ม #${item.groupId}`}
+                                </Text>
                             </View>
                         </View>
                     </View>
@@ -164,9 +203,8 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
                 <View style={[styles.innerDivider, { backgroundColor: C.rowBorder }]} />
 
                 {/* Activity row */}
-                <TouchableOpacity
+                <View
                     style={[styles.activityRow, { backgroundColor: C.row }]}
-                    activeOpacity={0.7}
                 >
                     {/* Actor mini avatar */}
                     <Avatar
@@ -207,9 +245,9 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
 
                     {/* Timestamp */}
                     <Text style={[styles.timeText, { color: C.sub }]}>{timeStr}</Text>
-                </TouchableOpacity>
+                </View>
             </View>
-        </View>
+        </CardContainer>
     );
 };
 
