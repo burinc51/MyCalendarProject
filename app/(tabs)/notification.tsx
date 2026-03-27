@@ -21,6 +21,8 @@ interface ActivityLog extends BaseActivityLog {
     eventStartDate?: string | null;
     eventEndDate?: string | null;
     actionDetail?: string | null;
+    eventColor?: string | null;
+    groupColor?: string | null;
 }
 
 // Types (matching API JSON)
@@ -42,7 +44,7 @@ const ACTION_META: Record<string, { label: string; icon: string; color: string }
     EVENT_DELETED: { label: 'ลบกิจกรรม', icon: 'trash-2', color: '#ef4444' },
     MEMBER_JOINED: { label: 'เข้าร่วมกลุ่ม', icon: 'user-plus', color: '#a78bfa' },
     MEMBER_LEFT: { label: 'ออกจากกลุ่ม', icon: 'user-minus', color: '#f97316' },
-    MEMBER_ADDED: { label: 'เพิ่มสมาชิกใหม่', icon: 'user-plus', color: '#a78bfa' },
+    MEMBER_ADDED: { label: 'สมาชิกใหม่', icon: 'user-plus', color: '#a78bfa' },
     MEMBER_REMOVED: { label: 'ลบสมาชิกออก', icon: 'user-minus', color: '#f97316' },
     GROUP_SHARED: { label: 'แชร์กลุ่ม', icon: 'share-2', color: '#fbbf24' },
     GROUP_UPDATED: { label: 'อัปเดตกลุ่ม', icon: 'settings', color: '#4ade80' },
@@ -82,6 +84,11 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
     const time = dayjs(item.createdAt);
     const isToday = time.isSame(dayjs(), 'day');
     const timeStr = isToday ? time.format('HH:mm') : time.format('D MMM HH:mm');
+
+    const isEventAction = item.actionType.startsWith('EVENT_');
+    const dynamicColor = isEventAction 
+        ? item.eventColor || meta.color 
+        : item.groupColor || meta.color;
 
     // Attempt to parse start/end dates if available
     let dateStr = '';
@@ -126,23 +133,31 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
                 <View style={styles.cardHeader}>
                     <View style={styles.cardHeaderLeft}>
                         <View style={styles.titleRow}>
-                            <View style={[styles.titleLine, { backgroundColor: meta.color }]} />
+                            <View style={[styles.titleLine, { backgroundColor: dynamicColor }]} />
                             <View>
-                                <Text style={[styles.eventTitle, { color: C.title }]} numberOfLines={1}>
+                                <Text
+                                    style={[styles.eventTitle, { color: C.title }]}
+                                    numberOfLines={1}
+                                >
                                     {item.eventTitle ?? meta.label}
                                 </Text>
                                 {dateStr ? (
-                                    <Text style={[styles.eventDateText, { color: C.sub }]} numberOfLines={1}>
+                                    <Text
+                                        style={[styles.eventDateText, { color: C.sub }]}
+                                        numberOfLines={1}
+                                    >
                                         {dateStr}
                                     </Text>
                                 ) : null}
-                                <Text style={[styles.groupLabel, { color: C.sub }]}>
-                                    {item.groupName ? `กลุ่ม ${item.groupName}` : `กลุ่ม #${item.groupId}`}
-                                </Text>
+                                <Text style={[styles.groupLabel, { color: C.sub }]}>{item.groupName ? `กลุ่ม ${item.groupName}` : `กลุ่ม #${item.groupId}`}</Text>
                             </View>
                         </View>
                     </View>
-                    <Avatar name={item.actorName} actorId={item.actorId} avatarUrl={item.actorAvatar} />
+                    <Avatar
+                        name={item.actorName}
+                        actorId={item.actorId}
+                        avatarUrl={item.actorAvatar}
+                    />
                 </View>
 
                 {/* Divider */}
@@ -154,24 +169,35 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
                     activeOpacity={0.7}
                 >
                     {/* Actor mini avatar */}
-                    <Avatar name={item.actorName} actorId={item.actorId} size={28} avatarUrl={item.actorAvatar} />
+                    <Avatar
+                        name={item.actorName}
+                        actorId={item.actorId}
+                        size={28}
+                        avatarUrl={item.actorAvatar}
+                    />
 
                     {/* Action label */}
                     <View style={styles.activityLabel}>
-                        <View style={[styles.actionIconBox, { backgroundColor: meta.color + '20' }]}>
-                            <Feather name={meta.icon as any} size={12} color={meta.color} />
+                        <View style={[styles.actionIconBox, { backgroundColor: dynamicColor + '20' }]}>
+                            <Feather
+                                name={meta.icon as any}
+                                size={12}
+                                color={dynamicColor}
+                            />
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.activityText, { color: C.title }]}>
                                 <Text style={styles.actorBold}>{item.actorName} </Text>
                                 {meta.label}
-                                {item.targetUserName ? (
-                                    <Text style={styles.actorBold}> {item.targetUserName}</Text>
-                                ) : ''}
+                                {item.targetUserName && item.actionType !== 'MEMBER_ADDED'
+                                    ? <Text style={styles.actorBold}> {item.targetUserName}</Text> : ''}
                             </Text>
                             {item.actionDetail && (
                                 <View style={[styles.detailBox, { backgroundColor: isDark ? '#333' : '#f3f4f6' }]}>
-                                    <Text style={[styles.detailText, { color: C.sub }]} numberOfLines={2}>
+                                    <Text
+                                        style={[styles.detailText, { color: C.sub }]}
+                                        numberOfLines={2}
+                                    >
                                         {item.actionDetail}
                                     </Text>
                                 </View>
@@ -357,9 +383,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 6,
         elevation: 2,
-    },
-    accentBar: {
-        width: 4,
     },
     cardInner: {
         flex: 1,
