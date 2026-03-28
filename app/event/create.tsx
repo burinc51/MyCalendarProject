@@ -26,6 +26,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { GroupApiResponse, GroupMember } from '@/types/group';
 import { getGroupsAllByUserId } from '@/services/groupService';
+import { useGroupStore } from '@/stores/useGroupStore';
 
 // Helpers
 const hexToRgba = (hex: string, alpha: number) => {
@@ -470,7 +471,20 @@ const AssigneeModal: React.FC<{
 };
 const asm = StyleSheet.create({
     backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)' },
-    sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingBottom: 32, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 20 },
+    sheet: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        borderTopLeftRadius: 26,
+        borderTopRightRadius: 26,
+        paddingBottom: 32,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 20
+    },
     handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
     title: { fontSize: 18, fontFamily: 'Kanit-Bold' },
@@ -484,7 +498,7 @@ const asm = StyleSheet.create({
     rowUser: { fontSize: 12, fontFamily: 'Kanit-Regular' },
     checkbox: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
     doneBtn: { paddingVertical: 15, borderRadius: 16, alignItems: 'center', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
-    doneTxt: { fontSize: 16, fontFamily: 'Kanit-Bold', color: '#fff' },
+    doneTxt: { fontSize: 16, fontFamily: 'Kanit-Bold', color: '#fff' }
 });
 
 // Main Screen  (default export — required by Expo Router)
@@ -494,6 +508,12 @@ export default function EventCreateScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const params = useLocalSearchParams<{ date?: string; event?: string; groupId?: string }>();
+    const { groups, selectedGroupId } = useGroupStore();
+
+    const fallbackGroupId = useMemo<number | null>(() => {
+        if (selectedGroupId) return selectedGroupId;
+        return groups.length > 0 ? groups[0].groupId : null;
+    }, [groups, selectedGroupId]);
 
     const existingEvent = useMemo<CalendarEvent | null>(() => {
         try { return params.event ? JSON.parse(params.event as string) : null; }
@@ -527,8 +547,16 @@ export default function EventCreateScreen() {
             };
         }
         const dateStr = params.date ?? dayjs().format('YYYY-MM-DD');
-        return { ...DEFAULT_EVENT_FORM, startDate: dateStr, endDate: dateStr, groupId: params.groupId ? Number(params.groupId) : null };
-    }, [existingEvent, params.date, params.groupId]);
+        const parsedParamGroupId = params.groupId !== undefined ? Number(params.groupId) : null;
+        const routeGroupId = parsedParamGroupId !== null && !Number.isNaN(parsedParamGroupId) ? parsedParamGroupId : null;
+
+        return {
+            ...DEFAULT_EVENT_FORM,
+            startDate: dateStr,
+            endDate: dateStr,
+            groupId: routeGroupId ?? fallbackGroupId,
+        };
+    }, [existingEvent, params.date, params.groupId, fallbackGroupId]);
 
     const { user: authUser } = useAuthStore();
     const [formData, setFormData] = useState<EventFormData>(initialForm);
@@ -556,22 +584,26 @@ export default function EventCreateScreen() {
     // Fetch user's groups on mount
     React.useEffect(() => {
         const fetchGroups = async () => {
+            console.log("params.groupId: ", params.groupId);
             if (!authUser) return;
             try {
                 const { getGroupsAllByUserId } = await import('@/services/groupService');
-                const groups = await getGroupsAllByUserId(authUser.id);
-                setUserGroups(groups);
-                
-                // If creating a new event from personal calendar (no groupId anywhere), set default to first group
-                if (!isEditing && !params.groupId && groups.length > 0) {
-                    setFormData(prev => prev.groupId ? prev : { ...prev, groupId: groups[0].groupId });
+                const groupsFromApi = await getGroupsAllByUserId(authUser.id);
+                setUserGroups(groupsFromApi);
+
+                // If route has no groupId, prefer group from store and fallback to first API group.
+                if (!isEditing && params.groupId === undefined && groupsFromApi.length > 0) {
+                    setFormData(prev => {
+                        if (prev.groupId) return prev;
+                        return { ...prev, groupId: fallbackGroupId ?? groupsFromApi[0].groupId };
+                    });
                 }
             } catch (err) {
                 console.error('Failed to load user groups:', err);
             }
         };
         fetchGroups();
-    }, [authUser, isEditing, params.groupId]);
+    }, [authUser, isEditing, params.groupId, fallbackGroupId]);
 
     // Fetch members when selected group changes
     React.useEffect(() => {

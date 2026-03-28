@@ -43,6 +43,7 @@ import { useEventActionStore } from '@/stores/useEventActionStore';
 
 // Types
 import type { CalendarEvent } from '@/types/event';
+import { useGroupStore } from '@/stores/useGroupStore';
 
 dayjs.extend(isBetween);
 
@@ -164,9 +165,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
     const {
         events, isLoading, handleDeleteEvent, handleEditEvent
     } = useCalendarEvents(isGroupCalendar ? (groupId ? Number(groupId) : undefined) : null);
-
-    console.log('isLoading', isLoading);
-
+    
     // Shimmer loading bar animation
     const screenWidth = Dimensions.get('window').width;
     const shimmerWidth = screenWidth * 0.5;
@@ -428,10 +427,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
         });
     }, [selectedDate, router]);
 
-    const formattedDate = useMemo(
-        () => selectedDate ? dayjs(selectedDate).format('dddd D MMMM') : 'No Date Selected',
-        [selectedDate]
-    );
+    const formattedDate = useMemo(() => (selectedDate ? dayjs(selectedDate).format('dddd D MMMM') : 'No Date Selected'), [selectedDate]);
 
 
     const pages = useMemo(() => Array.from({ length: TOTAL_PAGES }, (_, i) => i), []);
