@@ -258,16 +258,16 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
 const styles = StyleSheet.create({
     card: {
-        borderRadius: 24,
-        padding: 18,
+        borderRadius: 28,
+        padding: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-        elevation: 4,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 6,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.03)'
+        borderColor: 'rgba(0,0,0,0.02)'
     },
     gridCard: {
         width: GRID_CARD_WIDTH,
@@ -286,17 +286,18 @@ const styles = StyleSheet.create({
     },
     title: {
         fontFamily: 'Kanit-SemiBold',
-        fontSize: 17,
-        marginBottom: 6,
+        fontSize: 18,
+        marginBottom: 8,
         paddingRight: 24, // Space for pin icon
-        letterSpacing: 0.2
+        letterSpacing: 0.1,
+        lineHeight: 24
     },
     content: {
         fontFamily: 'Kanit-Regular',
         fontSize: 14,
         lineHeight: 22,
         flex: 1,
-        opacity: 0.9
+        opacity: 0.85
     },
     footer: {
         marginTop: 14,
@@ -347,7 +348,7 @@ const styles = StyleSheet.create({
     },
     reminderText: {
         fontFamily: 'Kanit-Medium',
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: '600'
     }
 });
