@@ -12,6 +12,7 @@ import {
     Switch, ScrollView, FlatList, Alert, KeyboardAvoidingView,
     Platform, Modal, Image,
     NativeSyntheticEvent, NativeScrollEvent,
+    Animated, PanResponder, Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -304,86 +305,201 @@ const GroupPickerModal: React.FC<{
     onSelect: (groupId: number) => void;
 }> = ({ visible, userGroups, selectedGroupId, isDark, accent, c, onClose, onSelect }) => {
     const insets = useSafeAreaInsets();
+    const screenHeight = Dimensions.get('window').height;
+    const translateY = useRef(new Animated.Value(screenHeight)).current;
+    const backdropOpacity = useRef(new Animated.Value(0)).current;
+
+    const closeModal = useCallback(() => {
+        Animated.parallel([
+            Animated.timing(translateY, {
+                toValue: screenHeight,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+            Animated.timing(backdropOpacity, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+        ]).start(() => onClose());
+    }, [backdropOpacity, onClose, screenHeight, translateY]);
+
+    React.useEffect(() => {
+        if (!visible) return;
+        translateY.setValue(screenHeight);
+        backdropOpacity.setValue(0);
+        Animated.parallel([
+            Animated.spring(translateY, {
+                toValue: 0,
+                damping: 22,
+                stiffness: 180,
+                mass: 0.9,
+                useNativeDriver: true,
+            }),
+            Animated.timing(backdropOpacity, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [backdropOpacity, screenHeight, translateY, visible]);
+
+    // PanResponder for swipe-down-to-dismiss on handle area ONLY
+    const panResponder = useMemo(
+        () => PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 5,
+            onPanResponderMove: (_, gestureState) => {
+                if (gestureState.dy > 0) {
+                    translateY.setValue(gestureState.dy);
+                }
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                const dismissThreshold = (screenHeight - insets.top) * 0.25;
+                if (gestureState.dy > dismissThreshold || gestureState.vy > 0.5) {
+                    closeModal();
+                    return;
+                }
+                Animated.spring(translateY, {
+                    toValue: 0,
+                    damping: 22,
+                    stiffness: 200,
+                    mass: 0.8,
+                    useNativeDriver: true,
+                }).start();
+            },
+        }),
+        [closeModal, screenHeight, insets.top, translateY]
+    );
+
     if (!visible) return null;
+
     return (
         <Modal
             visible={visible}
             transparent
-            animationType="fade"
-            onRequestClose={onClose}
+            animationType="none"
+            statusBarTranslucent
+            onRequestClose={closeModal}
         >
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }]}>
-                <View style={{ backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: insets.bottom, maxHeight: '70%' }}>
-                    <View
-                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: c.cardBorder }}
-                    >
-                        <Text style={{ fontSize: 18, fontFamily: 'Kanit-Bold', color: c.text }}>Select Group</Text>
-                        <TouchableOpacity onPress={onClose}>
-                            <Feather
-                                name="x"
-                                size={24}
-                                color={c.text}
-                            />
-                        </TouchableOpacity>
-                    </View>
-                    <FlatList
-                        data={userGroups}
-                        keyExtractor={(item) => item.groupId.toString()}
-                        contentContainerStyle={{ padding: 20, gap: 12 }}
-                        showsVerticalScrollIndicator={false}
-                        renderItem={({ item }) => {
-                            const isSel = item.groupId === selectedGroupId;
-                            return (
-                                <TouchableOpacity
-                                    style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        padding: 14,
-                                        borderRadius: 14,
-                                        backgroundColor: isSel ? hexToRgba(accent, 0.1) : isDark ? '#222' : '#f8f9fa',
-                                        borderWidth: 1,
-                                        borderColor: isSel ? accent : 'transparent'
-                                    }}
-                                    onPress={() => onSelect(item.groupId)}
-                                >
-                                    <View
-                                        style={{
-                                            width: 40,
-                                            height: 40,
-                                            borderRadius: 20,
-                                            backgroundColor: item.bg || hexToRgba(accent, 0.2),
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            marginRight: 14
-                                        }}
-                                    >
-                                        {item.icon ? (
-                                            <Feather
-                                                name={item.icon as any}
-                                                size={20}
-                                                color={item.color || accent}
-                                            />
-                                        ) : (
-                                            <Text style={{ fontFamily: 'Kanit-Bold', color: item.color || accent }}>{item.groupName.charAt(0)}</Text>
-                                        )}
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={{ fontSize: 16, fontFamily: 'Kanit-Bold', color: c.text }}>{item.groupName}</Text>
-                                        <Text style={{ fontSize: 13, fontFamily: 'Kanit-Regular', color: c.placeholder }}>{item.members.length} members</Text>
-                                    </View>
-                                    {isSel && (
-                                        <Feather
-                                            name="check-circle"
-                                            size={20}
-                                            color={accent}
-                                        />
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        }}
-                    />
+            <Animated.View
+                style={[
+                    StyleSheet.absoluteFill,
+                    {
+                        backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.45)',
+                        opacity: backdropOpacity,
+                    },
+                ]}
+            />
+            <TouchableOpacity
+                style={StyleSheet.absoluteFill}
+                activeOpacity={1}
+                onPress={closeModal}
+            />
+
+            <Animated.View
+                style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    marginTop: insets.top,
+                    backgroundColor: c.card,
+                    borderTopLeftRadius: 24,
+                    borderTopRightRadius: 24,
+                    paddingBottom: insets.bottom || 16,
+                    height: screenHeight - insets.top,
+                    transform: [{ translateY }],
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: -4 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 12,
+                    elevation: 16,
+                }}
+            >
+                {/* Draggable handle — PanResponder captures here */}
+                <View
+                    {...panResponder.panHandlers}
+                    style={{ height: 36, justifyContent: 'center', alignItems: 'center', paddingVertical: 8 }}
+                >
+                    <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: c.inputBorder }} />
                 </View>
-            </View>
+
+                <View
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.cardBorder }}
+                >
+                    <TouchableOpacity
+                        onPress={closeModal}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        accessibilityLabel="Close"
+                    >
+                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', justifyContent: 'center', alignItems: 'center' }}>
+                            <Feather name="arrow-left" size={18} color={c.text} />
+                        </View>
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 18, fontFamily: 'Kanit-Bold', color: c.text }}>Select Group</Text>
+                    <View style={{ width: 36 }} />
+                </View>
+
+                <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ padding: 20, gap: 12 }}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {userGroups.map((item) => {
+                        const isSel = item.groupId === selectedGroupId;
+                        return (
+                            <TouchableOpacity
+                                key={item.groupId.toString()}
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    padding: 14,
+                                    borderRadius: 14,
+                                    backgroundColor: isSel ? hexToRgba(accent, 0.1) : isDark ? '#222' : '#f8f9fa',
+                                    borderWidth: 1,
+                                    borderColor: isSel ? accent : 'transparent'
+                                }}
+                                onPress={() => onSelect(item.groupId)}
+                            >
+                                <View
+                                    style={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: 20,
+                                        backgroundColor: item.bg || hexToRgba(accent, 0.2),
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        marginRight: 14
+                                    }}
+                                >
+                                    {item.icon ? (
+                                        <Feather
+                                            name={item.icon as any}
+                                            size={20}
+                                            color={item.color || accent}
+                                        />
+                                    ) : (
+                                        <Text style={{ fontFamily: 'Kanit-Bold', color: item.color || accent }}>{item.groupName.charAt(0)}</Text>
+                                    )}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 16, fontFamily: 'Kanit-Bold', color: c.text }}>{item.groupName}</Text>
+                                    <Text style={{ fontSize: 13, fontFamily: 'Kanit-Regular', color: c.placeholder }}>{item.members?.length ?? 0} members</Text>
+                                </View>
+                                {isSel && (
+                                    <Feather
+                                        name="check-circle"
+                                        size={20}
+                                        color={accent}
+                                    />
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+            </Animated.View>
         </Modal>
     );
 };
@@ -576,7 +692,7 @@ export default function EventCreateScreen() {
     });
     const [showAssignees, setShowAssignees] = useState(false);
     const [availableUsers, setAvailableUsers] = useState<EventUser[]>([]);
-    
+
     // New states for Group Selection
     const [userGroups, setUserGroups] = useState<import('@/types/group').GroupApiResponse[]>([]);
     const [showGroupPicker, setShowGroupPicker] = useState(false);
@@ -584,7 +700,7 @@ export default function EventCreateScreen() {
     // Fetch user's groups on mount
     React.useEffect(() => {
         const fetchGroups = async () => {
-            console.log("params.groupId: ", params.groupId);
+            console.log('params.groupId: ', params.groupId);
             if (!authUser) return;
             try {
                 const { getGroupsAllByUserId } = await import('@/services/groupService');
@@ -737,8 +853,8 @@ export default function EventCreateScreen() {
                     <View style={[s.card, { backgroundColor: c.card, borderColor: c.cardBorder }]}>
                         <SectionHeader icon="edit-3" title="Basic Info" accent={accent} isDark={isDark} />
                         <Text style={[s.lbl, { color: c.label }]}>Group *</Text>
-                        <TouchableOpacity 
-                            style={[s.inputRow, { backgroundColor: c.input, borderColor: c.inputBorder, marginBottom: 14 }]} 
+                        <TouchableOpacity
+                            style={[s.inputRow, { backgroundColor: c.input, borderColor: c.inputBorder, marginBottom: 14 }]}
                             onPress={() => setShowGroupPicker(true)}
                         >
                             <Feather name="users" size={16} color={c.label} />
@@ -1068,4 +1184,3 @@ const s = StyleSheet.create({
     btnSave: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 14, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
     btnSaveTxt: { fontSize: 15, fontFamily: 'Kanit-Bold', color: '#fff' },
 });
-
