@@ -33,10 +33,16 @@ export async function googleSignIn(idToken: string): Promise<AuthResponse> {
 /**
  * Email Sign-Up: สมัครสมาชิกด้วยอีเมลและรหัสผ่าน
  */
-export async function emailSignUp(email: string, password: string, name: string): Promise<AuthResponse> {
+export async function emailSignUp(email: string, password: string, name: string, username: string): Promise<AuthResponse> {
     const response = await httpClient.post<AuthResponse>(
-        '/api/v1/auth/signup',
-        { email, password, name },
+        '/api/v1/users',
+        { 
+            email, 
+            password, 
+            name, 
+            username, 
+            roles: ["USER"] 
+        },
         { headers: { 'Content-Type': 'application/json' } }
     );
     return response.data;

@@ -17,6 +17,7 @@ import {
     KeyboardAvoidingView,
     TextInput,
     ScrollView,
+    Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -321,7 +322,11 @@ export default function LoginScreen() {
                             <ActivityIndicator size="small" color={C.accent} />
                         ) : (
                             <>
-                                <GoogleColorLogo />
+                                <Image
+                                    source={{ uri: 'https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png' }}
+                                    style={styles.googleIcon}
+                                    resizeMode="contain"
+                                />
                                 <Text style={[styles.googleButtonText, { color: C.googleText }]}>
                                     เข้าสู่ระบบด้วย Google
                                 </Text>
@@ -358,70 +363,6 @@ export default function LoginScreen() {
         </KeyboardAvoidingView>
     );
 }
-
-// ──────────────────────────────────────────────────────────────────
-// Google "G" logo หลายสี (SVG-like ด้วย View)
-// ──────────────────────────────────────────────────────────────────
-function GoogleColorLogo() {
-    return (
-        <View style={googleLogoStyles.wrapper}>
-            {/* แบ่ง circle เป็น 4 ส่วนด้วย border trick */}
-            <View style={googleLogoStyles.ring}>
-                <View style={[googleLogoStyles.half, googleLogoStyles.topLeft, { backgroundColor: '#4285F4' }]} />
-                <View style={[googleLogoStyles.half, googleLogoStyles.topRight, { backgroundColor: '#EA4335' }]} />
-                <View style={[googleLogoStyles.half, googleLogoStyles.bottomLeft, { backgroundColor: '#34A853' }]} />
-                <View style={[googleLogoStyles.half, googleLogoStyles.bottomRight, { backgroundColor: '#FBBC05' }]} />
-            </View>
-            {/* ตรงกลาง white cut-out สำหรับ ring effect */}
-            <View style={googleLogoStyles.innerWhite} />
-            {/* stem ของ G */}
-            <View style={googleLogoStyles.stem} />
-        </View>
-    );
-}
-
-const LOGO_SIZE = 22;
-const googleLogoStyles = StyleSheet.create({
-    wrapper: {
-        width: LOGO_SIZE,
-        height: LOGO_SIZE,
-        position: 'relative',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    ring: {
-        width: LOGO_SIZE,
-        height: LOGO_SIZE,
-        borderRadius: LOGO_SIZE / 2,
-        overflow: 'hidden',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    half: {
-        width: LOGO_SIZE / 2,
-        height: LOGO_SIZE / 2,
-    },
-    topLeft: { borderTopLeftRadius: LOGO_SIZE / 2 },
-    topRight: { borderTopRightRadius: LOGO_SIZE / 2 },
-    bottomLeft: { borderBottomLeftRadius: LOGO_SIZE / 2 },
-    bottomRight: { borderBottomRightRadius: LOGO_SIZE / 2 },
-    innerWhite: {
-        position: 'absolute',
-        width: LOGO_SIZE * 0.55,
-        height: LOGO_SIZE * 0.55,
-        borderRadius: (LOGO_SIZE * 0.55) / 2,
-        backgroundColor: '#fff',
-    },
-    stem: {
-        position: 'absolute',
-        right: 1,
-        top: LOGO_SIZE * 0.38,
-        width: LOGO_SIZE * 0.42,
-        height: LOGO_SIZE * 0.22,
-        backgroundColor: '#4285F4',
-        borderRadius: 2,
-    },
-});
 
 // ──────────────────────────────────────────────────────────────────
 // Styles
@@ -581,6 +522,10 @@ const styles = StyleSheet.create({
         fontFamily: 'Kanit-Regular',
         fontSize: 16,
         letterSpacing: 0.3,
+    },
+    googleIcon: {
+        width: 22,
+        height: 22,
     },
 
     // OR divider
