@@ -250,7 +250,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
         if (viewMode === 'year') {
             return `${displayYear}`;
         }
-        return `${monthNames.en[displayMonth]} ${displayYear}`;
+        return `${monthNames.th[displayMonth]} ${displayYear}`;
     }, [viewMode, displayMonth, displayYear, focusDate]);
 
     // Toggle picker arrow animation

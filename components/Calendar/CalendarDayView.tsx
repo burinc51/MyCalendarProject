@@ -97,7 +97,7 @@ const CalendarDayView: React.FC<Props> = ({ date, events, isDark = false }) => {
                 {/* Left: day name + day number */}
                 <View style={styles.allDayLeft}>
                     <Text style={[styles.allDayDayName, { color: colors.dayName }]}>
-                        {miniDays.en[currentDate.day()]}
+                        {miniDays.th[currentDate.day()]}
                     </Text>
                     <View style={[styles.allDayDayNumWrap, isToday && styles.todayCircle]}>
                         <Text style={[styles.allDayDayNum, { color: isToday ? '#fff' : colors.dayNum }]}>
