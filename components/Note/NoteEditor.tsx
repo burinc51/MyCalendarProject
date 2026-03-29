@@ -181,7 +181,16 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         const show = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
         const hide = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
         const showSub = Keyboard.addListener(show, () => setIsKeyboardVisible(true));
-        const hideSub = Keyboard.addListener(hide, () => setIsKeyboardVisible(false));
+        const hideSub = Keyboard.addListener(hide, () => {
+            setIsKeyboardVisible(false);
+            
+            // Explicitly force blur to completely exit "edit" mode
+            richTextRef.current?.blurContentEditor();
+            Keyboard.dismiss();
+
+            // Smoothly scroll back to top for better reading experience
+            scrollRef.current?.scrollTo({ y: 0, animated: true });
+        });
 
         const focusTimer = setTimeout(() => {
             richTextRef.current?.focusContentEditor();
@@ -643,12 +652,12 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                         </TouchableOpacity>
                     )}
 
-                    {/* ── Title Section ────────────────────────────────────────── */}
-                    <View style={styles.titleSection}>
+                    {/* ── Title row ────────────────────────────────────────────── */}
+                    <View style={styles.titleRow}>
                         <TouchableOpacity
                             onPress={() => setShowColorPicker(v => !v)}
-                            style={styles.colorSyncBtn}
                             activeOpacity={0.7}
+                            hitSlop={styles.hitSlop}
                         >
                             <View
                                 style={[
@@ -670,11 +679,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                             placeholder="ชื่อบันทึก..."
                             placeholderTextColor={placeholderColor}
                             style={[
-                                styles.titleInput,
+                                styles.titleText,
                                 {
-                                    color: colors.textPrimary,
-                                    borderBottomColor: colors.border,
                                     flex: 1,
+                                    color: colors.textPrimary,
+                                    paddingVertical: 4,
                                 },
                             ]}
                         />
@@ -757,8 +766,9 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                 color: editorTextColor,
                                 placeholderColor,
                                 contentCSSText: `
+                                    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;700&display=swap');
                                     line-height: 1.65;
-                                    font-family: sans-serif;
+                                    font-family: 'Kanit', sans-serif;
                                     padding: 12px 14px 60px;
                                     img {
                                         display: block;
@@ -829,13 +839,17 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                 <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowReminderModal(false)}>
                     <TouchableOpacity activeOpacity={1} style={[styles.sheet, { backgroundColor: colors.surface }]}>
                         <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+                        
                         <View style={styles.sheetHeader}>
-                            <TouchableOpacity onPress={() => setShowReminderModal(false)} style={styles.sheetSideBtn}>
-                                <Text style={[styles.sheetCancel, { color: colors.textSecondary }]}>ยกเลิก</Text>
-                            </TouchableOpacity>
-                            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>ตั้งเวลาแจ้งเตือน</Text>
-                            <TouchableOpacity onPress={handleConfirmReminder} style={styles.sheetSideBtn} disabled={isNotificationPast}>
-                                <Text style={[styles.sheetDone, { color: isNotificationPast ? colors.textDisabled : '#e67e22' }]}>บันทึก</Text>
+                            <View style={[styles.sheetHeaderIcon, { backgroundColor: 'rgba(230,126,34,0.15)' }]}>
+                                <Ionicons name="notifications" size={24} color="#e67e22" />
+                            </View>
+                            <View style={styles.sheetTitleContainer}>
+                                <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>การแจ้งเตือน</Text>
+                                <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>ตั้งค่าเวลาเพื่อไม่ให้พลาดบันทึกนี้</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowReminderModal(false)} style={styles.sheetCloseBtn}>
+                                <AntDesign name="close" size={16} color={colors.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
@@ -899,60 +913,88 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                         </ChipScroll>
 
                         {formData.reminderDate && (
-                            <View style={{ marginTop: 20 }}>
+                            <View style={{ marginTop: 12 }}>
                                 <DestructiveButton label="ลบการแจ้งเตือน" onPress={handleRemoveReminder} />
                             </View>
                         )}
-                        <View style={{ height: 32 }} />
+
+                        <TouchableOpacity 
+                            style={[styles.primaryActionBtn, { backgroundColor: isNotificationPast ? colors.border : '#e67e22' }]} 
+                            onPress={handleConfirmReminder}
+                            disabled={isNotificationPast}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={[styles.primaryActionText, { color: isNotificationPast ? colors.textDisabled : '#fff' }]}>ตั้งการแจ้งเตือน</Text>
+                        </TouchableOpacity>
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>
 
+
             {/* ── Location modal ────────────────────────────────────────────── */}
             <Modal visible={showLocationModal} transparent animationType="slide" onRequestClose={() => setShowLocationModal(false)}>
-                <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowLocationModal(false)}>
-                    <TouchableOpacity activeOpacity={1} style={[styles.sheet, { backgroundColor: colors.surface }]}>
-                        <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
-                        <View style={styles.sheetHeader}>
-                            <TouchableOpacity onPress={() => setShowLocationModal(false)} style={styles.sheetSideBtn}>
-                                <Text style={[styles.sheetCancel, { color: colors.textSecondary }]}>ยกเลิก</Text>
-                            </TouchableOpacity>
-                            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>สถานที่</Text>
-                            <TouchableOpacity onPress={handleConfirmLocation} style={styles.sheetSideBtn}>
-                                <Text style={[styles.sheetDone, { color: colors.primary }]}>บันทึก</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <SectionLabel label="ชื่อสถานที่" color={colors.textSecondary} />
-                        <TextInput
-                            style={[styles.input, { backgroundColor: isDark ? colors.background : '#f6f6f6', color: colors.textPrimary, borderColor: colors.border }]}
-                            placeholder="เช่น บ้าน, ออฟฟิศ, Central World..."
-                            placeholderTextColor={placeholderColor}
-                            value={tempLocationName}
-                            onChangeText={setTempLocationName}
-                            autoFocus
-                        />
-
-                        <SectionLabel label="ลิงก์ GPS (ไม่บังคับ)" color={colors.textSecondary} topSpacing />
-                        <TextInput
-                            style={[styles.input, { backgroundColor: isDark ? colors.background : '#f6f6f6', color: colors.textPrimary, borderColor: colors.border }]}
-                            placeholder="วาง Google Maps link ที่นี่..."
-                            placeholderTextColor={placeholderColor}
-                            value={tempLocationLink}
-                            onChangeText={setTempLocationLink}
-                            keyboardType="url"
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                        />
-
-                        {(formData.locationName || formData.locationLink) && (
-                            <View style={{ marginTop: 24 }}>
-                                <DestructiveButton label="ลบสถานที่" onPress={handleRemoveLocation} />
+                <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                    <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowLocationModal(false)}>
+                        <TouchableOpacity activeOpacity={1} style={[styles.sheet, { backgroundColor: colors.surface }]}>
+                            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+                            
+                            <View style={styles.sheetHeader}>
+                                <View style={[styles.sheetHeaderIcon, { backgroundColor: 'rgba(52,152,219,0.15)' }]}>
+                                    <Ionicons name="location" size={24} color={colors.primary} />
+                                </View>
+                                <View style={styles.sheetTitleContainer}>
+                                    <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>สถานที่</Text>
+                                    <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>เพิ่มพิกัดให้บันทึกของคุณ</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => setShowLocationModal(false)} style={styles.sheetCloseBtn}>
+                                    <AntDesign name="close" size={16} color={colors.textSecondary} />
+                                </TouchableOpacity>
                             </View>
-                        )}
-                        <View style={{ height: 32 }} />
+
+                            <SectionLabel label="ชื่อสถานที่" color={colors.textSecondary} />
+                            <View style={[styles.inputBox, { backgroundColor: isDark ? colors.background : '#f6f6f6' }]}>
+                                <Ionicons name="business" size={20} color={colors.textSecondary} style={{ marginRight: 12 }} />
+                                <TextInput
+                                    style={[styles.inputText, { color: colors.textPrimary }]}
+                                    placeholder="เช่น บ้าน, ออฟฟิศ, Central World..."
+                                    placeholderTextColor={placeholderColor}
+                                    value={tempLocationName}
+                                    onChangeText={setTempLocationName}
+                                    autoFocus
+                                />
+                            </View>
+
+                            <SectionLabel label="ลิงก์ GPS (ไม่บังคับ)" color={colors.textSecondary} topSpacing />
+                            <View style={[styles.inputBox, { backgroundColor: isDark ? colors.background : '#f6f6f6' }]}>
+                                <Feather name="link" size={20} color={colors.textSecondary} style={{ marginRight: 12 }} />
+                                <TextInput
+                                    style={[styles.inputText, { color: colors.textPrimary }]}
+                                    placeholder="วาง Google Maps link ที่นี่..."
+                                    placeholderTextColor={placeholderColor}
+                                    value={tempLocationLink}
+                                    onChangeText={setTempLocationLink}
+                                    keyboardType="url"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                />
+                            </View>
+
+                            {(formData.locationName || formData.locationLink) && (
+                                <View style={{ marginTop: 8 }}>
+                                    <DestructiveButton label="ลบสถานที่" onPress={handleRemoveLocation} />
+                                </View>
+                            )}
+                            
+                            <TouchableOpacity 
+                                style={[styles.primaryActionBtn, { backgroundColor: colors.primary }]} 
+                                onPress={handleConfirmLocation}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.primaryActionText}>บันทึกสถานที่</Text>
+                            </TouchableOpacity>
+                        </TouchableOpacity>
                     </TouchableOpacity>
-                </TouchableOpacity>
+                </KeyboardAvoidingView>
             </Modal>
 
             {/* ── Date / time modal ─────────────────────────────────────────── */}
@@ -960,29 +1002,22 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                 <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowDateModal(false)}>
                     <TouchableOpacity activeOpacity={1} style={[styles.sheet, { backgroundColor: colors.surface }]}>
                         <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+                        
                         <View style={styles.sheetHeader}>
-                            <TouchableOpacity onPress={() => setShowDateModal(false)} style={styles.sheetSideBtn}>
-                                <Text style={[styles.sheetCancel, { color: colors.textSecondary }]}>ยกเลิก</Text>
-                            </TouchableOpacity>
-                            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>
-                                {dateModalType === 'start' ? 'เวลาเริ่มต้น' : 'เวลาสิ้นสุด'}
-                            </Text>
-                            <TouchableOpacity onPress={handleConfirmDate} style={styles.sheetSideBtn}>
-                                <Text style={[styles.sheetDone, { color: colors.primary }]}>บันทึก</Text>
+                            <View style={[styles.sheetHeaderIcon, { backgroundColor: dateModalType === 'start' ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)' }]}>
+                                <Ionicons name="calendar" size={24} color={dateModalType === 'start' ? '#2ecc71' : '#e74c3c'} />
+                            </View>
+                            <View style={styles.sheetTitleContainer}>
+                                <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>กำหนดเวลา</Text>
+                                <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>เลือกช่วงเวลาที่ต้องการใช้งาน</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowDateModal(false)} style={styles.sheetCloseBtn}>
+                                <AntDesign name="close" size={16} color={colors.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
-                        <DateTimePicker
-                            date={tempDate}
-                            colors={colors}
-                            isDark={isDark}
-                            onAdjustDate={adjustGenericDate}
-                            onAdjustHour={adjustGenericHour}
-                            onAdjustMinute={adjustGenericMinute}
-                        />
-
                         {/* Toggle start / end */}
-                        <View style={styles.dateToggleRow}>
+                        <View style={styles.dateToggleRowNew}>
                             {(['start', 'end'] as DateModalType[]).map(type => {
                                 const active = dateModalType === type;
                                 const accent = type === 'start' ? '#2ecc71' : '#e74c3c';
@@ -996,23 +1031,39 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                             setTempDate(d ? new Date(d) : new Date());
                                         }}
                                         style={[
-                                            styles.dateToggleBtn,
-                                            { borderColor: accent, backgroundColor: active ? accent : 'transparent' },
+                                            styles.dateToggleBtnNew,
+                                            { backgroundColor: active ? accent : isDark ? colors.background : '#f0f0f0' }
                                         ]}
                                     >
-                                        <Text style={{ color: active ? '#fff' : accent, fontSize: 13 }}>{label}</Text>
+                                        <Text style={{ color: active ? '#fff' : colors.textPrimary, fontSize: 14, fontFamily: 'Kanit-Bold' }}>{label}</Text>
                                     </TouchableOpacity>
                                 );
                             })}
                         </View>
 
+                        <DateTimePicker
+                            date={tempDate}
+                            colors={colors}
+                            isDark={isDark}
+                            onAdjustDate={adjustGenericDate}
+                            onAdjustHour={adjustGenericHour}
+                            onAdjustMinute={adjustGenericMinute}
+                        />
+
                         {((dateModalType === 'start' && formData.startDate) ||
                             (dateModalType === 'end' && formData.endDate)) && (
-                                <View style={{ marginTop: 16 }}>
+                                <View style={{ marginTop: 20 }}>
                                     <DestructiveButton label="ลบวันเวลานี้" onPress={handleRemoveDate} subtle />
                                 </View>
                             )}
-                        <View style={{ height: 32 }} />
+
+                        <TouchableOpacity 
+                            style={[styles.primaryActionBtn, { backgroundColor: dateModalType === 'start' ? '#2ecc71' : '#e74c3c' }]} 
+                            onPress={handleConfirmDate}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.primaryActionText}>บันทึกเวลา{dateModalType === 'start' ? 'เริ่มต้น' : 'สิ้นสุด'}</Text>
+                        </TouchableOpacity>
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>
@@ -1022,28 +1073,35 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                 <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowImagePickerModal(false)}>
                     <TouchableOpacity activeOpacity={1} style={[styles.sheet, { backgroundColor: colors.surface }]}>
                         <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+                        
                         <View style={styles.sheetHeader}>
-                            <TouchableOpacity onPress={() => setShowImagePickerModal(false)} style={styles.sheetSideBtn}>
-                                <Text style={[styles.sheetCancel, { color: colors.textSecondary }]}>ยกเลิก</Text>
+                            <View style={[styles.sheetHeaderIcon, { backgroundColor: 'rgba(155,89,182,0.15)' }]}>
+                                <Ionicons name="image" size={24} color="#9b59b6" />
+                            </View>
+                            <View style={styles.sheetTitleContainer}>
+                                <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>แทรกรูปภาพ</Text>
+                                <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>เพิ่มสื่อประกอบในบันทึกของคุณ</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowImagePickerModal(false)} style={styles.sheetCloseBtn}>
+                                <AntDesign name="close" size={16} color={colors.textSecondary} />
                             </TouchableOpacity>
-                            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>แทรกรูปภาพ</Text>
-                            <View style={styles.sheetSideBtn} />
                         </View>
 
-                        {[
-                            { icon: 'image' as const, label: 'เลือกจากแกลเลอรี่', onPress: handlePickImageFromGallery },
-                            { icon: 'camera' as const, label: 'ถ่ายรูป', onPress: handleTakePhoto },
-                        ].map(item => (
-                            <TouchableOpacity
-                                key={item.label}
-                                onPress={item.onPress}
-                                style={[styles.imageOption, { backgroundColor: isDark ? colors.background : '#f6f6f6' }]}
-                            >
-                                <Feather name={item.icon} size={20} color={colors.primary} />
-                                <Text style={[styles.imageOptionText, { color: colors.textPrimary }]}>{item.label}</Text>
-                            </TouchableOpacity>
-                        ))}
-                        <View style={{ height: 32 }} />
+                        <View style={{ marginTop: 16 }}>
+                            {[
+                                { icon: 'image' as const, label: 'เลือกจากแกลเลอรี่', onPress: handlePickImageFromGallery },
+                                { icon: 'camera' as const, label: 'ถ่ายรูป', onPress: handleTakePhoto },
+                            ].map(item => (
+                                <TouchableOpacity
+                                    key={item.label}
+                                    onPress={item.onPress}
+                                    style={[styles.imageOption, { backgroundColor: isDark ? colors.background : '#f6f6f6' }]}
+                                >
+                                    <Feather name={item.icon} size={20} color={colors.primary} />
+                                    <Text style={[styles.imageOptionText, { color: colors.textPrimary }]}>{item.label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>
@@ -1108,14 +1166,14 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
                                     onPress={() => setLinkModalVisible(false)}
                                     style={[styles.linkBtnCancel, { backgroundColor: isDark ? colors.background : '#f0f0f0' }]}
                                 >
-                                    <Text style={[{ color: colors.textSecondary, fontWeight: '600' }]}>ยกเลิก</Text>
+                                    <Text style={[{ color: colors.textSecondary, fontFamily: 'Kanit-Bold' }]}>ยกเลิก</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={handleInsertLink}
                                     disabled={!linkUrl.trim()}
                                     style={[styles.linkBtnInsert, { backgroundColor: colors.primary, opacity: linkUrl.trim() ? 1 : 0.4 }]}
                                 >
-                                    <Text style={{ color: '#fff', fontWeight: '700' }}>แทรก</Text>
+                                    <Text style={{ color: '#fff', fontFamily: 'Kanit-Bold' }}>แทรก</Text>
                                 </TouchableOpacity>
                             </View>
                             <View style={{ height: 8 }} />
@@ -1182,7 +1240,7 @@ const DateTimePicker: React.FC<{
         <View style={[styles.pickerDivider, { backgroundColor: colors.border }]} />
         {/* Time row */}
         <View style={styles.pickerRow}>
-            <AntDesign name="clock-circle" size={16} color={colors.primary} />
+            <Feather name="clock" size={16} color={colors.primary} />
             <View style={styles.timeSpinner}>
                 <TouchableOpacity onPress={() => onAdjustHour(1)}><AntDesign name="up" size={15} color={colors.textSecondary} /></TouchableOpacity>
                 <Text style={[styles.timeDigit, { color: colors.textPrimary }]}>{dayjs(date).format('HH')}</Text>
@@ -1236,8 +1294,8 @@ const styles = StyleSheet.create({
         gap: 5,
     },
     badgeText: {
+        fontFamily: 'Kanit-Bold',
         fontSize: 12,
-        fontWeight: '600',
         flexShrink: 1,
     },
     hitSlop: { top: 10, bottom: 10, left: 10, right: 10 } as any,
@@ -1249,28 +1307,25 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 10,
     },
-    titleSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        marginVertical: 4,
-    },
-    colorSyncBtn: {
-        padding: 4,
-        marginRight: 4,
-    },
     colorDot: {
         width: 22,
         height: 22,
         borderRadius: 11,
         borderWidth: 1,
     },
+    titleText: {
+        fontFamily: 'Kanit-Regular',
+        marginLeft: 10,
+        fontSize: 15,
+        flexShrink: 1,
+    },
     titleInput: {
-        flex: 1,
+        fontFamily: 'Kanit-Regular',
+        marginHorizontal: 16,
+        marginBottom: 4,
         paddingHorizontal: 4,
-        paddingVertical: 8,
+        paddingVertical: 6,
         fontSize: 17,
-        fontWeight: '700',
         borderBottomWidth: 1,
     },
 
@@ -1313,126 +1368,173 @@ const styles = StyleSheet.create({
     // ── Sheet (bottom modal) ──────────────────────────────────────────────────
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.45)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'flex-end',
     },
     sheet: {
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
         paddingHorizontal: 24,
-        paddingTop: 10,
+        paddingTop: 12,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        elevation: 16,
+        shadowOffset: { width: 0, height: -5 },
+        shadowOpacity: 0.15,
+        shadowRadius: 15,
+        elevation: 20,
     },
     sheetHandle: {
-        width: 36,
-        height: 4,
-        borderRadius: 2,
+        width: 48,
+        height: 5,
+        borderRadius: 3,
         alignSelf: 'center',
-        marginBottom: 14,
+        marginBottom: 20,
     },
     sheetHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 18,
-        height: 38,
+        marginBottom: 24,
     },
-    sheetSideBtn: {
-        minWidth: 56,
+    sheetHeaderIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
+    sheetTitleContainer: {
+        flex: 1,
     },
     sheetTitle: {
+        fontFamily: 'Kanit-Bold',
+        fontSize: 22,
+        letterSpacing: -0.5,
+    },
+    sheetSubtitle: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 14,
+        marginTop: 2,
+    },
+    sheetCloseBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(150,150,150,0.15)',
+    },
+
+    // ── Inputs & Action Buttons ───────────────────────────────────────────────
+    inputBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        marginBottom: 16,
+    },
+    inputText: {
+        fontFamily: 'Kanit-Regular',
         flex: 1,
-        textAlign: 'center',
-        fontSize: 17,
-        fontWeight: '700',
+        fontSize: 16,
     },
-    sheetCancel: {
-        fontSize: 15,
+    primaryActionBtn: {
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    sheetDone: {
-        fontSize: 15,
-        fontWeight: '700',
+    primaryActionText: {
+        fontFamily: 'Kanit-Bold',
+        color: '#fff',
+        fontSize: 16,
+        letterSpacing: 0.3,
     },
 
     // ── Section label ─────────────────────────────────────────────────────────
     sectionLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        letterSpacing: 0.3,
-        marginBottom: 8,
+        fontFamily: 'Kanit-Bold',
+        fontSize: 13,
+        letterSpacing: 0.5,
+        marginBottom: 10,
         textTransform: 'uppercase',
     },
 
     // ── Chips ─────────────────────────────────────────────────────────────────
     chipScrollWrapper: {
         marginHorizontal: -24,
-        marginBottom: 4,
+        marginBottom: 8,
     },
     chipScrollContent: {
         flexDirection: 'row',
-        gap: 8,
+        gap: 10,
         paddingHorizontal: 24,
     },
     chip: {
-        paddingHorizontal: 14,
-        paddingVertical: 7,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
         borderRadius: 20,
     },
     chipText: {
-        fontSize: 13,
-        fontWeight: '600',
+        fontFamily: 'Kanit-Bold',
+        fontSize: 14,
     },
 
     // ── Date-time picker ──────────────────────────────────────────────────────
     pickerBox: {
-        borderRadius: 12,
-        borderWidth: StyleSheet.hairlineWidth,
-        overflow: 'hidden',
-        marginBottom: 4,
+        borderRadius: 24,
+        paddingHorizontal: 8,
+        paddingVertical: 8,
+        marginBottom: 8,
     },
     pickerRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 16,
     },
-    pickerArrow: { padding: 8 },
+    pickerArrow: { padding: 8, marginHorizontal: 4 },
     pickerDateText: {
-        fontSize: 15,
-        fontWeight: '600',
+        fontFamily: 'Kanit-Bold',
+        fontSize: 17,
         flex: 1,
         textAlign: 'center',
     },
-    pickerDivider: { height: StyleSheet.hairlineWidth },
-    timeSpinner: { alignItems: 'center', gap: 4 },
-    timeDigit: { fontSize: 22, fontWeight: '700', minWidth: 34, textAlign: 'center' },
-    timeSep: { fontSize: 22, fontWeight: '700', marginHorizontal: 6 },
+    pickerDivider: { height: 1, opacity: 0.5, marginHorizontal: 20 },
+    timeSpinner: { alignItems: 'center', gap: 6 },
+    timeDigit: { fontFamily: 'Kanit-Bold', fontSize: 26, minWidth: 40, textAlign: 'center' },
+    timeSep: { fontFamily: 'Kanit-Bold', fontSize: 26, marginHorizontal: 8, marginTop: -4 },
 
     // ── Feedback text ─────────────────────────────────────────────────────────
     feedbackText: {
+        fontFamily: 'Kanit-Bold',
         fontSize: 12,
-        fontWeight: '600',
         textAlign: 'center',
         marginTop: 8,
     },
 
     // ── Date toggle ───────────────────────────────────────────────────────────
-    dateToggleRow: {
+    dateToggleRowNew: {
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 10,
-        marginTop: 20,
+        gap: 12,
+        marginBottom: 20,
     },
-    dateToggleBtn: {
-        paddingVertical: 6,
-        paddingHorizontal: 14,
-        borderRadius: 16,
-        borderWidth: 1,
+    dateToggleBtnNew: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
     // ── Destructive button ────────────────────────────────────────────────────
@@ -1446,8 +1548,8 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     destructiveBtnText: {
+        fontFamily: 'Kanit-Bold',
         fontSize: 14,
-        fontWeight: '600',
     },
 
     // ── Image picker ──────────────────────────────────────────────────────────
@@ -1460,8 +1562,8 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     imageOptionText: {
+        fontFamily: 'Kanit-Regular',
         fontSize: 15,
-        fontWeight: '500',
     },
 
     // ── Dialog (centered modal) ───────────────────────────────────────────────
@@ -1478,12 +1580,13 @@ const styles = StyleSheet.create({
         elevation: 12,
     },
     dialogTitle: {
+        fontFamily: 'Kanit-Bold',
         fontSize: 17,
-        fontWeight: '700',
         textAlign: 'center',
         marginBottom: 8,
     },
     dialogSubtitle: {
+        fontFamily: 'Kanit-Regular',
         fontSize: 14,
         textAlign: 'center',
         lineHeight: 20,
@@ -1500,9 +1603,9 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     dialogBtnPrimaryText: {
+        fontFamily: 'Kanit-Bold',
         color: '#fff',
         fontSize: 15,
-        fontWeight: '700',
     },
     dialogBtnOutline: {
         width: '100%',
@@ -1513,16 +1616,16 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     dialogBtnOutlineText: {
+        fontFamily: 'Kanit-Bold',
         fontSize: 15,
-        fontWeight: '600',
     },
     dialogBtnGhost: {
         paddingVertical: 10,
         alignItems: 'center',
     },
     dialogBtnGhostText: {
+        fontFamily: 'Kanit-Bold',
         fontSize: 14,
-        fontWeight: '600',
     },
 
     // ── Link modal ────────────────────────────────────────────────────────────
@@ -1532,8 +1635,8 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     linkModalTitle: {
+        fontFamily: 'Kanit-Bold',
         fontSize: 17,
-        fontWeight: '700',
         textAlign: 'center',
         marginBottom: 20,
     },
@@ -1544,18 +1647,25 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     linkBtnCancel: {
-        paddingHorizontal: 18,
-        paddingVertical: 10,
-        borderRadius: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 14,
+        minWidth: 80,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     linkBtnInsert: {
-        paddingHorizontal: 18,
-        paddingVertical: 10,
-        borderRadius: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 14,
+        minWidth: 80,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
     // ── Shared input ──────────────────────────────────────────────────────────
     input: {
+        fontFamily: 'Kanit-Regular',
         borderWidth: 1,
         borderRadius: 10,
         paddingHorizontal: 14,
@@ -1563,8 +1673,8 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
     inputLabel: {
+        fontFamily: 'Kanit-Bold',
         fontSize: 12,
-        fontWeight: '600',
         marginBottom: 6,
         letterSpacing: 0.2,
         textTransform: 'uppercase',
