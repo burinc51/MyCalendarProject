@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 import isBetween from 'dayjs/plugin/isBetween';
 import { AntDesign, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -69,10 +70,10 @@ const WEEK_RENDER_WINDOW = 3;
 export type ViewMode = 'month' | 'week' | 'day' | 'year';
 
 const VIEW_MODES: { label: string; value: ViewMode; icon: string }[] = [
-    { label: 'Day', value: 'day', icon: 'calendar' },
-    { label: 'Week', value: 'week', icon: 'bars' },
-    { label: 'Month', value: 'month', icon: 'table' },
-    { label: 'Year', value: 'year', icon: 'database' }
+    { label: 'รายวัน', value: 'day', icon: 'calendar' },
+    { label: 'รายสัปดาห์', value: 'week', icon: 'bars' },
+    { label: 'รายเดือน', value: 'month', icon: 'table' },
+    { label: 'รายปี', value: 'year', icon: 'database' }
 ];
 
 // Define props interface for CalendarView
@@ -427,7 +428,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
         });
     }, [selectedDate, router]);
 
-    const formattedDate = useMemo(() => (selectedDate ? dayjs(selectedDate).format('dddd D MMMM') : 'No Date Selected'), [selectedDate]);
+    const formattedDate = useMemo(() => (selectedDate ? `วัน${dayjs(selectedDate).locale('th').format('dddd D MMMM')}` : 'ยังไม่ได้เลือกวันที่'), [selectedDate]);
 
 
     const pages = useMemo(() => Array.from({ length: TOTAL_PAGES }, (_, i) => i), []);
@@ -602,7 +603,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
                                     color: colors.menuText,
                                     fontFamily: 'Kanit-Regular'
                                 }]}>
-                                    Settings
+                                    ตั้งค่ากลุ่ม
                                 </Text>
                             </TouchableOpacity>
                         )}
@@ -710,10 +711,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ isGroupCalendar, groupName,
                             { borderBottomColor: isDark ? '#333' : '#f0f0f0' }
                         ]}>
                             <View style={styles.modalHeaderLeft}>
-                                <View style={[
-                                    styles.modalAccentBar,
-                                    { backgroundColor: '#2ecc71' }
-                                ]} />
                                 <Text style={[
                                     styles.modalHeaderText,
                                     dynamicStyles.modalHeaderText,
@@ -840,11 +837,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 10,
         flex: 1,
-    },
-    modalAccentBar: {
-        width: 4,
-        height: 22,
-        borderRadius: 2,
     },
     modalHeaderText: {
         fontFamily: 'Kanit-Bold',

@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
+    Modal,
+    Pressable,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -24,6 +26,19 @@ export interface ScreenHeaderAction {
     accessibilityLabel?: string;
 }
 
+export interface ScreenHeaderMenuItem {
+    label: string;
+    onPress: () => void;
+    destructive?: boolean;
+    disabled?: boolean;
+}
+
+interface ScreenHeaderActionMenu {
+    items: ScreenHeaderMenuItem[];
+    iconColor?: string;
+    accessibilityLabel?: string;
+}
+
 interface ScreenHeaderProps {
     title: string;
     /** Show back arrow that calls router.back() */
@@ -32,6 +47,8 @@ interface ScreenHeaderProps {
     onBack?: () => void;
     /** Right-side action buttons (max ~3 looks good) */
     actions?: ScreenHeaderAction[];
+    /** Optional three-dot overflow menu */
+    actionMenu?: ScreenHeaderActionMenu;
     /** Override background color */
     backgroundColor?: string;
     /** Override title color */
@@ -45,6 +62,7 @@ export default function ScreenHeader({
     showBack = false,
     onBack,
     actions,
+    actionMenu,
     backgroundColor,
     titleColor,
     borderColor,
@@ -60,6 +78,8 @@ export default function ScreenHeader({
     const resolvedBorder = borderColor ?? '#424141a9';
     const btnBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
     const resolvedFontSize = isSmallPhone ? 18 : isTablet ? 24 : titleFontSize;
+    const [menuVisible, setMenuVisible] = useState(false);
+    const menuItems = useMemo(() => actionMenu?.items ?? [], [actionMenu?.items]);
 
     const handleBack = () => {
         if (onBack) {
@@ -67,6 +87,18 @@ export default function ScreenHeader({
         } else {
             router.back();
         }
+    };
+
+    const handleMenuPress = () => {
+        if (!menuItems.length) return;
+        setMenuVisible(true);
+    };
+
+    const closeMenu = () => setMenuVisible(false);
+
+    const handleMenuItemPress = (item: ScreenHeaderMenuItem) => {
+        closeMenu();
+        item.onPress();
     };
 
     return (
@@ -140,11 +172,77 @@ export default function ScreenHeader({
                             </View>
                         </TouchableOpacity>
                     ))
-                ) : (
+                ) : null}
+
+                {actionMenu && menuItems.length > 0 ? (
+                    <TouchableOpacity
+                        onPress={handleMenuPress}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel={actionMenu.accessibilityLabel ?? 'เปิดเมนูการทำงาน'}
+                    >
+                        <View style={[styles.iconBtn, { backgroundColor: btnBg }]}>
+                            <Feather
+                                name="more-vertical"
+                                size={18}
+                                color={actionMenu.iconColor ?? resolvedTitle}
+                            />
+                        </View>
+                    </TouchableOpacity>
+                ) : null}
+
+                {(!actions || actions.length === 0) && (!actionMenu || menuItems.length === 0) ? (
                     /* Placeholder so title stays centred */
                     <View style={styles.iconBtn} />
-                )}
+                ) : null}
             </View>
+
+            <Modal
+                visible={menuVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={closeMenu}
+            >
+                <Pressable style={styles.menuBackdrop} onPress={closeMenu}>
+                    <Pressable
+                        style={[
+                            styles.menuCard,
+                            {
+                                marginTop: headerHeight + 10,
+                                marginRight: horizontalPadding,
+                                backgroundColor: isDark ? '#2b2d31' : '#ffffff',
+                                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                            },
+                        ]}
+                    >
+                        {menuItems.map((item, index) => (
+                            <TouchableOpacity
+                                key={`${item.label}-${index}`}
+                                onPress={() => handleMenuItemPress(item)}
+                                disabled={item.disabled}
+                                style={[
+                                    styles.menuItem,
+                                    index < menuItems.length - 1 && styles.menuItemDivider,
+                                    { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.menuText,
+                                        {
+                                            color: item.destructive
+                                                ? '#ef4444'
+                                                : (isDark ? '#f3f4f6' : '#171717'),
+                                            opacity: item.disabled ? 0.45 : 1,
+                                        },
+                                    ]}
+                                >
+                                    {item.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </View>
     );
 }
@@ -173,6 +271,34 @@ const styles = StyleSheet.create({
     actionsRow: {
         flexDirection: 'row',
         gap: 8,
+        alignItems: 'center',
+    },
+    menuBackdrop: {
+        flex: 1,
+        alignItems: 'flex-end',
+    },
+    menuCard: {
+        width: 200,
+        borderRadius: 14,
+        borderWidth: 1,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 8,
+    },
+    menuItem: {
+        minHeight: 44,
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+    },
+    menuItemDivider: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    menuText: {
+        fontSize: 16,
+        fontFamily: 'Kanit-Regular',
     },
 });
 
