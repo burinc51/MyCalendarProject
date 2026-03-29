@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Linking } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { Note, NoteViewMode } from '@/types/note';
 
@@ -47,6 +48,28 @@ const isColorDark = (color: string): boolean => {
     return luminance < 0.5; // true if color is dark
 };
 
+// Support ISO string, unix seconds, and unix milliseconds from API
+const parseDateValue = (value: unknown) => {
+    if (value === null || value === undefined || value === '') return dayjs(NaN);
+
+    if (typeof value === 'number') {
+        const ms = value < 1e12 ? value * 1000 : value;
+        return dayjs(ms);
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (/^\d+(\.\d+)?$/.test(trimmed)) {
+            const numeric = Number(trimmed);
+            const ms = numeric < 1e12 ? numeric * 1000 : numeric;
+            return dayjs(ms);
+        }
+        return dayjs(trimmed);
+    }
+
+    return dayjs(value as any);
+};
+
 const NoteCard: React.FC<NoteCardProps> = ({
     note,
     viewMode,
@@ -78,12 +101,15 @@ const NoteCard: React.FC<NoteCardProps> = ({
     }, [note.content]);
 
     const timeAgo = useMemo(() => {
-        return dayjs(note.updatedAt).fromNow();
+        const updatedAt = parseDateValue(note.updatedAt);
+        if (!updatedAt.isValid()) return 'ไม่ทราบเวลา';
+        return updatedAt.locale('th').fromNow();
     }, [note.updatedAt]);
 
     const reminderInfo = useMemo(() => {
         if (!note.reminderDate) return null;
-        const reminderDate = dayjs(note.reminderDate);
+        const reminderDate = parseDateValue(note.reminderDate);
+        if (!reminderDate.isValid()) return null;
         const isPast = reminderDate.isBefore(dayjs());
 
         let recurrenceText = '';
@@ -95,7 +121,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
         }
 
         return {
-            text: reminderDate.format('DD MMM') + recurrenceText, // Shorter text for badge
+            text: reminderDate.locale('th').format('DD MMM') + recurrenceText, // Shorter text for badge
             isPast,
         };
     }, [note.reminderDate, note.recurrence]);
@@ -104,11 +130,18 @@ const NoteCard: React.FC<NoteCardProps> = ({
         if (!note.startDate && !note.endDate) return null;
         let text = '';
         if (note.startDate && note.endDate) {
-            text = `${dayjs(note.startDate).format('DD MMM')} - ${dayjs(note.endDate).format('DD MMM')}`;
+            const start = parseDateValue(note.startDate);
+            const end = parseDateValue(note.endDate);
+            if (!start.isValid() || !end.isValid()) return null;
+            text = `${start.locale('th').format('DD MMM')} - ${end.locale('th').format('DD MMM')}`;
         } else if (note.startDate) {
-            text = `เริ่ม ${dayjs(note.startDate).format('DD MMM')}`;
+            const start = parseDateValue(note.startDate);
+            if (!start.isValid()) return null;
+            text = `เริ่ม ${start.locale('th').format('DD MMM')}`;
         } else if (note.endDate) {
-            text = `สิ้นสุด ${dayjs(note.endDate).format('DD MMM')}`;
+            const end = parseDateValue(note.endDate);
+            if (!end.isValid()) return null;
+            text = `สิ้นสุด ${end.locale('th').format('DD MMM')}`;
         }
         return { text };
     }, [note.startDate, note.endDate]);

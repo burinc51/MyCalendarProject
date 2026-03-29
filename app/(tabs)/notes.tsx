@@ -109,7 +109,7 @@ const NotesScreen = () => {
 
             {/* Header */}
             <View style={dynamicStyles.header}>
-                <Text style={dynamicStyles.headerTitle}>All Notes</Text>
+                <Text style={dynamicStyles.headerTitle}>โน๊ตทั้งหมด</Text>
             </View>
 
             {/* Notes List */}
