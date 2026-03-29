@@ -79,7 +79,7 @@ const toUpdatePayload = (formData: Partial<NoteFormData>): Partial<NoteFormData>
 
 export const getNotes = async (query: NoteListQuery = {}): Promise<PaginatedNotes> => {
     try {
-        const response = await httpClient.get<PaginatedNotes>('/api/v1/notes', {
+        const response = await httpClient.get<PaginatedNotes>('/api/v1/notes/all', {
             params: {
                 pageNo: query.pageNo ?? 1,
                 pageSize: query.pageSize ?? 20,
