@@ -13,6 +13,7 @@ import { StyleSheet, Text, TouchableOpacity, View, ViewStyle, TextStyle } from '
 import getDateFromIndex from '@/utils/get-date-from-index';
 import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import type { CalendarEvent } from '@/types/event';
+import { miniDays } from '@/utils/month-names';
 
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrAfter);
@@ -373,13 +374,11 @@ const CalendarBody = React.memo(({ index, onSelectDate, events, isDark = false }
                             {
                                 left: `${leftPosition}%`,
                                 width: `${colWidth}%`,
-                                top: topPosition,
+                                top: topPosition
                             }
                         ]}
                     >
-                        <Text style={[styles.overflowText, { fontSize: eventFontSize }]}>
-                            +{count}
-                        </Text>
+                        <Text style={[styles.overflowText, { fontSize: eventFontSize }]}>+{count}</Text>
                     </View>
                 );
             });
@@ -394,7 +393,7 @@ const CalendarBody = React.memo(({ index, onSelectDate, events, isDark = false }
         <View style={dynamicStyles.container}>
             {/* Weekday Header Row */}
             <View style={[styles.weekRow, dynamicStyles.weekRow]}>
-                {DAYS_OF_WEEK.map((day) => (
+                {miniDays.th.map((day) => (
                     <Text
                         key={day}
                         style={[styles.weekDay, dynamicStyles.weekDay]}

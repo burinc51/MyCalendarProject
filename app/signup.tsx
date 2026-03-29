@@ -28,13 +28,14 @@ export default function SignUpScreen() {
     const { setAuth } = useAuthStore();
     
     const [name, setName] = useState('');
+    const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSignUp = async () => {
-        if (!name.trim() || !email.trim() || !password || !confirmPassword) {
+        if (!name.trim() || !username.trim() || !email.trim() || !password || !confirmPassword) {
             Alert.alert('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกข้อมูลให้ครบทุกช่อง');
             return;
         }
@@ -46,7 +47,7 @@ export default function SignUpScreen() {
 
         try {
             setLoading(true);
-            const authResponse = await emailSignUp(email, password, name);
+            const authResponse = await emailSignUp(email, password, name, username);
             
             await setAuth(
                 {
@@ -105,11 +106,23 @@ export default function SignUpScreen() {
                         <Text style={[styles.label, { color: C.subText }]}>ชื่อ - นามสกุล</Text>
                         <TextInput
                             style={[styles.input, { backgroundColor: C.inputBg, borderColor: C.inputBorder, color: C.inputText }]}
-                            placeholder="พิมพ์ชื่อของคุณ"
+                            placeholder="พิมพ์ชื่อจริงของคุณ"
                             placeholderTextColor={C.subText}
                             value={name}
                             onChangeText={setName}
                             autoCapitalize="words"
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: C.subText }]}>ชื่อผู้ใช้ (Username)</Text>
+                        <TextInput
+                            style={[styles.input, { backgroundColor: C.inputBg, borderColor: C.inputBorder, color: C.inputText }]}
+                            placeholder="พิมพ์ชื่อผู้ใช้ของคุณ"
+                            placeholderTextColor={C.subText}
+                            value={username}
+                            onChangeText={setUsername}
+                            autoCapitalize="none"
                         />
                     </View>
 

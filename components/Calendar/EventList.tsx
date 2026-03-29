@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import type { CalendarEvent, EventUser } from '@/types/event';
+import { useGroupStore } from '@/stores/useGroupStore';
 
 interface EventListProps {
     events: CalendarEvent[];
@@ -109,33 +110,35 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
         console.log('Event pressed:', eventId);
         router.push({
             pathname: '/event/[id]',
-            params: { id: eventId },
+            params: { id: eventId }
         });
     };
 
     if (events.length === 0) {
         return (
             <View style={styles.emptyContainer}>
-                <View style={[styles.emptyIconWrap, {
-                    backgroundColor: isDark ? '#1e1e1e' : '#fff',
-                    borderColor: isDark ? '#2a2a2a' : '#dde3ec',
-                    borderWidth: 1.5,
-                    shadowColor: isDark ? '#4a9eff' : '#0a7ea4',
-                }]}>
-                    <MaterialIcons name="event-note" size={34} color={isDark ? '#4a9eff' : '#0a7ea4'} />
+                <View
+                    style={[
+                        styles.emptyIconWrap,
+                        {
+                            backgroundColor: isDark ? '#1e1e1e' : '#fff',
+                            borderColor: isDark ? '#2a2a2a' : '#dde3ec',
+                            borderWidth: 1.5,
+                            shadowColor: isDark ? '#4a9eff' : '#0a7ea4'
+                        }
+                    ]}
+                >
+                    <MaterialIcons
+                        name="event-note"
+                        size={34}
+                        color={isDark ? '#4a9eff' : '#0a7ea4'}
+                    />
                 </View>
-                <Text style={[styles.emptyTitle, { color: isDark ? '#d0d0d0' : '#2c3e50' }]}>
-                    No events scheduled
-                </Text>
-                <Text style={[styles.emptySub, { color: isDark ? '#666' : '#8e9aad' }]}>
-                    Tap + to add your first event
-                </Text>
+                <Text style={[styles.emptyTitle, { color: isDark ? '#d0d0d0' : '#2c3e50' }]}>No events scheduled</Text>
+                <Text style={[styles.emptySub, { color: isDark ? '#666' : '#8e9aad' }]}>Tap + to add your first event</Text>
             </View>
         );
     }
-
-    console.log("EventList", events);
-
 
     return (
         <ScrollView
@@ -164,9 +167,7 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
                         <View style={[styles.timeBlock, { backgroundColor: c.timeBg }]}>
                             {event.isAllDay ? (
                                 <View style={[styles.allDayPill, { backgroundColor: c.allDayBg }]}>
-                                    <Text style={[styles.allDayText, { color: c.allDayText }]}>
-                                        All{'\n'}Day
-                                    </Text>
+                                    <Text style={[styles.allDayText, { color: c.allDayText }]}>All{'\n'}Day</Text>
                                 </View>
                             ) : (
                                 <>
@@ -179,7 +180,10 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
 
                         {/* Body */}
                         <View style={styles.body}>
-                            <Text style={[styles.title, { color: c.title }]} numberOfLines={1}>
+                            <Text
+                                style={[styles.title, { color: c.title }]}
+                                numberOfLines={1}
+                            >
                                 {event.title}
                             </Text>
                             <View style={styles.meta}>
@@ -190,14 +194,15 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
                                 ) : null}
                                 {event.priority ? (
                                     <View style={styles.priorityRow}>
-                                        <View style={[styles.priorityDot, {
-                                            backgroundColor:
-                                                event.priority === 'high' ? '#e74c3c' :
-                                                    event.priority === 'medium' ? '#f39c12' : '#2ecc71'
-                                        }]} />
-                                        <Text style={[styles.priorityLabel, { color: c.subtitle }]}>
-                                            {event.priority}
-                                        </Text>
+                                        <View
+                                            style={[
+                                                styles.priorityDot,
+                                                {
+                                                    backgroundColor: event.priority === 'high' ? '#e74c3c' : event.priority === 'medium' ? '#f39c12' : '#2ecc71'
+                                                }
+                                            ]}
+                                        />
+                                        <Text style={[styles.priorityLabel, { color: c.subtitle }]}>{event.priority}</Text>
                                     </View>
                                 ) : null}
                             </View>
@@ -206,9 +211,15 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
                         {/* Avatar + chevron */}
                         <View style={styles.avatarArea}>
                             {hasUsers ? (
-                                <AvatarStack users={event.assignees ?? []} accent={accent} />
+                                <AvatarStack
+                                    users={event.assignees ?? []}
+                                    accent={accent}
+                                />
                             ) : (
-                                <TitleAvatar title={event.title} color={accent} />
+                                <TitleAvatar
+                                    title={event.title}
+                                    color={accent}
+                                />
                             )}
                         </View>
                     </TouchableOpacity>

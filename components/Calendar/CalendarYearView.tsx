@@ -56,10 +56,10 @@ const MiniMonth: React.FC<MiniMonthProps> = ({ year, monthIndex, daysWithEvents,
             activeOpacity={0.75}
         >
             <Text style={[styles.miniTitle, { color: colors.title }]}>
-                {monthNamesShort.en[monthIndex]}
+                {monthNamesShort.th[monthIndex]}
             </Text>
             <View style={styles.miniDayRow}>
-                {miniDays.en.map((d, i) => (
+                {miniDays.th.map((d, i) => (
                     <Text key={i} style={[styles.miniDayLabel, { color: colors.dayLabel }]}>{d}</Text>
                 ))}
             </View>

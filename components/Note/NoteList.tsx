@@ -72,76 +72,77 @@ const NoteList: React.FC<NoteListProps> = ({
         },
         searchContainer: {
             paddingHorizontal: 16,
-            paddingVertical: 16,
+            paddingVertical: 12,
             backgroundColor: colors.surface,
             borderBottomWidth: 1,
-            borderBottomColor: 'rgba(0,0,0,0.03)',
+            borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
             zIndex: 10
         },
         searchInputContainer: {
             flexDirection: 'row' as const,
             alignItems: 'center' as const,
-            backgroundColor: colors.inputBg,
+            backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5',
             borderRadius: 16,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.03,
+            shadowOpacity: 0.04,
             shadowRadius: 4,
-            elevation: 1
+            elevation: 1,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
         },
         searchInput: {
             flex: 1,
             fontFamily: 'Kanit-Regular',
-            fontSize: 16,
+            fontSize: 14,
             color: colors.text,
-            marginLeft: 10
+            marginLeft: 8
         },
         toolbar: {
             flexDirection: 'row' as const,
             justifyContent: 'space-between' as const,
             alignItems: 'center' as const,
             paddingHorizontal: 16,
-            paddingVertical: 12,
-            backgroundColor: colors.surface,
-            borderBottomWidth: 1,
-            borderBottomColor: 'rgba(0,0,0,0.03)'
+            paddingVertical: 10,
+            backgroundColor: colors.background,
         },
         sortButton: {
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderRadius: 20,
-            backgroundColor: colors.inputBg,
+            paddingHorizontal: 14,
+            paddingVertical: 6,
+            borderRadius: 10,
+            backgroundColor: colors.surface,
             borderWidth: 1,
-            borderColor: 'transparent'
+            borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
         },
         sortButtonActive: {
-            backgroundColor: isDark ? 'rgba(46, 204, 113, 0.15)' : 'rgba(46, 204, 113, 0.1)',
+            backgroundColor: isDark ? 'rgba(46, 204, 113, 0.15)' : 'rgba(46, 204, 113, 0.08)',
             borderColor: 'rgba(46, 204, 113, 0.2)'
         },
         sortButtonText: {
             fontFamily: 'Kanit-Medium',
-            fontSize: 13,
+            fontSize: 14,
             color: colors.textSecondary
         },
         viewModeButtonActive: {
-            backgroundColor: isDark ? 'rgba(46, 204, 113, 0.15)' : 'rgba(46, 204, 113, 0.1)'
+            backgroundColor: isDark ? 'rgba(46, 204, 113, 0.15)' : 'rgba(46, 204, 113, 0.08)',
+            borderRadius: 10
         },
         emptyTitle: {
             fontFamily: 'Kanit-SemiBold',
-            fontSize: 20,
+            fontSize: 22,
             color: colors.textSecondary,
-            marginBottom: 8,
-            letterSpacing: 0.3
+            marginBottom: 10,
+            letterSpacing: 0.2
         },
         emptySubtitle: {
             fontFamily: 'Kanit-Regular',
-            fontSize: 15,
+            fontSize: 16,
             color: colors.textMuted,
             textAlign: 'center' as const,
-            paddingHorizontal: 40,
-            lineHeight: 22
+            paddingHorizontal: 54,
+            lineHeight: 24
         }
     }), [colors, isDark, insets]);
 
@@ -158,11 +159,11 @@ const NoteList: React.FC<NoteListProps> = ({
         return (
             <View style={styles.emptyContainer}>
                 <Text style={styles.emptyIcon}>📝</Text>
-                <Text style={dynamicStyles.emptyTitle}>No notes yet</Text>
+                <Text style={dynamicStyles.emptyTitle}>ยังไม่มีบันทึก</Text>
                 <Text style={dynamicStyles.emptySubtitle}>
                     {searchQuery
-                        ? 'Try a different search term'
-                        : 'Tap the + button to create your first note'
+                        ? 'ลองค้นหาด้วยคำอื่นดูนะ'
+                        : 'แตะปุ่ม + เพื่อเริ่มเขียนบันทึกแรกของคุณ'
                     }
                 </Text>
             </View>
@@ -189,17 +190,17 @@ const NoteList: React.FC<NoteListProps> = ({
             {/* Search Bar */}
             <View style={dynamicStyles.searchContainer}>
                 <View style={dynamicStyles.searchInputContainer}>
-                    <Feather name="search" size={18} color={colors.textMuted} />
+                    <Feather name="search" size={16} color={colors.textMuted} />
                     <TextInput
                         style={dynamicStyles.searchInput}
                         value={searchQuery}
                         onChangeText={onSearchChange}
-                        placeholder="Search notes..."
+                        placeholder="ค้นหาบันทึก..."
                         placeholderTextColor={colors.textMuted}
                     />
                     {searchQuery.length > 0 && (
                         <TouchableOpacity onPress={() => onSearchChange('')}>
-                            <Feather name="x" size={18} color={colors.textMuted} />
+                            <Feather name="x" size={16} color={colors.textMuted} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -219,7 +220,7 @@ const NoteList: React.FC<NoteListProps> = ({
                             dynamicStyles.sortButtonText,
                             sortBy === 'updatedAt' && styles.sortButtonTextActive
                         ]}>
-                            Recent
+                            ล่าสุด
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -233,7 +234,7 @@ const NoteList: React.FC<NoteListProps> = ({
                             dynamicStyles.sortButtonText,
                             sortBy === 'title' && styles.sortButtonTextActive
                         ]}>
-                            Title
+                            ชื่อ
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -346,19 +347,19 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: 24,
         bottom: 24,
-        width: 64,
-        height: 64,
-        borderRadius: 32,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         backgroundColor: '#2ecc71',
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#2ecc71',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
-        elevation: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)'
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 10,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.3)'
     }
 });
 

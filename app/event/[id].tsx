@@ -22,7 +22,6 @@ import { Feather } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 
 import { useTheme } from '@/components/ThemeProvider';
-import { useEventActionStore } from '@/stores/useEventActionStore';
 import type { CalendarEvent, EventUser } from '@/types/event';
 import ScreenHeader from '@/components/ScreenHeader';
 import { getEventById, deleteEvent } from '@/services/eventService';
@@ -40,9 +39,9 @@ const avatarBg = (i: number) => AVATAR_COLORS[i % AVATAR_COLORS.length];
 const getInitial = (u: EventUser) => (u.name || u.username || '?').trim().charAt(0).toUpperCase();
 
 const PRIORITY_META: Record<string, { label: string; icon: keyof typeof Feather.glyphMap; color: string; bg: string }> = {
-    high:   { label: 'High',   icon: 'alert-circle',  color: '#e74c3c', bg: '#fdecea' },
-    medium: { label: 'Medium', icon: 'minus-circle',  color: '#f39c12', bg: '#fef6e4' },
-    low:    { label: 'Low',    icon: 'check-circle',  color: '#2ecc71', bg: '#eafaf1' },
+    high:   { label: 'สูง', icon: 'alert-circle', color: '#e74c3c', bg: '#fdecea' },
+    medium: { label: 'ปานกลาง', icon: 'minus-circle', color: '#f39c12', bg: '#fef6e4' },
+    low:    { label: 'ต่ำ', icon: 'check-circle', color: '#2ecc71', bg: '#eafaf1' },
 };
 
 const PRIORITY_META_DARK: Record<string, { bg: string }> = {
@@ -111,7 +110,6 @@ const EventDetailScreen = () => {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const params = useLocalSearchParams<{ id: string; event?: string }>();
-    const { requestDelete } = useEventActionStore();
 
     // The whole CalendarEvent might be passed as a JSON string via router param initially
     const initialEvent = useMemo<CalendarEvent | null>(() => {
@@ -133,7 +131,7 @@ const EventDetailScreen = () => {
                     setEvent(response.data); // depends on exact response structure
                 }
             } catch (error) {
-                console.error("Failed to fetch event:", error);
+                console.error('Failed to fetch event:', error);
             } finally {
                 setLoading(false);
             }
@@ -160,10 +158,10 @@ const EventDetailScreen = () => {
 
     const handleDelete = useCallback(() => {
         if (!event) return;
-        Alert.alert('Delete Event', `Are you sure you want to delete "${event.title}"?`, [
-            { text: 'Cancel', style: 'cancel' },
+        Alert.alert('ลบกิจกรรม', `ต้องการลบกิจกรรม "${event.title}" ใช่ไหม?`, [
+            { text: 'ยกเลิก', style: 'cancel' },
             {
-                text: 'Delete',
+                text: 'ลบ',
                 style: 'destructive',
                 onPress: async () => {
                     try {
@@ -172,12 +170,12 @@ const EventDetailScreen = () => {
                         router.back();
                     } catch (error) {
                         console.error('Failed to delete event:', error);
-                        Alert.alert('Error', 'Failed to delete event.');
+                        Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถลบกิจกรรมได้');
                     }
                 }
             }
         ]);
-    }, [event, requestDelete, router]);
+    }, [event, router]);
 
     const handleShare = useCallback(async () => {
         if (!event) return;
@@ -186,10 +184,10 @@ const EventDetailScreen = () => {
             const endStr = dayjs(event.endDate).format('ddd, D MMM YYYY, HH:mm');
             const msg = `📅 ${event.title}\n\n` +
                 (event.description ? `📝 ${event.description}\n\n` : '') +
-                `⏰ Start: ${startStr}\n` +
-                `🏁 End: ${endStr}\n` +
-                (event.location ? `📍 Location: ${event.location}\n` : '') +
-                `\nShared via MyCalendar`;
+                `⏰ เริ่ม: ${startStr}\n` +
+                `🏁 สิ้นสุด: ${endStr}\n` +
+                (event.location ? `📍 สถานที่: ${event.location}\n` : '') +
+                '\nส่งต่อจาก MyCalendar';
 
             await Share.share({
                 message: msg,
@@ -204,12 +202,12 @@ const EventDetailScreen = () => {
         return (
             <View style={[styles.centered, { backgroundColor: bg }]}>
                 <Feather name="alert-circle" size={48} color={subC} />
-                <Text style={[styles.notFoundText, { color: subC }]}>Event not found</Text>
+                <Text style={[styles.notFoundText, { color: subC }]}>ไม่พบกิจกรรมนี้</Text>
                 <TouchableOpacity
                     onPress={() => router.back()}
                     style={[styles.backBtn, { backgroundColor: accent }]}
                 >
-                    <Text style={styles.backBtnText}>Go Back</Text>
+                    <Text style={styles.backBtnText}>ย้อนกลับ</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -218,7 +216,7 @@ const EventDetailScreen = () => {
     if (loading) {
         return (
             <View style={[styles.centered, { backgroundColor: bg }]}>
-                <Text style={[styles.loadingText, { color: subC }]}>Loading event details...</Text>
+                <Text style={[styles.loadingText, { color: subC }]}>กำลังโหลดรายละเอียดกิจกรรม...</Text>
             </View>
         );
     }
@@ -229,7 +227,7 @@ const EventDetailScreen = () => {
 
     const dateStr = sameDay ? startD.format('ddd D MMMM YYYY') : `${startD.format('D MMM')} – ${endD.format('D MMM YYYY')}`;
 
-    const timeStr = event.isAllDay ? 'All Day' : `${startD.format('HH:mm')} – ${endD.format('HH:mm')}`;
+    const timeStr = event.isAllDay ? 'ตลอดวัน' : `${startD.format('HH:mm')} – ${endD.format('HH:mm')}`;
 
     const pm = event.priority ? PRIORITY_META[event.priority] : null;
     const pmDark = event.priority ? PRIORITY_META_DARK[event.priority] : null;
@@ -244,29 +242,17 @@ const EventDetailScreen = () => {
     return (
         <View style={[styles.root, { backgroundColor: bg }]}>
             <ScreenHeader
-                title="Event Detail"
+                title="รายละเอียดกิจกรรม"
                 showBack
-                actions={[
-                    {
-                        icon: 'share-2',
-                        onPress: handleShare,
-                        backgroundColor: 'rgba(52,152,219,0.1)',
-                        color: '#3498db',
-                        accessibilityLabel: 'Share event',
-                    },
-                    {
-                        icon: 'edit-2',
-                        onPress: handleEdit,
-                        accessibilityLabel: 'Edit event',
-                    },
-                    {
-                        icon: 'trash-2',
-                        onPress: handleDelete,
-                        color: '#e74c3c',
-                        backgroundColor: 'rgba(231,76,60,0.1)',
-                        accessibilityLabel: 'Delete event',
-                    },
-                ]}
+                actionMenu={{
+                    iconColor: '#2ecc71',
+                    accessibilityLabel: 'เมนูจัดการกิจกรรม',
+                    items: [
+                        { label: 'แก้ไข', onPress: handleEdit },
+                        { label: 'ลบ', onPress: handleDelete, destructive: true },
+                        { label: 'แบ่งปัน', onPress: handleShare },
+                    ],
+                }}
             />
 
             <ScrollView
@@ -295,7 +281,7 @@ const EventDetailScreen = () => {
                         ) : null}
                         {event.isAllDay ? (
                             <View style={[styles.pill, { backgroundColor: isDark ? '#1a3028' : '#eafaf1' }]}>
-                                <Text style={[styles.pillText, { color: isDark ? '#2ecc71' : '#27ae60' }]}>All Day</Text>
+                                <Text style={[styles.pillText, { color: isDark ? '#2ecc71' : '#27ae60' }]}>ตลอดวัน</Text>
                             </View>
                         ) : null}
                     </View>
@@ -309,11 +295,11 @@ const EventDetailScreen = () => {
                                 size={22}
                             />
                             <Text style={[styles.heroCreatedByText, { color: isDark ? '#ccc' : '#4a5568' }]}>
-                                Created by <Text style={{ fontFamily: 'Kanit-Bold', color: accent }}>{event.createdBy.name || event.createdBy.username}</Text>
+                                สร้างโดย <Text style={{ fontFamily: 'Kanit-Bold', color: accent }}>{event.createdBy.name || event.createdBy.username}</Text>
                             </Text>
                             <View style={[styles.heroOwnerBadge, { backgroundColor: hexToRgba(accent, 0.2) }]}>
                                 <Feather name="shield" size={10} color={accent} />
-                                <Text style={[styles.heroOwnerText, { color: accent }]}>Owner</Text>
+                                <Text style={[styles.heroOwnerText, { color: accent }]}>เจ้าของ</Text>
                             </View>
                         </View>
                     ) : null}
@@ -329,7 +315,7 @@ const EventDetailScreen = () => {
                                     <Feather name="align-left" size={13} color={accent} />
                                 </View>
                                 <Text style={[styles.heroDescLabel, { color: isDark ? '#888' : '#8e9aad' }]}>
-                                    DESCRIPTION
+                                    รายละเอียด
                                 </Text>
                             </View>
                             <Text style={[styles.heroDescText, { color: isDark ? '#d0d0d0' : '#2d3748' }]}>
@@ -343,14 +329,14 @@ const EventDetailScreen = () => {
                 <View style={styles.section}>
                     <InfoRow
                         icon="calendar"
-                        label="Date"
+                        label="วันที่"
                         value={dateStr}
                         accent={accent}
                         isDark={isDark}
                     />
                     <InfoRow
                         icon="clock"
-                        label="Time"
+                        label="เวลา"
                         value={timeStr}
                         accent={accent}
                         isDark={isDark}
@@ -366,7 +352,7 @@ const EventDetailScreen = () => {
                                 />
                             </View>
                             <View style={rowStyle.body}>
-                                <Text style={[rowStyle.label, { color: subC }]}>PRIORITY</Text>
+                                <Text style={[rowStyle.label, { color: subC }]}>ระดับความสำคัญ</Text>
                                 <View style={[styles.priorityBadge, { backgroundColor: isDark ? (pmDark?.bg ?? pm.bg) : pm.bg }]}>
                                     <View style={[styles.priorityDot, { backgroundColor: pm.color }]} />
                                     <Text style={[styles.priorityLabel, { color: pm.color }]}>{pm.label}</Text>
@@ -378,8 +364,8 @@ const EventDetailScreen = () => {
                     {event.reminder !== undefined && event.reminder > 0 ? (
                         <InfoRow
                             icon="bell"
-                            label="Reminder"
-                            value={`${event.reminder} min before`}
+                            label="แจ้งเตือน"
+                            value={`ก่อนเวลา ${event.reminder} นาที`}
                             accent={accent}
                             isDark={isDark}
                         />
@@ -389,7 +375,7 @@ const EventDetailScreen = () => {
                 {/* ── Assignees ── */}
                 {hasUsers && (
                     <View style={styles.section}>
-                        <Text style={[styles.sectionTitle, { color: subC }]}>ASSIGNEES</Text>
+                        <Text style={[styles.sectionTitle, { color: subC }]}>ผู้ที่เกี่ยวข้อง</Text>
                         <View style={[styles.assigneeCard, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
                             {(event.assignees ?? []).map((u, i) => {
                                 const isOwner = event.createdBy?.userId === u.userId;
@@ -414,7 +400,7 @@ const EventDetailScreen = () => {
                                                     size={11}
                                                     color={accent}
                                                 />
-                                                <Text style={[styles.ownerBadgeText, { color: accent }]}>Owner</Text>
+                                                <Text style={[styles.ownerBadgeText, { color: accent }]}>เจ้าของ</Text>
                                             </View>
                                         ) : (
                                             <View style={[styles.assigneeDot, { backgroundColor: avatarBg(i) }]} />

@@ -58,21 +58,21 @@ const MonthYearPicker: React.FC<Props> = ({
 
             if (mode === 'dayMonthYear') {
                 if (currentDay > 1)
-                    dayRef.current?.scrollToIndex({ index: currentDay - 1, animated: false, viewPosition: 0.5 });
+                {dayRef.current?.scrollToIndex({ index: currentDay - 1, animated: false, viewPosition: 0.5 });}
                 if (currentMonth > 0)
-                    monthRef.current?.scrollToIndex({ index: currentMonth, animated: false, viewPosition: 0.5 });
+                {monthRef.current?.scrollToIndex({ index: currentMonth, animated: false, viewPosition: 0.5 });}
                 if (yi > 0)
-                    yearRef.current?.scrollToIndex({ index: yi, animated: false, viewPosition: 0.5 });
+                {yearRef.current?.scrollToIndex({ index: yi, animated: false, viewPosition: 0.5 });}
 
             } else if (mode === 'monthYear') {
                 if (currentMonth > 0)
-                    monthRef.current?.scrollToIndex({ index: currentMonth, animated: false, viewPosition: 0.5 });
+                {monthRef.current?.scrollToIndex({ index: currentMonth, animated: false, viewPosition: 0.5 });}
                 if (yi > 0)
-                    yearRef.current?.scrollToIndex({ index: yi, animated: false, viewPosition: 0.5 });
+                {yearRef.current?.scrollToIndex({ index: yi, animated: false, viewPosition: 0.5 });}
 
             } else { // yearOnly
                 if (yi > 0)
-                    yearRef.current?.scrollToIndex({ index: yi, animated: false, viewPosition: 0.5 });
+                {yearRef.current?.scrollToIndex({ index: yi, animated: false, viewPosition: 0.5 });}
             }
         }, 80);
     }, [visible, mode, currentDay, currentMonth, currentYear]);
@@ -172,7 +172,7 @@ const MonthYearPicker: React.FC<Props> = ({
             <Pressable style={styles.backdrop} onPress={onDismiss}>
                 <Pressable
                     style={[styles.card, { backgroundColor: bg, borderColor: border }]}
-                    onPress={() => { }}
+                    // onPress={() => { }}
                 >
                     <View style={styles.cols}>
                         {/* Day column — only in dayMonthYear mode */}
@@ -196,7 +196,7 @@ const MonthYearPicker: React.FC<Props> = ({
                             <>
                                 <FlatList
                                     ref={monthRef}
-                                    data={monthNames.en}
+                                    data={monthNames.th}
                                     keyExtractor={(_, i) => `m${i}`}
                                     renderItem={renderMonth}
                                     style={styles.col}

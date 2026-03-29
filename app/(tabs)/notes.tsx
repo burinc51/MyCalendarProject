@@ -1,14 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
     View,
-    StyleSheet,
     StatusBar,
     Modal,
-    Dimensions,
-    TouchableOpacity,
     Text
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Components
 import { NoteList, NoteEditor } from '@/components/Note';
@@ -49,7 +45,6 @@ const NotesScreen = () => {
         setViewMode,
         setSortBy,
         setSearchQuery,
-        notes,
         toast,
         hideToast,
     } = useNotes();
@@ -114,7 +109,7 @@ const NotesScreen = () => {
 
             {/* Header */}
             <View style={dynamicStyles.header}>
-                <Text style={dynamicStyles.headerTitle}>All Notes</Text>
+                <Text style={dynamicStyles.headerTitle}>โน๊ตทั้งหมด</Text>
             </View>
 
             {/* Notes List */}
@@ -156,6 +151,5 @@ const NotesScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({});
 
 export default NotesScreen;

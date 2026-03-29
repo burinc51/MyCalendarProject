@@ -178,7 +178,7 @@ const CalendarWeekView: React.FC<Props> = ({
                             activeOpacity={0.7}
                         >
                             <Text style={[styles.dayName, { color: colors.dayName }]}>
-                                {miniDays.en[d.day()]}
+                                {miniDays.th[d.day()]}
                             </Text>
                             <View style={[styles.dayNumWrap, isToday && styles.todayCircle]}>
                                 <Text style={[styles.dayNum, { color: isToday ? '#fff' : colors.dayNum }]}>

@@ -7,7 +7,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useToast } from '@/components/ui/Toast';
 import type { ToastType } from '@/components/ui/Toast';
-import * as noteService from '@/services/note-service';
+import * as noteService from '@/services/noteService';
 import { scheduleNoteReminder, cancelNoteReminder } from '@/services/notification-service';
 import { DEFAULT_NOTE_FORM } from '@/types/note';
 import type { Note, NoteFormData, NoteSortOption, SortDirection, NoteViewMode } from '@/types/note';
@@ -79,15 +79,21 @@ export const useNotes = (): UseNotesReturn => {
         setIsLoading(true);
         setError(null);
         try {
-            const fetchedNotes = await noteService.getNotes();
-            setNotes(fetchedNotes);
+            const response = await noteService.getNotes({
+                pageNo: 1,
+                pageSize: 100,
+                search: searchQuery.trim() || undefined,
+                sortBy,
+                sortDirection,
+            });
+            setNotes(response.content);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : String(err);
             setError(`Failed to load notes: ${errorMessage}`);
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [searchQuery, sortBy, sortDirection]);
 
     // Initial fetch
     useEffect(() => {
@@ -96,13 +102,7 @@ export const useNotes = (): UseNotesReturn => {
 
     // Filter and sort notes
     const filteredNotes = useMemo(() => {
-        let result = [...notes];
-
-        // Filter by search query
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter((note) => note.title.toLowerCase().includes(query) || note.content.toLowerCase().includes(query));
-        }
+        const result = [...notes];
 
         // Sort
         result.sort((a, b) => {
@@ -129,7 +129,7 @@ export const useNotes = (): UseNotesReturn => {
         });
 
         return result;
-    }, [notes, searchQuery, sortBy, sortDirection]);
+    }, [notes, sortBy, sortDirection]);
 
     // Reset note form
     const resetNoteForm = useCallback(() => {
@@ -177,9 +177,9 @@ export const useNotes = (): UseNotesReturn => {
                 const reminderDate = new Date(noteFormData.reminderDate);
                 if (reminderDate > new Date() || noteFormData.recurrence !== 'none') {
                     await scheduleNoteReminder(
-                        createdNote.id, 
-                        noteFormData.title || 'Untitled', 
-                        reminderDate, 
+                        createdNote.id,
+                        noteFormData.title || 'Untitled',
+                        reminderDate,
                         noteFormData.recurrence
                     );
                 }
@@ -188,12 +188,13 @@ export const useNotes = (): UseNotesReturn => {
             showToast('สร้างโน้ตสำเร็จ ✓');
             setShowNoteEditor(false);
             resetNoteForm();
-            fetchNotes();
+            await fetchNotes();
         } catch (err) {
-            Alert.alert('Error', 'Failed to create note');
+            const message = err instanceof Error ? err.message : 'Failed to create note';
+            Alert.alert('Error', message);
             console.error('Create note error:', err);
         }
-    }, [noteFormData, resetNoteForm, fetchNotes]);
+    }, [noteFormData, resetNoteForm, fetchNotes, showToast]);
 
     // Update existing note
     const updateNoteAction = useCallback(async () => {
@@ -207,9 +208,9 @@ export const useNotes = (): UseNotesReturn => {
                 const reminderDate = new Date(noteFormData.reminderDate);
                 if (reminderDate > new Date() || noteFormData.recurrence !== 'none') {
                     await scheduleNoteReminder(
-                        editingNote.id, 
-                        noteFormData.title || 'Untitled', 
-                        reminderDate, 
+                        editingNote.id,
+                        noteFormData.title || 'Untitled',
+                        reminderDate,
                         noteFormData.recurrence
                     );
                 }
@@ -218,12 +219,13 @@ export const useNotes = (): UseNotesReturn => {
             showToast('อัปเดตโน้ตสำเร็จ ✓');
             setShowNoteEditor(false);
             resetNoteForm();
-            fetchNotes();
+            await fetchNotes();
         } catch (err) {
-            Alert.alert('Error', 'Failed to update note');
+            const message = err instanceof Error ? err.message : 'Failed to update note';
+            Alert.alert('Error', message);
             console.error('Update note error:', err);
         }
-    }, [editingNote, noteFormData, resetNoteForm, fetchNotes]);
+    }, [editingNote, noteFormData, resetNoteForm, fetchNotes, showToast]);
 
     // Delete note
     const deleteNoteAction = useCallback(
@@ -243,16 +245,17 @@ export const useNotes = (): UseNotesReturn => {
 
                             await noteService.deleteNote(noteId);
                             showToast('ลบโน้ตสำเร็จ');
-                            fetchNotes();
+                            await fetchNotes();
                         } catch (err) {
-                            Alert.alert('Error', 'Failed to delete note');
+                            const message = err instanceof Error ? err.message : 'Failed to delete note';
+                            Alert.alert('Error', message);
                             console.error('Delete note error:', err);
                         }
                     }
                 }
             ]);
         },
-        [notes, fetchNotes]
+        [notes, fetchNotes, showToast]
     );
 
     // Toggle pin
@@ -260,7 +263,7 @@ export const useNotes = (): UseNotesReturn => {
         async (noteId: number) => {
             try {
                 await noteService.toggleNotePin(noteId);
-                fetchNotes();
+                await fetchNotes();
             } catch (err) {
                 console.error('Toggle pin error:', err);
             }
