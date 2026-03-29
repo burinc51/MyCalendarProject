@@ -83,7 +83,7 @@ const GroupItem: React.FC<{ group: GroupApiResponse; isDark: boolean; onPress: (
                     <MemberAvatar key={m.userId} member={m} index={i} />
                 ))}
                 <Text style={[styles.memberCount, { color: isDark ? '#6b7280' : '#9ca3af' }]}>
-                    {group.members?.length || 0} members
+                    สมาชิก {group.members?.length || 0} คน
                 </Text>
             </View>
         </View>
@@ -101,7 +101,7 @@ const GroupItem: React.FC<{ group: GroupApiResponse; isDark: boolean; onPress: (
 const Sidebar: React.FC<SidebarProps> = ({
     visible,
     onClose,
-    userName = 'User',
+    userName = 'ผู้ใช้',
     userInitial,
     userPhotoUrl,
 }) => {
@@ -257,7 +257,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <View style={{ marginBottom: 20 }}>
                             <View style={styles.sectionHeader}>
                                 <Text style={[styles.sectionLabel, { color: C.sectionLabel }]}>
-                                    ADMINISTRATION
+                                    การดูแลระบบ
                                 </Text>
                             </View>
                             <TouchableOpacity
@@ -277,7 +277,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     <Feather name="shield" size={14} color="#fff" />
                                 </View>
                                 <Text style={[styles.adminBtnText, { color: isDark ? '#eee' : '#1a1a1a' }]}>
-                                    Admin Dashboard
+                                    แดชบอร์ดผู้ดูแล
                                 </Text>
                                 <MaterialIcons name="chevron-right" size={18} color={isDark ? '#444' : '#d1d5db'} />
                             </TouchableOpacity>
@@ -288,7 +288,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     {/* Section header */}
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionLabel, { color: C.sectionLabel }]}>
-                            GROUP LIST
+                            กลุ่มของฉัน
                         </Text>
                         <View style={[styles.badge, { backgroundColor: isDark ? '#262626' : '#e5e7eb' }]}>
                             <Text style={[styles.badgeText, { color: C.sectionLabel }]}>
@@ -338,7 +338,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         }}
                     >
                         <Feather name="user-plus" size={15} color="#3b82f6" />
-                        <Text style={[styles.addGroupText, { color: '#3b82f6' }]}>Join a group</Text>
+                        <Text style={[styles.addGroupText, { color: '#3b82f6' }]}>เข้าร่วมกลุ่ม</Text>
                     </TouchableOpacity>
 
                     {/* Add group button */}
@@ -359,7 +359,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         }}
                     >
                         <Feather name="plus" size={15} color="#2ecc71" />
-                        <Text style={styles.addGroupText}>Create new group</Text>
+                                <Text style={styles.addGroupText}>สร้างกลุ่มใหม่</Text>
                     </TouchableOpacity>
                 </ScrollView>
             </Animated.View>
@@ -368,10 +368,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             <CustomBottomSheetModal ref={bottomSheetRef} isDark={isDark} snapPoints={['35%']}>
                 <View style={[styles.menuContainer, { borderBottomColor: C.divider }]}>
                     <Text style={[styles.menuTitle, { color: isDark ? '#f5f5f5' : '#1a1a1a' }]}>
-                        {selectedGroupForAction?.groupName || 'Group Options'}
+                        {selectedGroupForAction?.groupName || 'ตัวเลือกกลุ่ม'}
                     </Text>
                     <Text style={[styles.menuSubtitle, { color: C.sectionLabel }]}>
-                        Manage this group
+                        จัดการกลุ่มนี้
                     </Text>
                 </View>
 
@@ -393,7 +393,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <View style={[styles.menuIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6' }]}>
                         <Feather name="settings" size={18} color={isDark ? '#e5e7eb' : '#4b5563'} />
                     </View>
-                    <Text style={[styles.menuItemText, { color: isDark ? '#f5f5f5' : '#1a1a1a' }]}>Group Settings</Text>
+                    <Text style={[styles.menuItemText, { color: isDark ? '#f5f5f5' : '#1a1a1a' }]}>ตั้งค่ากลุ่ม</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -402,19 +402,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                         if (!selectedGroupForAction || !user?.id) return;
                         
                         Alert.alert(
-                            "Delete Group",
-                            `Are you sure you want to delete "${selectedGroupForAction.groupName}"? This action cannot be undone.`,
+                            'ลบกลุ่ม',
+                            `ต้องการลบกลุ่ม "${selectedGroupForAction.groupName}" ใช่ไหม? การดำเนินการนี้ไม่สามารถย้อนกลับได้`,
                             [
-                                { text: "Cancel", style: "cancel" },
+                                { text: 'ยกเลิก', style: 'cancel' },
                                 { 
-                                    text: "Delete", 
-                                    style: "destructive", 
+                                    text: 'ลบ', 
+                                    style: 'destructive', 
                                     onPress: async () => {
                                         try {
                                             bottomSheetRef.current?.dismiss();
                                             await deleteGroup(selectedGroupForAction.groupId, user.id);
                                         } catch (e: any) {
-                                            Alert.alert("Error", e.message || "Failed to delete group");
+                                            Alert.alert('เกิดข้อผิดพลาด', e.message || 'ไม่สามารถลบกลุ่มได้');
                                         }
                                     }
                                 }
@@ -425,7 +425,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <View style={[styles.menuIcon, { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }]}>
                         <Feather name="trash-2" size={18} color="#ef4444" />
                     </View>
-                    <Text style={[styles.menuItemText, { color: '#ef4444', fontFamily: 'Kanit-Bold' }]}>Delete Group</Text>
+                    <Text style={[styles.menuItemText, { color: '#ef4444', fontFamily: 'Kanit-Bold' }]}>ลบกลุ่ม</Text>
                 </TouchableOpacity>
             </CustomBottomSheetModal>
         </Modal>
