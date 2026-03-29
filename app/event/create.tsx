@@ -18,6 +18,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 
 import { useTheme } from '@/components/ThemeProvider';
 import { EVENT_COLORS, CATEGORIES, PRIORITY_COLORS } from '@/constants/Calendar';
@@ -41,7 +42,7 @@ const hexToRgba = (hex: string, alpha: number) => {
 const AVATAR_COLORS = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f39c12', '#1abc9c', '#e67e22'];
 const avatarBg = (i: number) => AVATAR_COLORS[i % AVATAR_COLORS.length];
 const getInitial = (u: EventUser) => (u.name || u.username || '?').trim().charAt(0).toUpperCase();
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
 // Theme colours
 const buildColors = (isDark: boolean) => ({
@@ -223,13 +224,13 @@ const DTPickerModal: React.FC<{
                 <View style={[dtp.handle, { backgroundColor: c.wheelLine }]} />
                 <View style={[dtp.header, { borderBottomColor: c.divider }]}>
                     <TouchableOpacity onPress={onCancel} style={dtp.hBtn}>
-                        <Text style={[dtp.cancelTxt, { color: c.label }]}>Cancel</Text>
+                        <Text style={[dtp.cancelTxt, { color: c.label }]}>ยกเลิก</Text>
                     </TouchableOpacity>
                     <Text style={[dtp.title, { color: c.text }]}>
-                        {kind === 'date' ? 'Select Date' : 'Select Time'}
+                        {kind === 'date' ? 'เลือกวันที่' : 'เลือกเวลา'}
                     </Text>
                     <TouchableOpacity onPress={confirm} style={dtp.hBtn}>
-                        <Text style={[dtp.doneTxt, { color: accent }]}>Done</Text>
+                        <Text style={[dtp.doneTxt, { color: accent }]}>เสร็จ</Text>
                     </TouchableOpacity>
                 </View>
                 <View style={[dtp.wheelWrap, { backgroundColor: c.wheelBg }]}>
@@ -431,13 +432,13 @@ const GroupPickerModal: React.FC<{
                     <TouchableOpacity
                         onPress={closeModal}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        accessibilityLabel="Close"
+                        accessibilityLabel="ปิด"
                     >
                         <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', justifyContent: 'center', alignItems: 'center' }}>
                             <Feather name="arrow-left" size={18} color={c.text} />
                         </View>
                     </TouchableOpacity>
-                    <Text style={{ fontSize: 18, fontFamily: 'Kanit-Bold', color: c.text }}>Select Group</Text>
+                    <Text style={{ fontSize: 18, fontFamily: 'Kanit-Bold', color: c.text }}>เลือกกลุ่ม</Text>
                     <View style={{ width: 36 }} />
                 </View>
 
@@ -486,7 +487,7 @@ const GroupPickerModal: React.FC<{
                                 </View>
                                 <View style={{ flex: 1 }}>
                                     <Text style={{ fontSize: 16, fontFamily: 'Kanit-Bold', color: c.text }}>{item.groupName}</Text>
-                                    <Text style={{ fontSize: 13, fontFamily: 'Kanit-Regular', color: c.placeholder }}>{item.members?.length ?? 0} members</Text>
+                                    <Text style={{ fontSize: 13, fontFamily: 'Kanit-Regular', color: c.placeholder }}>{item.members?.length ?? 0} สมาชิก</Text>
                                 </View>
                                 {isSel && (
                                     <Feather
@@ -525,7 +526,7 @@ const AssigneeModal: React.FC<{
             <View style={[asm.sheet, { backgroundColor: c.card }]}>
                 <View style={[asm.handle, { backgroundColor: c.wheelLine }]} />
                 <View style={[asm.header, { borderBottomColor: c.divider }]}>
-                    <Text style={[asm.title, { color: c.text }]}>Assign People</Text>
+                    <Text style={[asm.title, { color: c.text }]}>มอบหมายผู้เข้าร่วม</Text>
                     <TouchableOpacity onPress={onClose} style={[asm.closeBtn, { backgroundColor: c.input }]}>
                         <Feather name="x" size={18} color={c.label} />
                     </TouchableOpacity>
@@ -535,7 +536,7 @@ const AssigneeModal: React.FC<{
                     <TextInput
                         style={[asm.searchInput, { color: c.text }]}
                         value={query} onChangeText={setQuery}
-                        placeholder="Search name or username…" placeholderTextColor={c.placeholder}
+                        placeholder="ค้นหาชื่อหรือชื่อผู้ใช้..." placeholderTextColor={c.placeholder}
                     />
                     {query.length > 0 && (
                         <TouchableOpacity onPress={() => setQuery('')}>
@@ -547,7 +548,7 @@ const AssigneeModal: React.FC<{
                     <View style={[asm.badge, { backgroundColor: hexToRgba(accent, 0.12), marginHorizontal: 16, marginBottom: 8 }]}>
                         <Feather name="users" size={13} color={accent} />
                         <Text style={[asm.badgeTxt, { color: accent }]}>
-                            {selected.length} {selected.length === 1 ? 'person' : 'people'} selected
+                            เลือกแล้ว {selected.length} คน
                         </Text>
                     </View>
                 )}
@@ -579,7 +580,7 @@ const AssigneeModal: React.FC<{
                     style={[asm.doneBtn, { backgroundColor: accent, shadowColor: accent, marginHorizontal: 16, marginTop: 12 }]}
                     onPress={onClose} activeOpacity={0.85}
                 >
-                    <Text style={asm.doneTxt}>Done</Text>
+                    <Text style={asm.doneTxt}>เสร็จ</Text>
                 </TouchableOpacity>
             </View>
         </Modal>
@@ -682,7 +683,7 @@ export default function EventCreateScreen() {
             return [
                 {
                     userId: authUser.id,
-                    name: authUser.name || authUser.email?.split('@')[0] || 'Me',
+                    name: authUser.name || authUser.email?.split('@')[0] || 'ฉัน',
                     username: authUser.email?.split('@')[0] || '',
                     imageUrl: authUser.photoUrl || null
                 }
@@ -786,13 +787,13 @@ export default function EventCreateScreen() {
         setActivePicker(null);
     }, [activePicker, updateField]);
 
-    const dispStartDate = dayjs(formData.startDate).isValid() ? dayjs(formData.startDate).format('ddd, D MMM YYYY') : '—';
-    const dispEndDate = dayjs(formData.endDate).isValid() ? dayjs(formData.endDate).format('ddd, D MMM YYYY') : '—';
+    const dispStartDate = dayjs(formData.startDate).isValid() ? dayjs(formData.startDate).locale('th').format('ddd, D MMM YYYY') : '—';
+    const dispEndDate = dayjs(formData.endDate).isValid() ? dayjs(formData.endDate).locale('th').format('ddd, D MMM YYYY') : '—';
     const dispStartTime = formData.startTime || '—';
     const dispEndTime = formData.endTime || '—';
 
     const handleSave = useCallback(async () => {
-        if (!formData.title.trim()) { Alert.alert('Error', 'Please enter a title'); return; }
+        if (!formData.title.trim()) { Alert.alert('ข้อมูลไม่ครบ', 'กรุณากรอกหัวข้อกิจกรรม'); return; }
         try {
             const { createEvent, updateEvent } = await import('@/services/eventService');
             const { buildEventFormData } = await import('@/utils/calendar-helpers');
@@ -809,27 +810,27 @@ export default function EventCreateScreen() {
             const fd = buildEventFormData(formDataWithAssignees as any, targetUserId, existingEvent ? existingEvent.eventId : null);
             if (existingEvent) {
                 await updateEvent(existingEvent.eventId, targetUserId, fd as unknown as FormData);
-                Alert.alert('Success', 'Event updated!', [{ text: 'OK', onPress: () => router.back() }]);
+                Alert.alert('สำเร็จ', 'อัปเดตกิจกรรมเรียบร้อยแล้ว', [{ text: 'ตกลง', onPress: () => router.back() }]);
             } else {
                 await createEvent(fd as unknown as FormData);
-                Alert.alert('Success', 'Event created!', [{ text: 'OK', onPress: () => router.back() }]);
+                Alert.alert('สำเร็จ', 'สร้างกิจกรรมเรียบร้อยแล้ว', [{ text: 'ตกลง', onPress: () => router.back() }]);
             }
         } catch (error: any) {
             console.error('Save event error:', error?.response?.data || error.message || error);
-            const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error.message || 'Unknown error occurred';
-            Alert.alert('Error', `Failed to save event: ${errorMsg}`);
+            const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error.message || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
+            Alert.alert('บันทึกไม่สำเร็จ', `ไม่สามารถบันทึกกิจกรรมได้: ${errorMsg}`);
         }
     }, [formData, existingEvent, assignees, router]);
 
     return (
         <View style={[s.root, { backgroundColor: c.bg }]}>
             <ScreenHeader
-                title={isEditing ? 'Edit Event' : 'New Event'}
+                title={isEditing ? 'แก้ไขกิจกรรม' : 'สร้างกิจกรรมใหม่'}
                 actions={[
                     {
                         icon: 'x',
                         onPress: () => router.back(),
-                        accessibilityLabel: 'Close',
+                        accessibilityLabel: 'ปิด',
                     },
                 ]}
             />
@@ -845,56 +846,56 @@ export default function EventCreateScreen() {
                     <View style={[s.accentStrip, { backgroundColor: hexToRgba(accent, 0.12) }]}>
                         <View style={[s.accentDot, { backgroundColor: accent, shadowColor: accent }]} />
                         <Text style={[s.accentLbl, { color: isDark ? '#bbb' : '#555' }]}>
-                            {isEditing ? 'Editing event' : 'Creating new event'}
+                            {isEditing ? 'กำลังแก้ไขกิจกรรม' : 'กำลังสร้างกิจกรรมใหม่'}
                         </Text>
                     </View>
 
                     {/* ── Basic Info ── */}
                     <View style={[s.card, { backgroundColor: c.card, borderColor: c.cardBorder }]}>
-                        <SectionHeader icon="edit-3" title="Basic Info" accent={accent} isDark={isDark} />
-                        <Text style={[s.lbl, { color: c.label }]}>Group *</Text>
+                        <SectionHeader icon="edit-3" title="ข้อมูลพื้นฐาน" accent={accent} isDark={isDark} />
+                        <Text style={[s.lbl, { color: c.label }]}>กลุ่ม *</Text>
                         <TouchableOpacity
                             style={[s.inputRow, { backgroundColor: c.input, borderColor: c.inputBorder, marginBottom: 14 }]}
                             onPress={() => setShowGroupPicker(true)}
                         >
                             <Feather name="users" size={16} color={c.label} />
                             <Text style={[s.inputRowTxt, { color: formData.groupId ? c.inputText : c.placeholder }]}>
-                                {userGroups.find(g => g.groupId === formData.groupId)?.groupName || 'Select a Group'}
+                                {userGroups.find(g => g.groupId === formData.groupId)?.groupName || 'เลือกกลุ่ม'}
                             </Text>
                             <Feather name="chevron-down" size={18} color={c.placeholder} style={{ position: 'absolute', right: 14 }} />
                         </TouchableOpacity>
 
-                        <Text style={[s.lbl, { color: c.label }]}>Title *</Text>
+                        <Text style={[s.lbl, { color: c.label }]}>หัวข้อ *</Text>
                         <TextInput
                             style={[s.input, { backgroundColor: c.input, borderColor: c.inputBorder, color: c.inputText }]}
                             value={formData.title} onChangeText={v => updateField('title', v)}
-                            placeholder="Enter event title" placeholderTextColor={c.placeholder}
+                            placeholder="ป้อนหัวข้อกิจกรรม" placeholderTextColor={c.placeholder}
                         />
-                        <Text style={[s.lbl, { color: c.label, marginTop: 14 }]}>Location</Text>
+                        <Text style={[s.lbl, { color: c.label, marginTop: 14 }]}>สถานที่</Text>
                         <View style={[s.inputRow, { backgroundColor: c.input, borderColor: c.inputBorder }]}>
                             <Feather name="map-pin" size={16} color={c.label} />
                             <TextInput style={[s.inputRowTxt, { color: c.inputText }]}
                                 value={formData.location || ''} onChangeText={v => updateField('location', v)}
-                                placeholder="Add location" placeholderTextColor={c.placeholder} />
+                                placeholder="เพิ่มสถานที่" placeholderTextColor={c.placeholder} />
                         </View>
-                        <Text style={[s.lbl, { color: c.label, marginTop: 14 }]}>Description</Text>
+                        <Text style={[s.lbl, { color: c.label, marginTop: 14 }]}>รายละเอียด</Text>
                         <TextInput
                             style={[s.input, s.textarea, { backgroundColor: c.input, borderColor: c.inputBorder, color: c.inputText }]}
                             value={formData.description} onChangeText={v => updateField('description', v)}
-                            placeholder="Add description…" placeholderTextColor={c.placeholder}
+                            placeholder="เพิ่มรายละเอียด…" placeholderTextColor={c.placeholder}
                             multiline numberOfLines={3} textAlignVertical="top"
                         />
                     </View>
 
                     {/* ── Date & Time ── */}
                     <View style={[s.card, { backgroundColor: c.card, borderColor: c.cardBorder }]}>
-                        <SectionHeader icon="clock" title="Date & Time" accent={accent} isDark={isDark} />
+                        <SectionHeader icon="clock" title="วันที่ และ เวลา" accent={accent} isDark={isDark} />
                         <View style={[s.toggleRow, { backgroundColor: c.input, borderColor: c.inputBorder }]}>
                             <View style={s.toggleLeft}>
                                 <View style={[s.toggleIcon, { backgroundColor: hexToRgba(accent, 0.15) }]}>
                                     <Feather name="sun" size={14} color={accent} />
                                 </View>
-                                <Text style={[s.toggleLbl, { color: c.text }]}>All Day</Text>
+                                <Text style={[s.toggleLbl, { color: c.text }]}>ตลอดวัน</Text>
                             </View>
                             <Switch value={!!formData.isAllDay} onValueChange={v => updateField('isAllDay', v)}
                                 trackColor={{ false: c.inputBorder, true: hexToRgba(accent, 0.5) }}
@@ -905,23 +906,23 @@ export default function EventCreateScreen() {
                                 <View style={[s.toggleIcon, { backgroundColor: hexToRgba('#f39c12', 0.15) }]}>
                                     <Feather name="bookmark" size={14} color="#f39c12" />
                                 </View>
-                                <Text style={[s.toggleLbl, { color: c.text }]}>Pin to Top 📌</Text>
+                                <Text style={[s.toggleLbl, { color: c.text }]}>ปักหมุดไว้ด้านบน 📌</Text>
                             </View>
                             <Switch value={!!formData.pinned} onValueChange={v => updateField('pinned', v)}
                                 trackColor={{ false: c.inputBorder, true: hexToRgba('#f39c12', 0.5) }}
                                 thumbColor={formData.pinned ? '#f39c12' : (isDark ? '#555' : '#ddd')} />
                         </View>
                         <View style={s.dtRow}>
-                            <DateTrigger icon="calendar" label="Start Date" value={dispStartDate}
+                            <DateTrigger icon="calendar" label="วันเริ่มต้น" value={dispStartDate}
                                 onPress={() => setActivePicker('startDate')} accent={accent} c={c} />
-                            <DateTrigger icon="calendar" label="End Date" value={dispEndDate}
+                            <DateTrigger icon="calendar" label="วันสิ้นสุด" value={dispEndDate}
                                 onPress={() => setActivePicker('endDate')} accent={accent} c={c} />
                         </View>
                         {!formData.isAllDay && (
                             <View style={s.dtRow}>
-                                <DateTrigger icon="clock" label="Start Time" value={dispStartTime}
+                                <DateTrigger icon="clock" label="เวลาเริ่มต้น" value={dispStartTime}
                                     onPress={() => setActivePicker('startTime')} accent={accent} c={c} />
-                                <DateTrigger icon="clock" label="End Time" value={dispEndTime}
+                                <DateTrigger icon="clock" label="เวลาสิ้นสุด" value={dispEndTime}
                                     onPress={() => setActivePicker('endTime')} accent={accent} c={c} />
                             </View>
                         )}
@@ -929,8 +930,8 @@ export default function EventCreateScreen() {
 
                     {/* ── Appearance ── */}
                     <View style={[s.card, { backgroundColor: c.card, borderColor: c.cardBorder }]}>
-                        <SectionHeader icon="droplet" title="Appearance" accent={accent} isDark={isDark} />
-                        <Text style={[s.lbl, { color: c.label }]}>Color</Text>
+                        <SectionHeader icon="droplet" title="การแสดงผล" accent={accent} isDark={isDark} />
+                        <Text style={[s.lbl, { color: c.label }]}>สี</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                             <View style={s.colorRow}>
                                 {EVENT_COLORS.map(co => {
@@ -945,7 +946,7 @@ export default function EventCreateScreen() {
                                 })}
                             </View>
                         </ScrollView>
-                        <Text style={[s.lbl, { color: c.label, marginTop: 14 }]}>Category</Text>
+                        <Text style={[s.lbl, { color: c.label, marginTop: 14 }]}>หมวดหมู่</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                             <View style={s.chipRow}>
                                 {CATEGORIES.map(cat => {
@@ -960,7 +961,7 @@ export default function EventCreateScreen() {
                                 })}
                             </View>
                         </ScrollView>
-                        <Text style={[s.lbl, { color: c.label, marginTop: 14 }]}>Priority</Text>
+                        <Text style={[s.lbl, { color: c.label, marginTop: 14 }]}>ระดับความสำคัญ</Text>
                         <View style={s.priorityRow}>
                             {(['low', 'medium', 'high'] as EventPriority[]).map(p => {
                                 const meta = PRIORITY_COLORS[p];
@@ -972,7 +973,7 @@ export default function EventCreateScreen() {
                                         onPress={() => updateField('priority', p)} activeOpacity={0.7}>
                                         <Feather name={icn[p] as any} size={15} color={sel ? '#fff' : meta.solid} />
                                         <Text style={[s.priorityTxt, { color: sel ? '#fff' : c.text }]}>
-                                            {p.charAt(0).toUpperCase() + p.slice(1)}
+                                            {p === 'low' ? 'ต่ำ' : p === 'medium' ? 'ปานกลาง' : 'สูง'}
                                         </Text>
                                     </TouchableOpacity>
                                 );
@@ -982,7 +983,7 @@ export default function EventCreateScreen() {
 
                     {/* ── Assignees ── */}
                     <View style={[s.card, { backgroundColor: c.card, borderColor: c.cardBorder }]}>
-                        <SectionHeader icon="users" title="Assignees" accent={accent} isDark={isDark} />
+                        <SectionHeader icon="users" title="ผู้เข้าร่วม" accent={accent} isDark={isDark} />
                         {assignees.length > 0 ? (
                             <View style={s.aChips}>
                                 {assignees.map((u, i) => (
@@ -997,22 +998,22 @@ export default function EventCreateScreen() {
                                 ))}
                             </View>
                         ) : (
-                            <Text style={[s.aEmpty, { color: c.placeholder }]}>No one assigned yet</Text>
+                            <Text style={[s.aEmpty, { color: c.placeholder }]}>ยังไม่มีใครถูกมอบหมาย</Text>
                         )}
                         <TouchableOpacity
                             style={[s.aAddBtn, { borderColor: accent, backgroundColor: hexToRgba(accent, 0.08) }]}
                             onPress={() => setShowAssignees(true)} activeOpacity={0.75}>
                             <Feather name="user-plus" size={16} color={accent} />
                             <Text style={[s.aAddTxt, { color: accent }]}>
-                                {assignees.length > 0 ? 'Manage Assignees' : 'Assign People'}
+                                {assignees.length > 0 ? 'จัดการผู้เข้าร่วม' : 'มอบหมายผู้เข้าร่วม'}
                             </Text>
                         </TouchableOpacity>
                     </View>
 
                     {/* ── Notification ── */}
                     <View style={[s.card, { backgroundColor: c.card, borderColor: c.cardBorder }]}>
-                        <SectionHeader icon="bell" title="Notification" accent={accent} isDark={isDark} />
-                        <Text style={[s.lbl, { color: c.label }]}>Remind before</Text>
+                        <SectionHeader icon="bell" title="การแจ้งเตือน" accent={accent} isDark={isDark} />
+                        <Text style={[s.lbl, { color: c.label }]}>แจ้งเตือนล่วงหน้า</Text>
                         <View style={s.notifRow}>
                             <TextInput
                                 style={[s.input, s.smallNum, { backgroundColor: c.input, borderColor: c.inputBorder, color: c.inputText }]}
@@ -1027,7 +1028,9 @@ export default function EventCreateScreen() {
                                             <TouchableOpacity key={unit}
                                                 style={[s.chip, { borderColor: sel ? accent : c.inputBorder, backgroundColor: sel ? hexToRgba(accent, 0.15) : c.input }]}
                                                 onPress={() => updateField('remindBeforeUnit', unit)}>
-                                                <Text style={[s.chipTxt, { color: sel ? accent : c.label, fontFamily: sel ? 'Kanit-Bold' : 'Kanit-Regular' }]}>{unit.toLowerCase()}</Text>
+                                                <Text style={[s.chipTxt, { color: sel ? accent : c.label, fontFamily: sel ? 'Kanit-Bold' : 'Kanit-Regular' }]}>
+                                                    {unit === 'MINUTES' ? 'นาที' : unit === 'HOURS' ? 'ชั่วโมง' : unit === 'DAYS' ? 'วัน' : 'สัปดาห์'}
+                                                </Text>
                                             </TouchableOpacity>
                                         );
                                     })}
@@ -1038,7 +1041,7 @@ export default function EventCreateScreen() {
 
                     {/* ── Repeat ── */}
                     <View style={[s.card, { backgroundColor: c.card, borderColor: c.cardBorder }]}>
-                        <SectionHeader icon="repeat" title="Repeat" accent={accent} isDark={isDark} />
+                        <SectionHeader icon="repeat" title="ทำซ้ำ" accent={accent} isDark={isDark} />
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                             <View style={s.chipRow}>
                                 {(['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY', 'CUSTOM'] as const).map(type => {
@@ -1048,7 +1051,7 @@ export default function EventCreateScreen() {
                                             style={[s.chip, { borderColor: sel ? accent : c.inputBorder, backgroundColor: sel ? hexToRgba(accent, 0.15) : c.input }]}
                                             onPress={() => updateField('repeatType', type)}>
                                             <Text style={[s.chipTxt, { color: sel ? accent : c.label, fontFamily: sel ? 'Kanit-Bold' : 'Kanit-Regular' }]}>
-                                                {type.charAt(0) + type.slice(1).toLowerCase()}
+                                                {type === 'NONE' ? 'ไม่ทำซ้ำ' : type === 'DAILY' ? 'ทุกวัน' : type === 'WEEKLY' ? 'ทุกสัปดาห์' : type === 'MONTHLY' ? 'ทุกเดือน' : type === 'YEARLY' ? 'ทุกปี' : 'กำหนดเอง'}
                                             </Text>
                                         </TouchableOpacity>
                                     );
@@ -1058,24 +1061,24 @@ export default function EventCreateScreen() {
                         {formData.repeatType !== 'NONE' && (
                             <View style={[s.repeatExtra, { backgroundColor: c.input, borderColor: c.inputBorder }]}>
                                 <View style={s.repeatRow}>
-                                    <Text style={[s.repeatLbl, { color: c.label }]}>Every</Text>
+                                    <Text style={[s.repeatLbl, { color: c.label }]}>ทุก</Text>
                                     <TextInput
                                         style={[s.input, s.smallNum, { backgroundColor: c.card, borderColor: c.inputBorder, color: c.inputText }]}
                                         value={formData.repeatInterval?.toString() || ''} onChangeText={v => updateField('repeatInterval', v)}
                                         keyboardType="numeric" placeholder="1" placeholderTextColor={c.placeholder}
                                     />
                                     <Text style={[s.repeatLbl, { color: c.text }]}>
-                                        {formData.repeatType === 'DAILY' ? 'Days' : formData.repeatType === 'WEEKLY' ? 'Weeks' : formData.repeatType === 'MONTHLY' ? 'Months' : 'Years'}
+                                        {formData.repeatType === 'DAILY' ? 'วัน' : formData.repeatType === 'WEEKLY' ? 'สัปดาห์' : formData.repeatType === 'MONTHLY' ? 'เดือน' : 'ปี'}
                                     </Text>
                                 </View>
                                 <View style={[s.repeatRow, { marginTop: 10 }]}>
-                                    <Text style={[s.repeatLbl, { color: c.label }]}>Until</Text>
+                                    <Text style={[s.repeatLbl, { color: c.label }]}>ถึงวันที่</Text>
                                     <TouchableOpacity
                                         style={[dtb.wrap, { flex: 1, backgroundColor: c.card, borderColor: c.inputBorder }]}
                                         onPress={() => setActivePicker('endDate')} activeOpacity={0.75}>
                                         <Feather name="calendar" size={15} color={c.label} />
                                         <Text style={[s.repeatLbl, { color: c.inputText, flex: 1 }]}>
-                                            {formData.repeatUntil || 'No end date'}
+                                            {formData.repeatUntil || 'ไม่กำหนดวันสิ้นสุด'}
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
@@ -1086,11 +1089,11 @@ export default function EventCreateScreen() {
                     {/* Bottom buttons */}
                     <View style={s.bottomBtns}>
                         <TouchableOpacity style={[s.btnCancel, { borderColor: c.inputBorder, backgroundColor: c.card }]} onPress={() => router.back()} activeOpacity={0.8}>
-                            <Text style={[s.btnCancelTxt, { color: c.label }]}>Cancel</Text>
+                            <Text style={[s.btnCancelTxt, { color: c.label }]}>ยกเลิก</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[s.btnSave, { backgroundColor: accent, shadowColor: accent }]} onPress={handleSave} activeOpacity={0.8}>
                             <Feather name={isEditing ? 'check-circle' : 'plus-circle'} size={18} color="#fff" />
-                            <Text style={s.btnSaveTxt}>{isEditing ? 'Update Event' : 'Create Event'}</Text>
+                            <Text style={s.btnSaveTxt}>{isEditing ? 'อัปเดตกิจกรรม' : 'สร้างกิจกรรม'}</Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
