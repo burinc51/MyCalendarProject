@@ -121,7 +121,7 @@ const NoteList: React.FC<NoteListProps> = ({
             borderColor: 'rgba(46, 204, 113, 0.2)'
         },
         sortButtonText: {
-            fontFamily: 'Kanit-Medium',
+            fontFamily: 'Kanit-Regular',
             fontSize: 14,
             color: colors.textSecondary
         },
@@ -130,7 +130,7 @@ const NoteList: React.FC<NoteListProps> = ({
             borderRadius: 10
         },
         emptyTitle: {
-            fontFamily: 'Kanit-SemiBold',
+            fontFamily: 'Kanit-Regular',
             fontSize: 22,
             color: colors.textSecondary,
             marginBottom: 10,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     },
     sortButtonTextActive: {
         color: '#2ecc71',
-        fontFamily: 'Kanit-SemiBold'
+        fontFamily: 'Kanit-Regular'
     },
     viewModeContainer: {
         flexDirection: 'row',

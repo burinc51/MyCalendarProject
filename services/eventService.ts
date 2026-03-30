@@ -29,7 +29,11 @@ export const createEvent = async (event: FormData) => httpClient.post('/api/v1/e
 
 // อัปเดต event — endpoint คือ PUT /api/v1/event/update, eventId อยู่ใน body JSON แล้ว
 export const updateEvent = async (_eventId: number, _userId: number, event: FormData) =>
-    httpClient.put('/api/v1/event/update', event);
+    httpClient.put('/api/v1/event/update', event, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        }
+    });
 
 // ลบ event
 export const deleteEvent = async (eventId: number) => httpClient.delete(`/api/v1/event/${eventId}`);
