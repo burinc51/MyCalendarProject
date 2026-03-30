@@ -54,11 +54,7 @@ export async function emailSignUp(email: string, password: string, name: string,
  * Email Sign-In: เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน
  */
 export async function emailSignIn(email: string, password: string): Promise<AuthResponse> {
-    const response = await httpClient.post<AuthResponse>(
-        '/api/v1/auth/login',
-        { email, password },
-        { headers: { 'Content-Type': 'application/json' } }
-    );
+    const response = await httpClient.post<AuthResponse>('/api/v1/auth/sign-in', { usernameOrEmail:email, password: password }, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
     return response.data;
 }
 
