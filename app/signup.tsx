@@ -49,12 +49,15 @@ export default function SignUpScreen() {
             setLoading(true);
             const authResponse = await emailSignUp(email, password, name, username);
             
+            const isAdmin = authResponse.role === 'ADMIN' || authResponse.roles?.some((r: any) => r.name === 'ADMIN' || r === 'ADMIN') ? 'ADMIN' : 'USER';
+            
             await setAuth(
                 {
                     id: authResponse.userId,
                     email: authResponse.email,
                     name: authResponse.name,
                     photoUrl: authResponse.pictureUrl,
+                    role: isAdmin,
                 },
                 authResponse.accessToken,
                 authResponse.refreshToken,

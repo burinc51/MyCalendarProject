@@ -117,6 +117,10 @@ function ThemedApp() {
                         name="account-settings"
                         options={{ headerShown: false, animation: 'slide_from_right' }}
                     />
+                    <Stack.Screen
+                        name="admin-dashboard"
+                        options={{ headerShown: false, animation: 'slide_from_right' }}
+                    />
                     <Stack.Screen name="+not-found" />
                 </Stack>
             </SafeAreaView>

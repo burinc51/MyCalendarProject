@@ -8,6 +8,8 @@ export interface AuthResponse {
     name: string;
     email: string;
     pictureUrl: string;
+    roles?: any[];
+    role?: string;
 }
 
 export interface JwtResponse {

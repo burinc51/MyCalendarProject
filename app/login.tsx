@@ -113,8 +113,9 @@ export default function LoginScreen() {
         try {
             setEmailLoading(true);
             const res = await emailSignIn(email.trim(), password);
+            const isAdmin = res.role === 'ADMIN' || res.roles?.some((r: any) => r.name === 'ADMIN' || r === 'ADMIN') ? 'ADMIN' : 'USER';
             await setAuth(
-                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl },
+                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl, role: isAdmin },
                 res.accessToken,
                 res.refreshToken,
             );
@@ -146,8 +147,9 @@ export default function LoginScreen() {
             if (!idToken) throw new Error('ไม่พบ idToken จาก Google');
             console.log("idToken: ", idToken)
             const res = await googleSignIn(idToken);
+            const isAdmin = res.roles?.some((r: any) => r.name === 'ADMIN' || r === 'ADMIN') ? 'ADMIN' : 'USER';
             await setAuth(
-                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl },
+                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl, role: isAdmin },
                 res.accessToken,
                 res.refreshToken,
             );
