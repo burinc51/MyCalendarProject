@@ -83,7 +83,7 @@ export default function AdminDashboardScreen() {
             }
         } catch (error) {
             console.error('Fetch dashboard error:', error);
-            Alert.alert('Error', 'Failed to fetch dashboard data');
+            Alert.alert('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลแดชบอร์ดได้');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -92,22 +92,22 @@ export default function AdminDashboardScreen() {
 
     const handleDeleteUser = (userId: number, userName: string) => {
         Alert.alert(
-            'Delete User',
-            `Are you sure you want to delete ${userName}? This action cannot be undone.`,
+            'ลบผู้ใช้',
+            `คุณแน่ใจหรือไม่ว่าต้องการลบ ${userName}? การดำเนินการนี้ไม่สามารถย้อนกลับได้`,
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'ยกเลิก', style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: 'ลบ',
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             setLoading(true);
                             await httpClient.delete(`/api/v1/users/${userId}`);
                             setUsers(prev => prev.filter(u => u.id !== userId));
-                            Alert.alert('Success', 'User deleted successfully.');
+                            Alert.alert('สำเร็จ', 'ลบผู้ใช้สำเร็จแล้ว');
                         } catch (error) {
                             console.error('Delete user error:', error);
-                            Alert.alert('Error', 'Failed to delete user.');
+                            Alert.alert('ข้อผิดพลาด', 'ลบผู้ใช้ไม่สำเร็จ');
                         } finally {
                             setLoading(false);
                         }
@@ -134,7 +134,7 @@ export default function AdminDashboardScreen() {
     const handleSaveUserEdit = async () => {
         if (!selectedUser) return;
         if (!editName.trim()) {
-            Alert.alert('Validation Error', 'Name cannot be empty.');
+            Alert.alert('ข้อผิดพลาดในการตรวจสอบ', 'ชื่อต้องไม่ว่างเปล่า');
             return;
         }
 
@@ -156,11 +156,11 @@ export default function AdminDashboardScreen() {
                 u.id === selectedUser.id ? { ...u, name: editName, role: editRole } : u
             ));
             
-            Alert.alert('Success', 'User updated successfully.');
+            Alert.alert('สำเร็จ', 'อัปเดตผู้ใช้สำเร็จแล้ว');
             closeEditModal();
         } catch (error) {
             console.error('Update user error:', error);
-            Alert.alert('Error', 'Failed to update user. Please try again.');
+            Alert.alert('ข้อผิดพลาด', 'ไม่สามารถอัปเดตผู้ใช้ได้ กรุณาลองใหม่อีกครั้ง');
         } finally {
             setSubmittingEdit(false);
         }
@@ -207,7 +207,7 @@ export default function AdminDashboardScreen() {
                         <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
                         {item.role === 'ADMIN' && (
                             <View style={[styles.adminBadge, { backgroundColor: colors.accent + '20' }]}>
-                                <Text style={[styles.adminBadgeText, { color: colors.accent }]}>ADMIN</Text>
+                                <Text style={[styles.adminBadgeText, { color: colors.accent }]}>ผู้ดูแลระบบ</Text>
                             </View>
                         )}
                     </View>
@@ -235,7 +235,7 @@ export default function AdminDashboardScreen() {
         return (
             <View style={[styles.centered, { backgroundColor: colors.bg }]}>
                 <ActivityIndicator size="large" color={colors.accent} />
-                <Text style={[styles.loadingText, { color: colors.subText }]}>Loading Dashboard...</Text>
+                <Text style={[styles.loadingText, { color: colors.subText }]}>กำลังโหลดแดชบอร์ด...</Text>
             </View>
         );
     }
@@ -243,7 +243,7 @@ export default function AdminDashboardScreen() {
     return (
         <View style={[styles.container, { backgroundColor: colors.bg }]}>
             <ScreenHeader
-                title="Admin Dashboard"
+                title="แดชบอร์ดผู้ดูแลระบบ"
                 showBack
                 actions={[{ icon: 'refresh-ccw', onPress: fetchDashboardData, loading: refreshing }]}
             />
@@ -255,19 +255,20 @@ export default function AdminDashboardScreen() {
             >
                 {/* Statistics Grid */}
                 <View style={styles.statsSection}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Activity Statistics</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>สถิติการใช้งาน</Text>
                     <View style={styles.statsGrid}>
-                        {renderStatCard('Total Users', stats?.totalUsers || 0, 'users', colors.accent)}
-                        {renderStatCard('Groups Created', stats?.totalGroups || 0, 'folder', colors.success)}
-                        {renderStatCard('Events Logged', stats?.totalEvents || 0, 'calendar', colors.warning)}
-                        {renderStatCard('Notes Written', stats?.totalNotes || 0, 'file-text', '#9b59b6')}
+
+                        {renderStatCard('ผู้ใช้ทั้งหมด', stats?.totalUsers || 0, 'users', colors.accent)}
+                        {renderStatCard('กลุ่มที่สร้าง', stats?.totalGroups || 0, 'folder', colors.success)}
+                        {renderStatCard('กิจกรรมที่บันทึก', stats?.totalEvents || 0, 'calendar', colors.warning)}
+                        {renderStatCard('โน้ตที่เขียน', stats?.totalNotes || 0, 'file-text', '#9b59b6')}
                     </View>
                 </View>
 
                 {/* User Management Section */}
                 <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>User Management</Text>
-                    <Text style={[styles.sectionCount, { color: colors.subText }]}>{filteredUsers.length} users</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>การจัดการผู้ใช้</Text>
+                    <Text style={[styles.sectionCount, { color: colors.subText }]}>{filteredUsers.length} ผู้ใช้</Text>
                 </View>
 
                 {/* Search Bar */}
@@ -275,7 +276,7 @@ export default function AdminDashboardScreen() {
                     <Feather name="search" size={18} color={colors.subText} />
                     <TextInput
                         style={[styles.searchInput, { color: colors.text }]}
-                        placeholder="Search by name or email..."
+                        placeholder="ค้นหาด้วยชื่อหรืออีเมล..."
                         placeholderTextColor={colors.subText}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -302,7 +303,7 @@ export default function AdminDashboardScreen() {
                     ListEmptyComponent={
                         <View style={styles.emptyView}>
                             <Feather name="user-x" size={48} color={colors.border} />
-                            <Text style={[styles.emptyText, { color: colors.subText }]}>No users found</Text>
+                            <Text style={[styles.emptyText, { color: colors.subText }]}>ไม่พบผู้ใช้</Text>
                         </View>
                     }
                 />
@@ -321,22 +322,22 @@ export default function AdminDashboardScreen() {
                 >
                     <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <View style={styles.modalHeader}>
-                            <Text style={[styles.modalTitle, { color: colors.text }]}>Edit User</Text>
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>แก้ไขผู้ใช้</Text>
                             <TouchableOpacity onPress={closeEditModal}>
                                 <Feather name="x" size={24} color={colors.subText} />
                             </TouchableOpacity>
                         </View>
 
-                        <Text style={[styles.inputLabel, { color: colors.subText }]}>Name</Text>
+                        <Text style={[styles.inputLabel, { color: colors.subText }]}>ชื่อ</Text>
                         <TextInput
                             style={[styles.modalInput, { backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }]}
                             value={editName}
                             onChangeText={setEditName}
-                            placeholder="User Name"
+                            placeholder="ชื่อผู้ใช้"
                             placeholderTextColor={colors.subText}
                         />
 
-                        <Text style={[styles.inputLabel, { color: colors.subText }]}>Role</Text>
+                        <Text style={[styles.inputLabel, { color: colors.subText }]}>บทบาท</Text>
                         <View style={styles.roleContainer}>
                             <TouchableOpacity
                                 style={[
@@ -347,7 +348,7 @@ export default function AdminDashboardScreen() {
                                 onPress={() => setEditRole('USER')}
                             >
                                 <Feather name="user" size={16} color={editRole === 'USER' ? colors.accent : colors.subText} />
-                                <Text style={[styles.roleText, { color: editRole === 'USER' ? colors.accent : colors.subText }]}>User</Text>
+                                <Text style={[styles.roleText, { color: editRole === 'USER' ? colors.accent : colors.subText }]}>ผู้ใช้</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -359,7 +360,7 @@ export default function AdminDashboardScreen() {
                                 onPress={() => setEditRole('ADMIN')}
                             >
                                 <Feather name="shield" size={16} color={editRole === 'ADMIN' ? '#9b59b6' : colors.subText} />
-                                <Text style={[styles.roleText, { color: editRole === 'ADMIN' ? '#9b59b6' : colors.subText }]}>Admin</Text>
+                                <Text style={[styles.roleText, { color: editRole === 'ADMIN' ? '#9b59b6' : colors.subText }]}>ผู้ดูแลระบบ</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -371,7 +372,7 @@ export default function AdminDashboardScreen() {
                             {submittingEdit ? (
                                 <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                                <Text style={styles.saveBtnText}>Save Changes</Text>
+                                <Text style={styles.saveBtnText}>บันทึกการเปลี่ยนแปลง</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
 
     // Stats
     statsSection: { marginTop: 20, marginBottom: 28 },
-    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
+    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12, justifyContent: 'space-between' },
     statCard: {
         width: '48%',
         padding: 16,
@@ -407,12 +408,12 @@ const styles = StyleSheet.create({
     statIconBox: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
     statContent: { flex: 1, justifyContent: 'center' },
     statValue: { fontSize: 22, fontFamily: 'Kanit-Bold', lineHeight: 28 },
-    statLabel: { fontSize: 12, fontFamily: 'Kanit-Medium', opacity: 0.9 },
+    statLabel: { fontSize: 12, fontFamily: 'Kanit-Regular', opacity: 0.9 },
 
     // User Management
     sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
     sectionTitle: { fontSize: 20, fontFamily: 'Kanit-Bold' },
-    sectionCount: { fontSize: 13, fontFamily: 'Kanit-Medium' },
+    sectionCount: { fontSize: 13, fontFamily: 'Kanit-Regular' },
 
     searchBar: {
         flexDirection: 'row',
@@ -440,9 +441,9 @@ const styles = StyleSheet.create({
     userInitial: { color: '#fff', fontSize: 20, fontFamily: 'Kanit-Bold' },
     userTextBody: { flex: 1 },
     userNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
-    userName: { fontSize: 16, fontFamily: 'Kanit-Medium', flexShrink: 1 },
+    userName: { fontSize: 16, fontFamily: 'Kanit-Regular', flexShrink: 1 },
     adminBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-    adminBadgeText: { fontSize: 10, fontFamily: 'Kanit-Bold' },
+    adminBadgeText: { fontSize: 10, fontFamily: 'Kanit-Regular' },
     userEmail: { fontSize: 13, fontFamily: 'Kanit-Regular' },
 
     userActions: { flexDirection: 'row', gap: 10 },
@@ -456,7 +457,7 @@ const styles = StyleSheet.create({
     },
 
     emptyView: { alignItems: 'center', paddingVertical: 60 },
-    emptyText: { marginTop: 16, fontSize: 16, fontFamily: 'Kanit-Medium' },
+    emptyText: { marginTop: 16, fontSize: 16, fontFamily: 'Kanit-Regular' },
 
     // Modal
     modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
@@ -473,7 +474,7 @@ const styles = StyleSheet.create({
     },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
     modalTitle: { fontSize: 22, fontFamily: 'Kanit-Bold' },
-    inputLabel: { fontSize: 14, fontFamily: 'Kanit-Medium', marginBottom: 8 },
+    inputLabel: { fontSize: 14, fontFamily: 'Kanit-Regular', marginBottom: 8 },
     modalInput: {
         borderWidth: 1,
         borderRadius: 14,
@@ -494,7 +495,7 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         paddingVertical: 14,
     },
-    roleText: { fontSize: 15, fontFamily: 'Kanit-Medium' },
+    roleText: { fontSize: 15, fontFamily: 'Kanit-Regular' },
     saveBtn: {
         borderRadius: 16,
         paddingVertical: 16,
