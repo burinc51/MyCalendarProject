@@ -65,6 +65,13 @@ export async function emailSignIn(email: string, password: string): Promise<Auth
 }
 
 /**
+ * Forgot Password: ส่งอีเมลขอลบตัวรหัสผ่าน
+ */
+export async function forgotPassword(email: string): Promise<void> {
+    await httpClient.post('/api/v1/auth/forgot-password', { email });
+}
+
+/**
  * Refresh access token ด้วย refresh token
  */
 export async function refreshAccessToken(refreshToken: string): Promise<JwtResponse> {

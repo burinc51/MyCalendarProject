@@ -47,9 +47,10 @@ function useProtectedRoute() {
 
         const inLoginPage = (segments[0] as string) === 'login';
         const inSignupPage = (segments[0] as string) === 'signup';
+        const inForgotPasswordPage = (segments[0] as string) === 'forgot-password';
         const inOnboarding = (segments[0] as string) === 'onboarding';
 
-        if (!isAuthenticated && !inLoginPage && !inSignupPage) {
+        if (!isAuthenticated && !inLoginPage && !inSignupPage && !inForgotPasswordPage) {
             // ยังไม่ login → ไปหน้า login
             router.replace('/login' as any);
         } else if (isAuthenticated && (inLoginPage || inSignupPage)) {
@@ -91,6 +92,10 @@ function ThemedApp() {
                     />
                     <Stack.Screen
                         name="signup"
+                        options={{ headerShown: false, animation: 'fade' }}
+                    />
+                    <Stack.Screen
+                        name="forgot-password"
                         options={{ headerShown: false, animation: 'fade' }}
                     />
                     <Stack.Screen
