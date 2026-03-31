@@ -8,8 +8,8 @@ export interface AuthResponse {
     name: string;
     email: string;
     pictureUrl: string;
-    roles?: any[];
-    role?: string;
+    isAdmin?: boolean;
+    roles: string[];
 }
 
 export interface JwtResponse {
@@ -38,12 +38,12 @@ export async function googleSignIn(idToken: string): Promise<AuthResponse> {
 export async function emailSignUp(email: string, password: string, name: string, username: string): Promise<AuthResponse> {
     const response = await httpClient.post<AuthResponse>(
         '/api/v1/users',
-        { 
-            email, 
-            password, 
-            name, 
-            username, 
-            roles: ["USER"] 
+        {
+            email,
+            password,
+            name,
+            username,
+            roles: ['USER']
         },
         { headers: { 'Content-Type': 'application/json' } }
     );
@@ -54,7 +54,13 @@ export async function emailSignUp(email: string, password: string, name: string,
  * Email Sign-In: เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน
  */
 export async function emailSignIn(email: string, password: string): Promise<AuthResponse> {
-    const response = await httpClient.post<AuthResponse>('/api/v1/auth/sign-in', { usernameOrEmail:email, password: password }, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    const response = await httpClient.post<AuthResponse>(
+        '/api/v1/auth/sign-in',
+        { usernameOrEmail: email, password: password },
+        {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        }
+    );
     return response.data;
 }
 
@@ -102,13 +108,13 @@ export async function getCurrentUser() {
 export async function updateProfile(userId: number, name: string, photoUri?: string) {
     const { encode: btoa } = await import('base-64');
     const formData = new FormData();
-    
+
     // สร้าง body JSON สำหรับส่วนข้อมูล
     const body = {
         name,
         pictureUrl: photoUri && !photoUri.startsWith('file://') ? photoUri : undefined
     };
-    
+
     const jsonString = JSON.stringify(body);
     const utf8SafeString = unescape(encodeURIComponent(jsonString));
     const base64Data = btoa(utf8SafeString);
@@ -123,7 +129,7 @@ export async function updateProfile(userId: number, name: string, photoUri?: str
     if (photoUri && photoUri.startsWith('file://')) {
         const filename = photoUri.split('/').pop() || 'profile.jpg';
         const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image`;
+        const type = match ? `image/${match[1]}` : 'image';
 
         formData.append('file', {
             uri: photoUri,

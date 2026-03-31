@@ -113,11 +113,10 @@ export default function LoginScreen() {
         try {
             setEmailLoading(true);
             const res = await emailSignIn(email.trim(), password);
-            const isAdmin = res.role === 'ADMIN' || res.roles?.some((r: any) => r.name === 'ADMIN' || r === 'ADMIN') ? 'ADMIN' : 'USER';
-            await setAuth(
-                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl, role: isAdmin },
+            console.log("idToken: ", res);
+            await setAuth({ id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl, role: res.isAdmin ? 'ADMIN' : 'USER' },
                 res.accessToken,
-                res.refreshToken,
+                res.refreshToken
             );
             router.replace('/(tabs)');
         } catch (error: any) {
@@ -145,11 +144,10 @@ export default function LoginScreen() {
 
             const { idToken } = await GoogleSignin.getTokens();
             if (!idToken) throw new Error('ไม่พบ idToken จาก Google');
-            console.log("idToken: ", idToken)
+            console.log("idToken: ", idToken);
             const res = await googleSignIn(idToken);
-            const isAdmin = res.roles?.some((r: any) => r.name === 'ADMIN' || r === 'ADMIN') ? 'ADMIN' : 'USER';
             await setAuth(
-                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl, role: isAdmin },
+                { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl, role: res.isAdmin ? 'ADMIN' : 'USER' },
                 res.accessToken,
                 res.refreshToken,
             );
@@ -250,7 +248,7 @@ export default function LoginScreen() {
                         <View style={styles.labelRow}>
                             <Text style={[styles.label, { color: C.subText }]}>รหัสผ่าน</Text>
                             <TouchableOpacity
-                                onPress={() => router.push('/forgot-password')}
+                                onPress={() => router.push("/forgot-password")}
                                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                             >
                                 <Text style={[styles.forgotText, { color: C.accent }]}>ลืมรหัสผ่าน?</Text>
