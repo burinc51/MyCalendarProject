@@ -24,11 +24,7 @@ export interface JwtResponse {
  * Google Sign-In: ส่ง idToken ไป backend แล้วรับ AuthResponse กลับมา
  */
 export async function googleSignIn(idToken: string): Promise<AuthResponse> {
-    const response = await httpClient.post<AuthResponse>(
-        '/api/v1/auth/google-sign-in',
-        { idToken },
-        { headers: { 'Content-Type': 'application/json' } }
-    );
+    const response = await httpClient.post<AuthResponse>('/api/v1/auth/google-sign-in', { idToken }, { headers: { 'Content-Type': 'application/json' } });
     return response.data;
 }
 
@@ -54,13 +50,7 @@ export async function emailSignUp(email: string, password: string, name: string,
  * Email Sign-In: เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน
  */
 export async function emailSignIn(email: string, password: string): Promise<AuthResponse> {
-    const response = await httpClient.post<AuthResponse>(
-        '/api/v1/auth/sign-in',
-        { usernameOrEmail: email, password: password },
-        {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        }
-    );
+    const response = await httpClient.post<AuthResponse>('/api/v1/auth/sign-in', { usernameOrEmail: email, password: password });
     return response.data;
 }
 
@@ -78,11 +68,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<JwtRespo
     const formData = new URLSearchParams();
     formData.append('refreshToken', refreshToken);
 
-    const response = await httpClient.post<JwtResponse>(
-        '/api/v1/auth/refresh-token',
-        formData.toString(),
-        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
+    const response = await httpClient.post<JwtResponse>('/api/v1/auth/refresh-token', formData.toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
     return response.data;
 }
 
@@ -94,11 +80,7 @@ export async function signOut(accessToken: string, refreshToken: string): Promis
     formData.append('accessToken', accessToken);
     formData.append('refreshToken', refreshToken);
 
-    await httpClient.post(
-        '/api/v1/auth/sign-out',
-        formData.toString(),
-        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
+    await httpClient.post('/api/v1/auth/sign-out', formData.toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
 }
 
 /**
@@ -149,8 +131,8 @@ export async function updateProfile(userId: number, name: string, photoUri?: str
 
     const response = await httpClient.put(`/api/v1/users/${userId}`, formData, {
         headers: {
-            'Content-Type': 'multipart/form-data',
-        },
+            'Content-Type': 'multipart/form-data'
+        }
     });
     return response.data;
 }
