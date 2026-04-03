@@ -50,15 +50,47 @@ export async function emailSignUp(email: string, password: string, name: string,
  * Email Sign-In: เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน
  */
 export async function emailSignIn(email: string, password: string): Promise<AuthResponse> {
-    const response = await httpClient.post<AuthResponse>('/api/v1/auth/sign-in', { usernameOrEmail: email, password: password });
+    const response = await httpClient.post<AuthResponse>(
+        '/api/v1/auth/sign-in',
+        { usernameOrEmail: email, password: password },
+    );
     return response.data;
 }
 
 /**
- * Forgot Password: ส่งอีเมลขอลบตัวรหัสผ่าน
+ * Forgot Password: ส่งอีเมลขอรับ OTP เพื่อรีเซ็ตรหัสผ่าน
  */
 export async function forgotPassword(email: string): Promise<void> {
     await httpClient.post('/api/v1/auth/forgot-password', { email });
+}
+
+/**
+ * Verify Forgot Password OTP: ตรวจสอบรหัส OTP สำหรับลืมรหัสผ่าน
+ */
+export async function verifyForgotPasswordOtp(email: string, otpCode: string): Promise<void> {
+    await httpClient.post('/api/v1/auth/verify-forgot-password-otp', { email, otpCode });
+}
+
+/**
+ * Reset Password: ตั้งรหัสผ่านใหม่หลังจากยืนยัน OTP สำเร็จ
+ */
+export async function resetPassword(email: string, otpCode: string, password: string): Promise<void> {
+    await httpClient.post('/api/v1/auth/reset-password', { email, otpCode, password });
+}
+
+/**
+ * Verify OTP: ตรวสอบรหัส OTP สำหรับการสมัครสมาชิกหรือการยืนยันตัวตนทั่วไป
+ */
+export async function verifyOtp(email: string, otpCode: string): Promise<AuthResponse> {
+    const response = await httpClient.post<AuthResponse>('/api/v1/auth/verify-otp', { email, otpCode });
+    return response.data;
+}
+
+/**
+ * Resend OTP: ส่งรหัส OTP ใหม่อีกครั้ง (ใช้ได้ทั้งสมัครสมาชิกและลืมรหัสผ่าน)
+ */
+export async function resendOtp(email: string): Promise<void> {
+    await httpClient.post('/api/v1/auth/resend-otp', { email });
 }
 
 /**

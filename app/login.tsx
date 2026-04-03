@@ -140,11 +140,21 @@ export default function LoginScreen() {
         try {
             setGoogleLoading(true);
             await GoogleSignin.hasPlayServices();
-            await GoogleSignin.signIn();
+            const result = await GoogleSignin.signIn();
+            
+            // Handle version 14+ response format
+            let idToken = null;
+            if (result.type === 'success') {
+                idToken = result.data.idToken;
+            } else if (result.type === 'cancelled') {
+                return; // User cancelled
+            } else {
+                // Fallback for older library version
+                idToken = (result as any).idToken;
+            }
 
-            const { idToken } = await GoogleSignin.getTokens();
             if (!idToken) throw new Error('ไม่พบ idToken จาก Google');
-            console.log("idToken: ", idToken);
+            console.log("idToken found:", idToken.substring(0, 50) + "...");
             const res = await googleSignIn(idToken);
             await setAuth(
                 { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl, role: res.isAdmin ? 'ADMIN' : 'USER' },

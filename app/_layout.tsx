@@ -18,6 +18,7 @@ import { setupNotificationHandler, registerForPushNotificationsAsync } from '@/s
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useGroupStore } from '@/stores/useGroupStore';
+import { useRootNavigationState } from 'expo-router';
 
 LogBox.ignoreLogs([
     'SafeAreaView has been deprecated',
@@ -30,6 +31,7 @@ function useProtectedRoute() {
     const { groups, fetchGroups, isLoading: groupsLoading } = useGroupStore();
     const segments = useSegments();
     const router = useRouter();
+    const navigationState = useRootNavigationState();
     const [groupsChecked, setGroupsChecked] = useState(false);
 
     // เมื่อ authenticated แล้ว → fetch groups เพื่อตรวจสอบ
@@ -50,6 +52,9 @@ function useProtectedRoute() {
         const inForgotPasswordPage = (segments[0] as string) === 'forgot-password';
         const inOnboarding = (segments[0] as string) === 'onboarding';
 
+        // ป้องกัน navigation ก่อน navigator จะ mount
+        if (!navigationState?.key) return;
+
         if (!isAuthenticated && !inLoginPage && !inSignupPage && !inForgotPasswordPage) {
             // ยังไม่ login → ไปหน้า login
             router.replace('/login' as any);
@@ -65,7 +70,7 @@ function useProtectedRoute() {
             // มี auth แต่ไม่มี group และไม่ได้อยู่หน้า onboarding → redirect
             router.replace('/onboarding/welcome' as any);
         }
-    }, [isAuthenticated, authLoading, groups, groupsChecked, groupsLoading, segments]);
+    }, [isAuthenticated, authLoading, groups, groupsChecked, groupsLoading, segments, navigationState?.key]);
 }
 
 // Inner component that uses theme context

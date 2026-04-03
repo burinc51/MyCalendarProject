@@ -390,42 +390,47 @@ export default function AccountSettingsScreen() {
 
                 {/* Account Actions */}
                 <View style={[styles.card, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
+                    <View style={styles.cardHeader}>
+                        <View style={[styles.cardIconBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)' }]}>
+                            <Feather name="shield" size={16} color={C.danger} />
+                        </View>
+                        <Text style={[styles.cardTitle, { color: C.text }]}>Account Actions</Text>
+                    </View>
+                    <View style={[styles.divider, { backgroundColor: C.divider }]} />
+
                     <TouchableOpacity
                         style={styles.actionRow}
                         onPress={handleLogout}
-                        activeOpacity={0.6}
+                        activeOpacity={0.65}
                         disabled={loggingOut}
                     >
-                        <View style={[styles.actionIconBox, { backgroundColor: 'rgba(239,68,68,0.1)' }]}>
+                        <View style={[styles.actionIconBox, { backgroundColor: 'rgba(239,68,68,0.08)' }]}>
                             {loggingOut ? (
                                 <ActivityIndicator size="small" color={C.danger} />
                             ) : (
                                 <Feather name="log-out" size={16} color={C.danger} />
                             )}
                         </View>
-                        <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Bold' }]}>
-                            {loggingOut ? 'Signing out...' : 'Logout'}
+                        <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Medium' }]}>
+                            {loggingOut ? 'Signing out...' : 'Sign Out'}
                         </Text>
                         <Feather name="chevron-right" size={20} color={C.subText} />
                     </TouchableOpacity>
-                </View>
 
-                {/* Danger Zone */}
-                <View style={[styles.card, { backgroundColor: C.card, borderColor: 'rgba(239,68,68,0.2)' }]}>
-                    <View style={styles.cardHeader}>
-                        <View style={[styles.cardIconBox, { backgroundColor: 'rgba(239,68,68,0.1)' }]}>
-                            <Feather name="alert-triangle" size={16} color={C.danger} />
-                        </View>
-                        <Text style={[styles.cardTitle, { color: C.danger }]}>Danger Zone</Text>
-                    </View>
-                    <View style={[styles.divider, { backgroundColor: 'rgba(239,68,68,0.15)' }]} />
+                    <View style={[styles.rowDivider, { backgroundColor: C.divider }]} />
+
                     <TouchableOpacity
-                        style={[styles.dangerBtn, { borderColor: 'rgba(239,68,68,0.35)' }]}
+                        style={styles.actionRow}
                         onPress={handleDeleteAccount}
-                        activeOpacity={0.7}
+                        activeOpacity={0.65}
                     >
-                        <Feather name="trash-2" size={15} color={C.danger} />
-                        <Text style={[styles.dangerBtnText, { color: C.danger }]}>Delete Account</Text>
+                        <View style={[styles.actionIconBox, { backgroundColor: 'rgba(239,68,68,0.08)' }]}>
+                            <Feather name="trash-2" size={16} color={C.danger} />
+                        </View>
+                        <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Medium' }]}>
+                            Delete Account
+                        </Text>
+                        <Feather name="chevron-right" size={20} color={C.subText} />
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -629,23 +634,6 @@ const styles = StyleSheet.create({
     },
 
     // Danger
-    dangerBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        marginHorizontal: 16,
-        marginVertical: 10,
-        paddingVertical: 12,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderStyle: 'dashed',
-    },
-    dangerBtnText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 14,
-        letterSpacing: 0.2,
-    },
 
     // Save bar
     saveBar: {
