@@ -35,20 +35,20 @@ export default function ForgotPasswordScreen() {
     const [step, setStep] = useState<Step>('EMAIL');
     const [loading, setLoading] = useState(false);
 
-    // Form data
+    // ข้อมูลฟอร์ม
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    // Error states
+    // สถานะข้อผิดพลาด
     const [emailError, setEmailError] = useState('');
     const [otpError, setOtpError] = useState('');
     const [passwordError, setPasswordError] = useState('');
 
     const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
-    // ── Handlers ──────────────────────────────────────────────────
+    // ── ฟังก์ชันจัดการเหตุการณ์ ─────────────────────────────────────
 
     const handleSendEmail = async () => {
         if (!email.trim()) {
@@ -124,7 +124,7 @@ export default function ForgotPasswordScreen() {
         }
     };
 
-    // ── Theme Colors ──────────────────────────────────────────────
+    // ── สีสันตามธีม ─────────────────────────────────────────────
 
     const C = {
         bg: isDark ? '#0a0a0a' : '#f8fafc',
@@ -140,7 +140,7 @@ export default function ForgotPasswordScreen() {
         error: '#ef4444',
     };
 
-    // ── Render Helpers ───────────────────────────────────────────
+    // ── ตัวช่วยเรนเดอร์ ───────────────────────────────────────────
 
     const renderHeader = () => (
         <View style={styles.header}>
@@ -175,7 +175,7 @@ export default function ForgotPasswordScreen() {
                 {step !== 'SUCCESS' && renderHeader()}
 
                 <View style={styles.content}>
-                    {/* Step: EMAIL */}
+                    {/* ขั้นตอน: กรอกอีเมล */}
                     {step === 'EMAIL' && (
                         <>
                             <View style={[styles.iconContainer, { backgroundColor: C.accent }]}>
@@ -212,7 +212,7 @@ export default function ForgotPasswordScreen() {
                         </>
                     )}
 
-                    {/* Step: OTP */}
+                    {/* ขั้นตอน: ยืนยัน OTP */}
                     {step === 'OTP' && (
                         <>
                             <View style={[styles.iconContainer, { backgroundColor: C.accent }]}>
@@ -255,7 +255,7 @@ export default function ForgotPasswordScreen() {
                         </>
                     )}
 
-                    {/* Step: PASSWORD */}
+                    {/* ขั้นตอน: ตั้งรหัสผ่านใหม่ */}
                     {step === 'PASSWORD' && (
                         <>
                             <View style={[styles.iconContainer, { backgroundColor: C.accent }]}>
@@ -303,7 +303,7 @@ export default function ForgotPasswordScreen() {
                         </>
                     )}
 
-                    {/* Step: SUCCESS */}
+                    {/* ขั้นตอน: สำเร็จ */}
                     {step === 'SUCCESS' && (
                         <>
                             <View style={[styles.iconContainer, { backgroundColor: C.accent }]}>

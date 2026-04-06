@@ -79,7 +79,7 @@ export async function resetPassword(email: string, otpCode: string, password: st
 }
 
 /**
- * Verify OTP: ตรวสอบรหัส OTP สำหรับการสมัครสมาชิกหรือการยืนยันตัวตนทั่วไป
+ * ยืนยัน OTP: ตรวจสอบรหัส OTP สำหรับการสมัครสมาชิกหรือการยืนยันตัวตนทั่วไป
  */
 export async function verifyOtp(email: string, otpCode: string): Promise<AuthResponse> {
     const response = await httpClient.post<AuthResponse>('/api/v1/auth/verify-otp', { email, otpCode });
@@ -87,14 +87,14 @@ export async function verifyOtp(email: string, otpCode: string): Promise<AuthRes
 }
 
 /**
- * Resend OTP: ส่งรหัส OTP ใหม่อีกครั้ง (ใช้ได้ทั้งสมัครสมาชิกและลืมรหัสผ่าน)
+ * ส่งรหัส OTP อีกครั้ง: ใช้ได้ทั้งในขั้นตอนสมัครสมาชิกและลืมรหัสผ่าน
  */
 export async function resendOtp(email: string): Promise<void> {
     await httpClient.post('/api/v1/auth/resend-otp', { email });
 }
 
 /**
- * Refresh access token ด้วย refresh token
+ * รีเฟรช Access Token โดยใช้ Refresh Token
  */
 export async function refreshAccessToken(refreshToken: string): Promise<JwtResponse> {
     const formData = new URLSearchParams();
@@ -105,7 +105,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<JwtRespo
 }
 
 /**
- * Sign out: revoke ทั้ง access token และ refresh token
+ * ออกจากระบบ: ยกเลิก Access Token และ Refresh Token ทั้งคู่
  */
 export async function signOut(accessToken: string, refreshToken: string): Promise<void> {
     const formData = new URLSearchParams();
@@ -130,7 +130,7 @@ export async function updateProfile(userId: number, name: string, photoUri?: str
     const { encode: btoa } = await import('base-64');
     const formData = new FormData();
 
-    // สร้าง body JSON สำหรับส่วนข้อมูล
+    // สร้างข้อมูล JSON สำหรับส่วน body
     const body = {
         name,
         pictureUrl: photoUri && !photoUri.startsWith('file://') ? photoUri : undefined
@@ -146,7 +146,7 @@ export async function updateProfile(userId: number, name: string, photoUri?: str
         type: 'application/json'
     } as any);
 
-    // ถ้าเป็น file:// แสดงว่าเป็นรูปใหม่จากเครื่อง ให้แนบไฟล์ไปใน FormData
+    // หากเป็น file:// หมายถึงรูปภาพใหม่จากเครื่อง ให้แนบไฟล์ไปใน FormData
     if (photoUri && photoUri.startsWith('file://')) {
         const filename = photoUri.split('/').pop() || 'profile.jpg';
         const match = /\.(\w+)$/.exec(filename);

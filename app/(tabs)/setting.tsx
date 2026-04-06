@@ -55,8 +55,8 @@ export default function SettingsScreen() {
     const signInWithGoogle = async () => {
         if (!GoogleSignin) {
             Alert.alert(
-                'Not Supported',
-                'Google Sign-In requires a Development Build or Native App. It is not supported in Expo Go.'
+                'ไม่รองรับ',
+                'การเข้าสู่ระบบด้วย Google ต้องใช้ Development Build หรือแอปพลิเคชันจริง ไม่รองรับใน Expo Go'
             );
             return;
         }
@@ -83,7 +83,7 @@ export default function SettingsScreen() {
             console.log('Backend response:', result);
         } catch (error) {
             console.error('Google SignIn error:', error);
-            Alert.alert('Error', 'Failed to sign in with Google');
+            Alert.alert('ข้อผิดพลาด', 'ไม่สามารถเข้าสู่ระบบด้วย Google ได้');
         } finally {
             setLoading(false);
         }
@@ -99,7 +99,7 @@ export default function SettingsScreen() {
             console.log('User signed out successfully');
         } catch (error) {
             console.error('Google SignOut error:', error);
-            Alert.alert('Error', 'Failed to sign out');
+            Alert.alert('ข้อผิดพลาด', 'ไม่สามารถออกจากระบบได้');
         } finally {
             setLoading(false);
         }
@@ -124,7 +124,7 @@ export default function SettingsScreen() {
                 disabled={loading}
             >
                 <Text className="text-white font-semibold text-base">
-                    {isGoogleAvailable ? 'Sign in with Google' : 'Google Sign-In (Dev Build Only)'}
+                    {isGoogleAvailable ? 'เข้าสู่ระบบด้วย Google' : 'เข้าสู่ระบบด้วย Google (ต้องใช้ Dev Build)'}
                 </Text>
             </TouchableOpacity>
         );
@@ -140,7 +140,7 @@ export default function SettingsScreen() {
                 className={`text-2xl font-bold mb-6 ${isDark ? 'text-neutral-100' : 'text-neutral-800'
                 }`}
             >
-                ⚙️ Settings
+                ⚙️ ตั้งค่า
             </Text>
 
             {/* Account Section */}
@@ -149,7 +149,7 @@ export default function SettingsScreen() {
                     className={`text-base font-semibold ${isDark ? 'text-neutral-200' : 'text-neutral-700'
                     }`}
                 >
-                    👤 Account
+                    👤 บัญชีผู้ใช้
                 </Text>
             </View>
 
@@ -174,7 +174,7 @@ export default function SettingsScreen() {
                             className={`text-xl font-bold mb-1 text-center ${isDark ? 'text-neutral-100' : 'text-neutral-800'
                             }`}
                         >
-                            {user?.name || 'User'}
+                            {user?.name || 'ผู้ใช้'}
                         </Text>
                         <Text
                             className={`text-sm mb-6 text-center ${isDark ? 'text-neutral-400' : 'text-neutral-600'
@@ -192,7 +192,7 @@ export default function SettingsScreen() {
                                 <ActivityIndicator color="#fff" />
                             ) : (
                                 <Text className="text-white font-semibold text-base">
-                                    Sign Out
+                                    ออกจากระบบ
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -210,7 +210,7 @@ export default function SettingsScreen() {
                 <Text
                     className={`text-base font-semibold ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}
                 >
-                    🔔 Notifications
+                    🔔 การแจ้งเตือน
                 </Text>
             </View>
 
@@ -247,13 +247,13 @@ export default function SettingsScreen() {
                                 Alert.alert(
                                     '📱 Expo Push Token',
                                     token,
-                                    [{ text: 'Copy', onPress: () => console.log(token) }, { text: 'OK' }]
+                                    [{ text: 'คัดลอก', onPress: () => console.log(token) }, { text: 'ตกลง' }]
                                 );
                             } else {
                                 Alert.alert('❌ ไม่พบ Token', 'Push Notification ใช้ได้เฉพาะบนเครื่องจริงเท่านั้น');
                             }
                         } catch (error) {
-                            Alert.alert('❌ Error', String(error));
+                            Alert.alert('❌ เกิดข้อผิดพลาด', String(error));
                         }
                     }}
                 >
@@ -302,18 +302,18 @@ export default function SettingsScreen() {
                         try {
                             const success = await triggerNotificationJob();
                             Alert.alert(
-                                success ? '✅ Job Triggered' : '❌ ผิดพลาด',
+                                success ? '✅ Job ทำงานแล้ว' : '❌ เกิดข้อผิดพลาด',
                                 success
-                                    ? 'Notification Job ทำงานแล้ว! ตรวจสอบ logs ที่ backend'
-                                    : 'ไม่สามารถ trigger job ได้'
+                                    ? 'Notification Job ทำงานแล้ว! ตรวจสอบ log ที่ backend'
+                                    : 'ไม่สามารถเรียกใช้ job ได้'
                             );
                         } catch (error) {
-                            Alert.alert('❌ Error', String(error));
+                            Alert.alert('❌ เกิดข้อผิดพลาด', String(error));
                         }
                     }}
                 >
                     <Text className="text-center font-medium text-white">
-                        🚀 Trigger Notification Job
+                        🚀 เรียกใช้ Notification Job
                     </Text>
                 </TouchableOpacity>
             </View>

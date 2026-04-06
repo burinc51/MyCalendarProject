@@ -1,7 +1,7 @@
 /**
- * Login Screen — v2
- * ปรับปรุง: แยก loading state, inline validation, show/hide password,
- *           forgot password, Google logo หลายสี, ดีไซน์ปรับใหม่
+ * หน้าจอเข้าสู่ระบบ — เวอร์ชัน 2
+ * ปรับปรุง: แยก loading state, ตรวจสอบแบบ inline, แสดง/ซ่อนรหัสผ่าน,
+ *           ลืมรหัสผ่าน, โลโก้ Google หลายสี, ออกแบบใหม่
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -27,25 +27,25 @@ import { googleSignIn, emailSignIn } from '@/services/authService';
 import { StatusBar } from 'expo-status-bar';
 
 // ──────────────────────────────────────────────────────────────────
-// Optional Google Sign-In module (ไม่มีใน Expo Go)
+// โมดูล Google Sign-In เสริม (ไม่รองรับใน Expo Go)
 // ──────────────────────────────────────────────────────────────────
 let GoogleSignin: any = null;
 try {
     const mod = require('@react-native-google-signin/google-signin');
     GoogleSignin = mod.GoogleSignin;
 } catch {
-    console.log('GoogleSignin not available (Expo Go)');
+    console.log('ไม่พบโมดูล GoogleSignin (ใช้งานผ่าน Expo Go)');
 }
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
 // ──────────────────────────────────────────────────────────────────
-// Helpers
+// ฟังก์ชันช่วยเหลือ
 // ──────────────────────────────────────────────────────────────────
 const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 // ──────────────────────────────────────────────────────────────────
-// Component
+// คอมโพเนนต์หลัก
 // ──────────────────────────────────────────────────────────────────
 export default function LoginScreen() {
     const { theme } = useTheme();
@@ -61,11 +61,11 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
-    // Inline validation errors
+    // การตรวจสอบความถูกต้องแบบ inline
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
 
-    // ── Google Sign-In config ──────────────────────────────────────
+    // ── ตั้งค่า Google Sign-In ────────────────────────────────────────
     useEffect(() => {
         if (!GoogleSignin) return;
         try {
@@ -79,7 +79,7 @@ export default function LoginScreen() {
         }
     }, []);
 
-    // ── Validate ──────────────────────────────────────────────────
+    // ── ตรวจสอบความถูกต้อง ────────────────────────────────────────
     const validateForm = (): boolean => {
         let valid = true;
 
@@ -106,7 +106,7 @@ export default function LoginScreen() {
         return valid;
     };
 
-    // ── Handlers ─────────────────────────────────────────────────
+    // ── ฟังก์ชันจัดการเหตุการณ์ ───────────────────────────────────────
     const handleEmailSignIn = useCallback(async () => {
         if (!validateForm()) return;
 
@@ -132,7 +132,7 @@ export default function LoginScreen() {
         if (!GoogleSignin) {
             Alert.alert(
                 'ไม่รองรับใน Expo Go',
-                'Google Sign-In ต้องใช้ Development Build',
+                'การเข้าสู่ระบบด้วย Google ต้องใช้ Development Build',
             );
             return;
         }
@@ -147,9 +147,9 @@ export default function LoginScreen() {
             if (result.type === 'success') {
                 idToken = result.data.idToken;
             } else if (result.type === 'cancelled') {
-                return; // User cancelled
+                return; // ผู้ใช้ยกเลิก
             } else {
-                // Fallback for older library version
+                // รองรัปไลบรารีเวอร์ชันเก่า
                 idToken = (result as any).idToken;
             }
 
@@ -162,7 +162,7 @@ export default function LoginScreen() {
                 res.refreshToken,
             );
 
-            console.log('✅ Google Sign-In success:', res.email);
+            console.log('✅ เข้าสู่ระบบด้วย Google สำเร็จ:', res.email);
             router.replace('/(tabs)');
         } catch (error: any) {
             console.error('Google Sign-In error:', error);
@@ -177,7 +177,7 @@ export default function LoginScreen() {
 
     const anyLoading = emailLoading || googleLoading;
 
-    // ── Colors ────────────────────────────────────────────────────
+    // ── สีใช้งาน ────────────────────────────────────────────────
     const C = {
         bg: isDark ? '#0a0a0a' : '#f8fafc',
         card: isDark ? '#18181b' : '#ffffff',
@@ -196,7 +196,7 @@ export default function LoginScreen() {
         error: '#ef4444',
     } as const;
 
-    // ── Render ────────────────────────────────────────────────────
+    // ── เรนเดอร์หน้าจอ ─────────────────────────────────────────────
     return (
         <KeyboardAvoidingView
             style={[styles.container, { backgroundColor: C.bg }]}
@@ -210,7 +210,7 @@ export default function LoginScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* ── Top decorative section ── */}
+                {/* ── ส่วนเด็กอรเติฟด้านบน ── */}
                 <View style={styles.topSection}>
                     <View style={[styles.glowCircle, { backgroundColor: C.accentGlow }]} />
                     <View style={[styles.glowCircle2, { backgroundColor: isDark ? 'rgba(220,255,238,0.06)' : 'rgba(99,102,241,0.06)' }]} />
@@ -225,12 +225,12 @@ export default function LoginScreen() {
                     </Text>
                 </View>
 
-                {/* ── Bottom card section ── */}
+                {/* ── ส่วนการ์ดด้านล่าง ── */}
                 <View style={[styles.bottomSection, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
                     <Text style={[styles.welcomeTitle, { color: C.text }]}>ยินดีต้อนรับ</Text>
                     <Text style={[styles.welcomeSub, { color: C.subText }]}>เข้าสู่ระบบเพื่อเริ่มใช้งาน</Text>
 
-                    {/* Email input */}
+                    {/* ช่องกรอกอีเมล */}
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: C.subText }]}>อีเมล</Text>
                         <TextInput
@@ -253,7 +253,7 @@ export default function LoginScreen() {
                         )}
                     </View>
 
-                    {/* Password input */}
+                    {/* ช่องกรอกรหัสผ่าน */}
                     <View style={styles.inputGroup}>
                         <View style={styles.labelRow}>
                             <Text style={[styles.label, { color: C.subText }]}>รหัสผ่าน</Text>
@@ -298,7 +298,7 @@ export default function LoginScreen() {
                         )}
                     </View>
 
-                    {/* Email Sign-In button */}
+                    {/* ปุ่มเข้าสู่ระบบด้วยอีเมล */}
                     <TouchableOpacity
                         style={[styles.loginButton, { backgroundColor: C.accent, opacity: anyLoading ? 0.7 : 1 }]}
                         onPress={handleEmailSignIn}
@@ -311,14 +311,14 @@ export default function LoginScreen() {
                         }
                     </TouchableOpacity>
 
-                    {/* OR divider */}
+                    {/* เส้นคั่น หรือ */}
                     <View style={styles.orDividerWrap}>
                         <View style={[styles.orDividerLine, { backgroundColor: C.divider }]} />
                         <Text style={[styles.orDividerText, { color: C.subText }]}>หรือ</Text>
                         <View style={[styles.orDividerLine, { backgroundColor: C.divider }]} />
                     </View>
 
-                    {/* Google Sign-In button */}
+                    {/* ปุ่มเข้าสู่ระบบด้วย Google */}
                     <TouchableOpacity
                         style={[
                             styles.googleButton,
@@ -344,19 +344,19 @@ export default function LoginScreen() {
                         )}
                     </TouchableOpacity>
 
-                    {/* Note สำหรับ Expo Go */}
+                    {/* หมายเหตุสำหรับ Expo Go */}
                     {!GoogleSignin && (
                         <View style={styles.devNote}>
                             <Ionicons name="information-circle-outline" size={14} color={C.subText} />
                             <Text style={[styles.devNoteText, { color: C.subText }]}>
-                                Google Sign-In ใช้ได้เฉพาะ Development Build
+                                การเข้าสู่ระบบด้วย Google ใช้ได้เฉพาะ Development Build
                             </Text>
                         </View>
                     )}
 
                     <View style={[styles.divider, { backgroundColor: C.divider }]} />
 
-                    {/* Footer */}
+                    {/* ส่วนท้าย */}
                     <View style={styles.footerRow}>
                         <Text style={[styles.footerText, { color: C.subText }]}>ยังไม่มีบัญชี?</Text>
                         <TouchableOpacity
@@ -375,12 +375,12 @@ export default function LoginScreen() {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Styles
+// สไตล์ชีต
 // ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     container: { flex: 1 },
 
-    // Top section
+    // ส่วนบน
     topSection: {
         flex: 1,
         alignItems: 'center',
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
     },
 
-    // Bottom card
+    // การ์ดส่วนล่าง
     bottomSection: {
         paddingHorizontal: 28,
         paddingTop: 32,
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
 
-    // Form inputs
+    // ช่องกรอกข้อมูล
     inputGroup: { marginBottom: 16 },
     labelRow: {
         flexDirection: 'row',
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
 
-    // Buttons
+    // ปุ่มต่างๆ
     loginButton: {
         height: 52,
         borderRadius: 14,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
         height: 22,
     },
 
-    // OR divider
+    // เส้นคั่น หรือ
     orDividerWrap: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
 
-    // Dev note
+    // หมายเหตุสำหรับ Expo Go
     devNote: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
 
-    // Divider & footer
+    // เส้นคั่นแบ่งและส่วนท้าย
     divider: { height: 1, marginVertical: 22 },
     footerRow: { flexDirection: 'row', justifyContent: 'center' },
     footerText: {

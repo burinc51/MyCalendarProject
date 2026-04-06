@@ -32,7 +32,7 @@ export default function SignUpScreen() {
     const [step, setStep] = useState<Step>('FORM');
     const [loading, setLoading] = useState(false);
 
-    // Form data
+    // ข้อมูลฟอร์ม
     const [name, setName] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
@@ -57,7 +57,7 @@ export default function SignUpScreen() {
             await emailSignUp(email.trim(), password, name, username);
             setStep('OTP');
         } catch (error: any) {
-            console.error('Sign Up error:', error);
+            console.error('เกิดข้อผิดพลาดในการสมัครสมาชิก:', error);
             const msg = error.response?.data?.message || 'ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่อีกครั้ง';
             Alert.alert('ข้อผิดพลาด', msg);
         } finally {
@@ -75,7 +75,7 @@ export default function SignUpScreen() {
             setLoading(true);
             const authResponse = await verifyOtp(email.trim(), otp);
             
-            const isAdmin = authResponse.role === 'ADMIN' || authResponse.roles?.some((r: any) => r.name === 'ADMIN' || r === 'ADMIN') ? 'ADMIN' : 'USER';
+            const isAdmin = authResponse.roles?.some((r: any) => r.name === 'ADMIN' || r === 'ADMIN') ? 'ADMIN' : 'USER';
             
             await setAuth(
                 {
@@ -91,7 +91,7 @@ export default function SignUpScreen() {
 
             router.replace('/(tabs)');
         } catch (error: any) {
-            console.error('Verify OTP error:', error);
+            console.error('เกิดข้อผิดพลาดในการยืนยัน OTP:', error);
             const msg = error.response?.data?.message || 'รหัส OTP ไม่ถูกต้อง';
             Alert.alert('ตรวจสอบไม่สำเร็จ', msg);
         } finally {
