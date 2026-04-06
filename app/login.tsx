@@ -368,6 +368,16 @@ export default function LoginScreen() {
                             </Text>
                         </TouchableOpacity>
                     </View>
+
+                    <TouchableOpacity 
+                        style={{ marginTop: 32, alignSelf: 'center', opacity: 0.7 }}
+                        onPress={() => router.push({ pathname: '/report', params: { mode: 'login' } })}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Text style={{ fontFamily: 'Kanit-Regular', fontSize: 13, color: C.subText, textDecorationLine: 'underline' }}>
+                            พบปัญหาการใช้งาน? รายงานปัญหาที่นี่
+                        </Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>
@@ -572,4 +582,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         lineHeight: 18,
     },
+    reportLink: { alignItems: 'center', marginTop: 12 },
 });

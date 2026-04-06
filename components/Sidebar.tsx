@@ -362,6 +362,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <Text style={styles.addGroupText}>สร้างกลุ่มใหม่</Text>
                     </TouchableOpacity>
                 </ScrollView>
+
+                {/* ส่วนท้าย: ลิงก์รายงานปัญหา */}
+                <TouchableOpacity
+                    style={[styles.reportFooterBtn, { borderTopColor: C.divider }]}
+                    onPress={() => {
+                        onClose();
+                        setTimeout(() => router.push('/report'), 300);
+                    }}
+                >
+                    <Feather name="flag" size={13} color={C.footerText} />
+                    <Text style={[styles.reportFooterText, { color: C.footerText }]}>รายงานปัญหา</Text>
+                </TouchableOpacity>
             </Animated.View>
 
             {/* Group Action Menu */}
@@ -674,6 +686,20 @@ const styles = StyleSheet.create({
     sectionDivider: {
         height: 1,
         width: '100%',
+    },
+    // ลิงก์รายงานปัญหาด้านล่าง sidebar
+    reportFooterBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 14,
+        borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    reportFooterText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 12,
+        letterSpacing: 0.3,
     },
     // Menu styles
     menuContainer: {

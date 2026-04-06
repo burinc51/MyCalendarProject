@@ -149,12 +149,12 @@ export default function AccountSettingsScreen() {
 
     const handleLogout = () => {
         Alert.alert(
-            'Logout',
-            'Are you sure you want to sign out?',
+            'ออกจากระบบ',
+            'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'ยกเลิก', style: 'cancel' },
                 {
-                    text: 'Logout',
+                    text: 'ออกจากระบบ',
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -171,7 +171,7 @@ export default function AccountSettingsScreen() {
                             router.replace('/login');
                         } catch (error) {
                             console.error('Logout error:', error);
-                            Alert.alert('Error', 'Failed to sign out properly');
+                            Alert.alert('ข้อผิดพลาด', 'ไม่สามารถออกจากระบบได้ในขณะนี้');
                         } finally {
                             setLoggingOut(false);
                         }
@@ -183,7 +183,7 @@ export default function AccountSettingsScreen() {
 
     const handleSave = async () => {
         if (!displayName.trim()) {
-            Alert.alert('Error', 'Name cannot be empty');
+            Alert.alert('ข้อผิดพลาด', 'กรุณากรอกชื่อที่แสดง');
             return;
         }
 
@@ -201,11 +201,11 @@ export default function AccountSettingsScreen() {
             });
             
             setIsEditing(false);
-            Alert.alert('Success', 'Profile updated successfully');
+            Alert.alert('สำเร็จ', 'อัปเดตข้อมูลโปรไฟล์เรียบร้อยแล้ว');
             }
         } catch (error: any) {
             console.error('Update profile error:', error);
-            Alert.alert('Error', error.message || 'Failed to update profile');
+            Alert.alert('ข้อผิดพลาด', error.message || 'ไม่สามารถอัปเดตโปรไฟล์ได้');
         } finally {
             setSaving(false);
         }
@@ -226,14 +226,14 @@ export default function AccountSettingsScreen() {
 
     const handleDeleteAccount = () => {
         Alert.alert(
-            'Delete Account',
-            'Are you sure you want to delete your account? This action cannot be undone.',
+            'ลบบัญชี',
+            'คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีของคุณ? การดำเนินการนี้ไม่สามารถยกเลิกได้',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'ยกเลิก', style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: 'ลบบัญชี',
                     style: 'destructive',
-                    onPress: () => Alert.alert('Done', 'Your account has been deleted.'),
+                    onPress: () => Alert.alert('สำเร็จ', 'บัญชีของคุณถูกลบเรียบร้อยแล้ว'),
                 },
             ]
         );
@@ -243,7 +243,7 @@ export default function AccountSettingsScreen() {
     return (
         <View style={[styles.container, { backgroundColor: C.bg }]}>
             <ScreenHeader
-                title="Account Settings"
+                title="ตั้งค่าบัญชี"
                 showBack
                 backgroundColor={C.headerBg}
                 borderColor={C.headerBorder}
@@ -257,7 +257,7 @@ export default function AccountSettingsScreen() {
                         color: isEditing ? '#fff' : C.text,
                         loading: saving,
                         disabled: saving,
-                        accessibilityLabel: isEditing ? 'Save changes' : 'Edit profile',
+                        accessibilityLabel: isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'แก้ไขโปรไฟล์',
                     },
                 ]}
             />
@@ -302,15 +302,15 @@ export default function AccountSettingsScreen() {
                         <View style={[styles.cardIconBox, { backgroundColor: isDark ? 'rgba(46,204,113,0.12)' : 'rgba(46,204,113,0.1)' }]}>
                             <Feather name="user" size={16} color={C.accent} />
                         </View>
-                        <Text style={[styles.cardTitle, { color: C.text }]}>Profile Info</Text>
+                        <Text style={[styles.cardTitle, { color: C.text }]}>ข้อมูลโปรไฟล์</Text>
                     </View>
                     <View style={[styles.divider, { backgroundColor: C.divider }]} />
 
                     <FieldInput
-                        label="Display Name"
+                        label="ชื่อที่แสดง"
                         value={displayName}
                         onChangeText={setDisplayName}
-                        placeholder="Enter your display name"
+                        placeholder="ระบุชื่อที่ต้องการให้แสดง"
                         isEditing={isEditing}
                         colors={C}
                     />
@@ -333,12 +333,12 @@ export default function AccountSettingsScreen() {
                         <View style={[styles.cardIconBox, { backgroundColor: isDark ? 'rgba(96,165,250,0.12)' : 'rgba(96,165,250,0.1)' }]}>
                             <Feather name="mail" size={16} color="#60a5fa" />
                         </View>
-                        <Text style={[styles.cardTitle, { color: C.text }]}>Contact Info</Text>
+                        <Text style={[styles.cardTitle, { color: C.text }]}>ข้อมูลติดต่อ</Text>
                     </View>
                     <View style={[styles.divider, { backgroundColor: C.divider }]} />
 
                     <FieldInput
-                        label="Email"
+                        label="อีเมล"
                         value={user?.email}
                         onChangeText={() => { }}
                         placeholder="your@email.com"
@@ -349,7 +349,7 @@ export default function AccountSettingsScreen() {
                     <View style={styles.infoNote}>
                         <Feather name="info" size={12} color={C.subText} />
                         <Text style={[styles.infoNoteText, { color: C.subText }]}>
-                            Email is linked to your Google account.
+                            อีเมลนี้เชื่อมโยงกับบัญชี Google ของคุณ
                         </Text>
                     </View>
                 </View>
@@ -394,7 +394,7 @@ export default function AccountSettingsScreen() {
                         <View style={[styles.cardIconBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)' }]}>
                             <Feather name="shield" size={16} color={C.danger} />
                         </View>
-                        <Text style={[styles.cardTitle, { color: C.text }]}>Account Actions</Text>
+                        <Text style={[styles.cardTitle, { color: C.text }]}>จัดการบัญชี</Text>
                     </View>
                     <View style={[styles.divider, { backgroundColor: C.divider }]} />
 
@@ -412,7 +412,7 @@ export default function AccountSettingsScreen() {
                             )}
                         </View>
                         <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Medium' }]}>
-                            {loggingOut ? 'Signing out...' : 'Sign Out'}
+                            {loggingOut ? 'กำลังออกจากระบบ...' : 'ออกจากระบบ'}
                         </Text>
                         <Feather name="chevron-right" size={20} color={C.subText} />
                     </TouchableOpacity>
@@ -428,7 +428,7 @@ export default function AccountSettingsScreen() {
                             <Feather name="trash-2" size={16} color={C.danger} />
                         </View>
                         <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Medium' }]}>
-                            Delete Account
+                            ลบบัญชี
                         </Text>
                         <Feather name="chevron-right" size={20} color={C.subText} />
                     </TouchableOpacity>
@@ -451,7 +451,7 @@ export default function AccountSettingsScreen() {
                         style={[styles.cancelBtn, { borderColor: C.cardBorder }]}
                         onPress={() => setIsEditing(false)}
                     >
-                        <Text style={[styles.cancelBtnText, { color: C.subText }]}>Cancel</Text>
+                        <Text style={[styles.cancelBtnText, { color: C.subText }]}>ยกเลิก</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.saveBtn, { backgroundColor: C.accent }]}
@@ -461,7 +461,7 @@ export default function AccountSettingsScreen() {
                         {saving ? (
                             <ActivityIndicator size="small" color="#fff" />
                         ) : (
-                            <Text style={styles.saveBtnText}>Save Changes</Text>
+                            <Text style={styles.saveBtnText}>บันทึกการเปลี่ยนแปลง</Text>
                         )}
                     </TouchableOpacity>
                 </View>

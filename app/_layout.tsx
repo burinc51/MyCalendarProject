@@ -90,46 +90,46 @@ function ThemedApp() {
                 style={{ flex: 1, backgroundColor: isDark ? '#171717' : '#ffffff' }}
                 edges={['top', 'left', 'right']}
             >
-                <Stack>
+                <Stack screenOptions={{ headerShown: false }}>
                     <Stack.Screen
                         name="login"
-                        options={{ headerShown: false, animation: 'fade' }}
+                        options={{ animation: 'fade' }}
                     />
                     <Stack.Screen
                         name="signup"
-                        options={{ headerShown: false, animation: 'fade' }}
+                        options={{ animation: 'fade' }}
                     />
                     <Stack.Screen
                         name="forgot-password"
-                        options={{ headerShown: false, animation: 'fade' }}
+                        options={{ animation: 'fade' }}
                     />
                     <Stack.Screen
                         name="onboarding/welcome"
-                        options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+                        options={{ animation: 'fade', gestureEnabled: false }}
                     />
                     <Stack.Screen
                         name="onboarding/create-group"
-                        options={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: false }}
+                        options={{ animation: 'slide_from_right', gestureEnabled: false }}
                     />
                     <Stack.Screen
                         name="(tabs)"
-                        options={{ headerShown: false }}
+                        options={{}}
                     />
                     <Stack.Screen
                         name="event/[id]"
-                        options={{ headerShown: false, animation: 'slide_from_right' }}
+                        options={{ animation: 'slide_from_right' }}
                     />
                     <Stack.Screen
                         name="event/create"
-                        options={{ headerShown: false, animation: 'slide_from_right' }}
+                        options={{ animation: 'slide_from_right' }}
                     />
                     <Stack.Screen
                         name="account-settings"
-                        options={{ headerShown: false, animation: 'slide_from_right' }}
+                        options={{ animation: 'slide_from_right' }}
                     />
                     <Stack.Screen
                         name="admin-dashboard"
-                        options={{ headerShown: false, animation: 'slide_from_right' }}
+                        options={{ animation: 'slide_from_right' }}
                     />
                     <Stack.Screen name="+not-found" />
                 </Stack>

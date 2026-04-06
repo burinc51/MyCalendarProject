@@ -262,6 +262,16 @@ export default function SignUpScreen() {
                     </>
                 )}
 
+                <TouchableOpacity 
+                    style={{ marginTop: 32, alignSelf: 'center', opacity: 0.7 }}
+                    onPress={() => router.push({ pathname: '/report', params: { mode: 'login' } })}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                    <Text style={{ fontFamily: 'Kanit-Regular', fontSize: 13, color: C.subText, textDecorationLine: 'underline' }}>
+                        มีปัญหาในการสมัครสมาชิก? รายงานปัญหาที่นี่
+                    </Text>
+                </TouchableOpacity>
+
             </ScrollView>
         </KeyboardAvoidingView>
     );

@@ -5,6 +5,7 @@ import { sendTestNotification, testScheduledNotification } from '@/services/noti
 import { getExpoPushToken, registerPushToken, triggerNotificationJob } from '@/services/pushNotificationService';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { Ionicons } from '@expo/vector-icons';
 
 let GoogleSignin: any = null;
 let GoogleSigninButton: any = null;
@@ -318,8 +319,39 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* Bottom Spacing */}
+            {/* ส่วนความช่วยเหลือ */}
+            <View
+                className={`h-px my-6 ${isDark ? 'bg-neutral-700' : 'bg-neutral-200'}`}
+            />
+            <View className="mb-3 px-1">
+                <Text
+                    className={`text-base font-semibold ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}
+                >
+                    🚨 ความช่วยเหลือ
+                </Text>
+            </View>
+            <View
+                className={`rounded-2xl overflow-hidden ${isDark ? 'bg-neutral-800' : 'bg-neutral-100'}`}
+            >
+                <TouchableOpacity
+                    className="flex-row items-center px-5 py-4"
+                    onPress={() => router.push('/report')}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="flag-outline" size={22} color={isDark ? '#f87171' : '#ef4444'} />
+                    <Text
+                        className={`flex-1 ml-4 text-base ${isDark ? 'text-neutral-100' : 'text-neutral-800'}`}
+                        style={{ fontFamily: 'Kanit-Regular' }}
+                    >
+                        รายงานปัญหา / ติดต่อ Admin
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color={isDark ? '#71717a' : '#9ca3af'} />
+                </TouchableOpacity>
+            </View>
+
+            {/* ระยะห่างด้านล่าง */}
             <View className="h-8" />
+
         </ScrollView>
     );
 }
