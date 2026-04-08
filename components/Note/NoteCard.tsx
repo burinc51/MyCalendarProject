@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Linking } from 'react-native';
-import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -18,11 +18,10 @@ interface NoteCardProps {
 }
 
 const { width } = Dimensions.get('window');
-const GRID_CARD_WIDTH = (width - 48) / 2; // 2 columns with padding
+const GRID_CARD_WIDTH = (width - 48) / 2;
 
-// Strip HTML tags for preview
-const stripHtml = (html: string): string => {
-    return html
+const stripHtml = (html: string): string =>
+    html
         .replace(/<[^>]*>/g, '')
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')
@@ -30,260 +29,212 @@ const stripHtml = (html: string): string => {
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
         .trim();
-};
 
-// Helper to calculate color brightness
 const isColorDark = (color: string): boolean => {
-    // Default handle for non-hex or undefined
     if (!color || !color.startsWith('#')) return false;
-
-    // Convert hex to rgb
     const hex = color.replace('#', '');
     const r = parseInt(hex.length === 3 ? hex.charAt(0) + hex.charAt(0) : hex.substring(0, 2), 16);
     const g = parseInt(hex.length === 3 ? hex.charAt(1) + hex.charAt(1) : hex.substring(2, 4), 16);
     const b = parseInt(hex.length === 3 ? hex.charAt(2) + hex.charAt(2) : hex.substring(4, 6), 16);
-
-    // Calculate relative luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance < 0.5; // true if color is dark
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5;
 };
 
-// Support ISO string, unix seconds, and unix milliseconds from API
 const parseDateValue = (value: unknown) => {
     if (value === null || value === undefined || value === '') return dayjs(NaN);
-
     if (typeof value === 'number') {
-        const ms = value < 1e12 ? value * 1000 : value;
-        return dayjs(ms);
+        return dayjs(value < 1e12 ? value * 1000 : value);
     }
-
     if (typeof value === 'string') {
         const trimmed = value.trim();
         if (/^\d+(\.\d+)?$/.test(trimmed)) {
             const numeric = Number(trimmed);
-            const ms = numeric < 1e12 ? numeric * 1000 : numeric;
-            return dayjs(ms);
+            return dayjs(numeric < 1e12 ? numeric * 1000 : numeric);
         }
         return dayjs(trimmed);
     }
-
     return dayjs(value as any);
 };
 
+// Derive a subtle accent color from the note color for the left bar
+const deriveAccent = (color: string, isDark: boolean): string => {
+    if (!color || color === '#ffffff') return isDark ? '#3a3a3a' : '#e5e7eb';
+    return color;
+};
+
 const NoteCard: React.FC<NoteCardProps> = ({
-    note,
-    viewMode,
-    onPress,
-    onLongPress,
-    onTogglePin,
-    isDark = false
+    note, viewMode, onPress, onLongPress, onTogglePin, isDark = false
 }) => {
-    // Theme colors
     const colors = useMemo(() => {
-        const cardBg = isDark && note.color === '#ffffff' ? '#262626' : note.color;
-
-        const useDarkText = !isColorDark(cardBg);
-
+        const cardBg = isDark && note.color === '#ffffff' ? '#1c1c1e' : note.color;
+        const darkText = !isColorDark(cardBg);
         return {
-            title: useDarkText ? '#2c3e50' : '#e5e5e5',
-            content: useDarkText ? '#666' : '#a3a3a3',
-            timestamp: useDarkText ? '#999' : '#737373',
-            tagBg: useDarkText ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
-            tagText: useDarkText ? '#666' : '#a3a3a3',
-            moreTagsText: useDarkText ? '#999' : '#737373',
-            cardBg
+            title:     darkText ? '#111111' : '#f0f0f0',
+            content:   darkText ? '#555555' : '#b0b0b0',
+            timestamp: darkText ? '#aaaaaa' : '#707070',
+            tagBg:     darkText ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)',
+            tagText:   darkText ? '#555555' : '#cccccc',
+            divider:   darkText ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
+            border:    isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+            cardBg,
         };
     }, [isDark, note.color]);
 
+    const accent = useMemo(() => deriveAccent(note.color, isDark), [note.color, isDark]);
+
     const contentPreview = useMemo(() => {
         const stripped = stripHtml(note.content);
-        return stripped.length > 100 ? stripped.substring(0, 100) + '...' : stripped;
-    }, [note.content]);
+        const limit = viewMode === 'grid' ? 80 : 120;
+        return stripped.length > limit ? stripped.substring(0, limit) + '…' : stripped;
+    }, [note.content, viewMode]);
 
     const timeAgo = useMemo(() => {
-        const updatedAt = parseDateValue(note.updatedAt);
-        if (!updatedAt.isValid()) return 'ไม่ทราบเวลา';
-        return updatedAt.locale('th').fromNow();
+        const d = parseDateValue(note.updatedAt);
+        return d.isValid() ? d.locale('th').fromNow() : '';
     }, [note.updatedAt]);
 
     const reminderInfo = useMemo(() => {
         if (!note.reminderDate) return null;
-        const reminderDate = parseDateValue(note.reminderDate);
-        if (!reminderDate.isValid()) return null;
-        const isPast = reminderDate.isBefore(dayjs());
-
+        const d = parseDateValue(note.reminderDate);
+        if (!d.isValid()) return null;
+        const isPast = d.isBefore(dayjs());
         let recurrenceText = '';
-        if (note.recurrence) {
-            if (note.recurrence === 'daily') recurrenceText = ' (ทุกวัน)';
-            else if (note.recurrence === 'weekly') recurrenceText = ' (ทุกสัปดาห์)';
-            else if (note.recurrence === 'monthly') recurrenceText = ' (ทุกเดือน)';
-            else if (note.recurrence === 'yearly') recurrenceText = ' (ทุกปี)';
-        }
-
-        return {
-            text: reminderDate.locale('th').format('DD MMM') + recurrenceText, // Shorter text for badge
-            isPast,
-        };
+        if (note.recurrence === 'daily') recurrenceText = ' ทุกวัน';
+        else if (note.recurrence === 'weekly') recurrenceText = ' ทุกสัปดาห์';
+        else if (note.recurrence === 'monthly') recurrenceText = ' ทุกเดือน';
+        else if (note.recurrence === 'yearly') recurrenceText = ' ทุกปี';
+        return { text: d.locale('th').format('DD MMM') + recurrenceText, isPast };
     }, [note.reminderDate, note.recurrence]);
 
     const dateInfo = useMemo(() => {
         if (!note.startDate && !note.endDate) return null;
-        let text = '';
         if (note.startDate && note.endDate) {
-            const start = parseDateValue(note.startDate);
-            const end = parseDateValue(note.endDate);
-            if (!start.isValid() || !end.isValid()) return null;
-            text = `${start.locale('th').format('DD MMM')} - ${end.locale('th').format('DD MMM')}`;
-        } else if (note.startDate) {
-            const start = parseDateValue(note.startDate);
-            if (!start.isValid()) return null;
-            text = `เริ่ม ${start.locale('th').format('DD MMM')}`;
-        } else if (note.endDate) {
-            const end = parseDateValue(note.endDate);
-            if (!end.isValid()) return null;
-            text = `สิ้นสุด ${end.locale('th').format('DD MMM')}`;
+            const s = parseDateValue(note.startDate);
+            const e = parseDateValue(note.endDate);
+            if (!s.isValid() || !e.isValid()) return null;
+            return { text: `${s.locale('th').format('DD MMM')} – ${e.locale('th').format('DD MMM')}` };
         }
-        return { text };
+        if (note.startDate) {
+            const s = parseDateValue(note.startDate);
+            return s.isValid() ? { text: `เริ่ม ${s.locale('th').format('DD MMM')}` } : null;
+        }
+        const e = parseDateValue(note.endDate!);
+        return e.isValid() ? { text: `ถึง ${e.locale('th').format('DD MMM')}` } : null;
     }, [note.startDate, note.endDate]);
 
     const isGridView = viewMode === 'grid';
+    const hasBadges  = !!(reminderInfo || dateInfo || note.locationName);
 
     return (
         <TouchableOpacity
             style={[
                 styles.card,
                 isGridView ? styles.gridCard : styles.listCard,
-                { backgroundColor: colors.cardBg }
+                { backgroundColor: colors.cardBg, borderColor: colors.border },
             ]}
             onPress={() => onPress(note)}
             onLongPress={() => onLongPress?.(note)}
-            activeOpacity={0.7}
+            activeOpacity={0.72}
         >
-            {/* Pin indicator */}
-            {note.isPinned && (
-                <TouchableOpacity
-                    style={styles.pinIndicator}
-                    onPress={() => onTogglePin?.(note.id)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                    <AntDesign name="pushpin" size={14} color="#e74c3c" />
-                </TouchableOpacity>
-            )}
+            {/* Accent bar */}
+            <View style={[styles.accentBar, { backgroundColor: accent }]} />
 
-            {/* Title */}
-            {note.title && (
-                <Text
-                    style={[styles.title, { color: colors.title }]}
-                    numberOfLines={isGridView ? 2 : 1}
-                >
-                    {note.title}
-                </Text>
-            )}
-
-            {/* Content Preview */}
-            {contentPreview && (
-                <Text
-                    style={[styles.content, { color: colors.content }]}
-                    numberOfLines={isGridView ? 4 : 2}
-                >
-                    {contentPreview}
-                </Text>
-            )}
-
-            {/* Badges Container */}
-            <View style={styles.badgesWrapper}>
-                {/* Reminder Badge */}
-                {reminderInfo && (
-                    <View style={[
-                        styles.reminderBadge,
-                        { backgroundColor: reminderInfo.isPast ? 'rgba(231,76,60,0.12)' : 'rgba(230,126,34,0.12)' }
-                    ]}>
-                        <Ionicons
-                            name="notifications"
-                            size={12}
-                            color={reminderInfo.isPast ? '#e74c3c' : '#e67e22'}
-                        />
-                        <Text style={[
-                            styles.reminderText,
-                            { color: reminderInfo.isPast ? '#e74c3c' : '#e67e22' }
-                        ]} numberOfLines={1}>
-                            {reminderInfo.text}
+            {/* Main content */}
+            <View style={styles.body}>
+                {/* Title row */}
+                <View style={styles.titleRow}>
+                    {note.title ? (
+                        <Text
+                            style={[styles.title, { color: colors.title }]}
+                            numberOfLines={isGridView ? 2 : 1}
+                        >
+                            {note.title}
                         </Text>
-                    </View>
-                )}
+                    ) : null}
+                    {note.isPinned && (
+                        <TouchableOpacity
+                            onPress={() => onTogglePin?.(note.id)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            style={styles.pinBtn}
+                        >
+                            <Feather name="bookmark" size={13} color="#e74c3c" />
+                        </TouchableOpacity>
+                    )}
+                </View>
 
-                {/* Dates Badge */}
-                {dateInfo && (
-                    <View style={[
-                        styles.reminderBadge,
-                        { backgroundColor: 'rgba(46, 204, 113, 0.12)' }
-                    ]}>
-                        <AntDesign name="calendar" size={12} color="#27ae60" />
-                        <Text style={[
-                            styles.reminderText,
-                            { color: '#27ae60' }
-                        ]} numberOfLines={1}>
-                            {dateInfo.text}
-                        </Text>
-                    </View>
-                )}
-
-                {/* Location Badge */}
-                {note.locationName && (
-                    <TouchableOpacity
-                        style={[
-                            styles.reminderBadge,
-                            { backgroundColor: 'rgba(52,152,219,0.12)' }
-                        ]}
-                        onPress={() => {
-                            if (note.locationLink) {
-                                Linking.openURL(note.locationLink);
-                            }
-                        }}
-                        disabled={!note.locationLink}
-                        activeOpacity={note.locationLink ? 0.6 : 1}
+                {/* Content preview */}
+                {contentPreview ? (
+                    <Text
+                        style={[styles.content, { color: colors.content }]}
+                        numberOfLines={isGridView ? 5 : 2}
                     >
-                        <Ionicons
-                            name="location"
-                            size={12}
-                            color="#2980b9"
-                        />
-                        <Text style={[
-                            styles.reminderText,
-                            { color: '#2980b9' }
-                        ]} numberOfLines={1}>
-                            {note.locationName}
-                        </Text>
-                    </TouchableOpacity>
-                )}
-            </View>
+                        {contentPreview}
+                    </Text>
+                ) : null}
 
-            {/* Footer */}
-            <View style={styles.footer}>
-                <Text style={[styles.timestamp, { color: colors.timestamp }]}>
-                    {timeAgo}
-                </Text>
-
-                {/* Tags */}
-                {note.tags && note.tags.length > 0 && (
-                    <View style={styles.tagsContainer}>
-                        {note.tags.slice(0, 2).map((tag, index) => (
-                            <View
-                                key={index}
-                                style={[styles.tag, { backgroundColor: colors.tagBg }]}
-                            >
-                                <Text style={[styles.tagText, { color: colors.tagText }]}>
-                                    #{tag}
+                {/* Badges */}
+                {hasBadges && (
+                    <View style={styles.badges}>
+                        {reminderInfo && (
+                            <View style={[styles.badge, {
+                                backgroundColor: reminderInfo.isPast ? 'rgba(231,76,60,0.1)' : 'rgba(230,126,34,0.1)'
+                            }]}>
+                                <Ionicons
+                                    name="alarm-outline"
+                                    size={10}
+                                    color={reminderInfo.isPast ? '#e74c3c' : '#e67e22'}
+                                />
+                                <Text style={[styles.badgeText, {
+                                    color: reminderInfo.isPast ? '#e74c3c' : '#e67e22'
+                                }]} numberOfLines={1}>
+                                    {reminderInfo.text}
                                 </Text>
                             </View>
-                        ))}
-                        {note.tags.length > 2 && (
-                            <Text style={[styles.moreTagsText, { color: colors.moreTagsText }]}>
-                                +{note.tags.length - 2}
-                            </Text>
+                        )}
+
+                        {dateInfo && (
+                            <View style={[styles.badge, { backgroundColor: 'rgba(46,204,113,0.1)' }]}>
+                                <Feather name="calendar" size={10} color="#27ae60" />
+                                <Text style={[styles.badgeText, { color: '#27ae60' }]} numberOfLines={1}>
+                                    {dateInfo.text}
+                                </Text>
+                            </View>
+                        )}
+
+                        {note.locationName && (
+                            <TouchableOpacity
+                                style={[styles.badge, { backgroundColor: 'rgba(52,152,219,0.1)' }]}
+                                onPress={() => note.locationLink && Linking.openURL(note.locationLink)}
+                                disabled={!note.locationLink}
+                                activeOpacity={0.7}
+                            >
+                                <Feather name="map-pin" size={10} color="#2980b9" />
+                                <Text style={[styles.badgeText, { color: '#2980b9' }]} numberOfLines={1}>
+                                    {note.locationName}
+                                </Text>
+                            </TouchableOpacity>
                         )}
                     </View>
                 )}
+
+                {/* Footer */}
+                <View style={[styles.footer, { borderTopColor: colors.divider }]}>
+                    <Text style={[styles.timestamp, { color: colors.timestamp }]}>{timeAgo}</Text>
+
+                    {note.tags && note.tags.length > 0 && (
+                        <View style={styles.tagsRow}>
+                            {note.tags.slice(0, isGridView ? 1 : 2).map((tag, i) => (
+                                <View key={i} style={[styles.tag, { backgroundColor: colors.tagBg }]}>
+                                    <Text style={[styles.tagText, { color: colors.tagText }]}>#{tag}</Text>
+                                </View>
+                            ))}
+                            {note.tags.length > (isGridView ? 1 : 2) && (
+                                <Text style={[styles.moreTags, { color: colors.timestamp }]}>
+                                    +{note.tags.length - (isGridView ? 1 : 2)}
+                                </Text>
+                            )}
+                        </View>
+                    )}
+                </View>
             </View>
         </TouchableOpacity>
     );
@@ -291,99 +242,118 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
 const styles = StyleSheet.create({
     card: {
-        borderRadius: 28,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 6,
-        overflow: 'hidden',
+        flexDirection: 'row',
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.02)'
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
     },
     gridCard: {
         width: GRID_CARD_WIDTH,
-        minHeight: 160,
-        marginBottom: 16
+        marginBottom: 14,
+        minHeight: 140,
     },
     listCard: {
         width: '100%',
-        marginBottom: 16
+        marginBottom: 12,
     },
-    pinIndicator: {
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        zIndex: 1
+
+    // Accent left bar
+    accentBar: {
+        width: 4,
+        borderTopLeftRadius: 16,
+        borderBottomLeftRadius: 16,
+    },
+
+    // Body
+    body: {
+        flex: 1,
+        padding: 14,
+        gap: 6,
+    },
+
+    // Title row
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 6,
     },
     title: {
+        flex: 1,
         fontFamily: 'Kanit-Bold',
-        fontSize: 18,
-        marginBottom: 8,
-        paddingRight: 24, // Space for pin icon
+        fontSize: 15,
+        lineHeight: 21,
         letterSpacing: 0.1,
-        lineHeight: 24
     },
+    pinBtn: {
+        marginTop: 2,
+    },
+
+    // Content
     content: {
         fontFamily: 'Kanit-Regular',
-        fontSize: 14,
-        lineHeight: 22,
-        flex: 1,
-        opacity: 0.85
+        fontSize: 13,
+        lineHeight: 20,
+        opacity: 0.88,
     },
-    footer: {
-        marginTop: 14,
+
+    // Badges
+    badges: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 5,
+        marginTop: 2,
+    },
+    badge: {
+        flexDirection: 'row',
         alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+    },
+    badgeText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 10,
+        lineHeight: 14,
+    },
+
+    // Footer
+    footer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 4,
+        paddingTop: 8,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.04)',
-        paddingTop: 10
     },
     timestamp: {
         fontFamily: 'Kanit-Regular',
-        fontSize: 11,
-        opacity: 0.8
+        fontSize: 10,
     },
-    tagsContainer: {
+    tagsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6
+        gap: 4,
     },
     tag: {
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 5,
     },
     tagText: {
         fontFamily: 'Kanit-Regular',
-        fontSize: 10
+        fontSize: 9,
     },
-    moreTagsText: {
+    moreTags: {
         fontFamily: 'Kanit-Regular',
-        fontSize: 10
+        fontSize: 9,
     },
-    badgesWrapper: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginTop: 10
-    },
-    reminderBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'flex-start',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 16,
-        gap: 4
-    },
-    reminderText: {
-        fontFamily: 'Kanit-Regular',
-        fontSize: 11,
-        fontWeight: '600'
-    }
 });
 
 export default NoteCard;

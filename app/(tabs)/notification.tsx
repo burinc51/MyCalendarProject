@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import { useTheme } from '@/components/ThemeProvider';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
+
 import { useAuthStore } from '@/stores/useAuthStore';
 import { fetchActivityLogs, ActivityLog as BaseActivityLog } from '@/services/activityService';
 
@@ -257,7 +257,7 @@ export default function NotificationScreen() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const insets = useSafeAreaInsets();
-    const { headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet } = useResponsiveDimensions();
+
     const { user } = useAuthStore();
 
     const [activities, setActivities] = useState<ActivityLog[]>([]);
@@ -319,27 +319,16 @@ export default function NotificationScreen() {
     return (
         <View style={[styles.screen, { backgroundColor: C.bg }]}>
             {/* Header — same style as CalendarView */}
-            <View
-                style={[
-                    styles.header,
-                    {
-                        height: headerHeight,
-                        paddingHorizontal: horizontalPadding,
-                        backgroundColor: C.headerBg
-                    }
-                ]}
-            >
-                <Text
-                    style={[
-                        styles.headerTitle,
-                        {
-                            fontSize: isSmallPhone ? 18 : isTablet ? 24 : titleFontSize,
-                            color: C.headerText
-                        }
-                    ]}
-                >
-                    การแจ้งเตือน
-                </Text>
+            <View style={[styles.header, { backgroundColor: C.headerBg, paddingTop: insets.top + 10 }]}>
+                <View>
+                    <Text style={[styles.headerTitle, { color: C.headerText }]}>การแจ้งเตือน</Text>
+                    <Text style={[styles.headerSub, { color: C.sub }]}>
+                        {activities.length > 0 ? `${activities.length} รายการ` : 'ความเคลื่อนไหวต่างๆ'}
+                    </Text>
+                </View>
+                <View style={[styles.headerIconBox, { backgroundColor: isDark ? '#1e1e1e' : '#f2f2f2' }]}>
+                    <Feather name="bell" size={18} color={C.sub} />
+                </View>
             </View>
 
             {/* List */}
@@ -390,17 +379,33 @@ export default function NotificationScreen() {
 const styles = StyleSheet.create({
     screen: { flex: 1 },
 
-    // Header — matches CalendarView
+    // Header
     header: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'space-between',
-        borderBottomWidth: 0.25,
-        borderBottomColor: '#424141a9',
+        paddingHorizontal: 20,
+        paddingBottom: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.06)',
     },
     headerTitle: {
         fontFamily: 'Kanit-Bold',
-        letterSpacing: 0.5,
+        fontSize: 26,
+        letterSpacing: -0.3,
+        lineHeight: 30,
+    },
+    headerSub: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 12,
+        marginTop: 2,
+    },
+    headerIconBox: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 
     // List

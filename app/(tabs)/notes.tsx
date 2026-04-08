@@ -1,118 +1,60 @@
 import React, { useCallback } from 'react';
-import {
-    View,
-    StatusBar,
-    Modal,
-    Text
-} from 'react-native';
+import { View, Text, StyleSheet, StatusBar, Modal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 
-// Components
 import { NoteList, NoteEditor } from '@/components/Note';
 import { useTheme } from '@/components/ThemeProvider';
-import { useResponsiveDimensions } from '@/hooks/useResponsiveDimensions';
 import Toast from '@/components/ui/Toast';
-
-// Hooks
 import { useNotes } from '@/hooks/useNotes';
-
-// Types
 import type { Note } from '@/types/note';
 
 const NotesScreen = () => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    const { headerHeight, horizontalPadding, titleFontSize, isSmallPhone, isTablet } = useResponsiveDimensions();
+    const insets = useSafeAreaInsets();
 
     const {
-        // Notes
-        filteredNotes,
-        isLoading,
-        noteFormData,
-        editingNote,
-        showNoteEditor,
-        viewMode,
-        sortBy,
-        searchQuery,
-        // Actions
-        fetchNotes,
-        setShowNoteEditor,
-        updateNoteFormData,
-        initNoteForm,
-        createNote,
-        updateNote,
-        deleteNote,
-        togglePin,
-        setViewMode,
-        setSortBy,
-        setSearchQuery,
-        toast,
-        hideToast,
+        filteredNotes, isLoading, noteFormData, editingNote, showNoteEditor,
+        viewMode, sortBy, searchQuery,
+        fetchNotes, setShowNoteEditor, updateNoteFormData, initNoteForm,
+        createNote, updateNote, deleteNote, togglePin,
+        setViewMode, setSortBy, setSearchQuery, toast, hideToast,
     } = useNotes();
 
-    // Handle note press - open editor
-    const handleNotePress = useCallback((note: Note) => {
-        initNoteForm(note);
-        setShowNoteEditor(true);
-    }, [initNoteForm, setShowNoteEditor]);
+    const handleNotePress   = useCallback((note: Note) => { initNoteForm(note);  setShowNoteEditor(true); }, [initNoteForm, setShowNoteEditor]);
+    const handleAddNote     = useCallback(() => { initNoteForm(); setShowNoteEditor(true); }, [initNoteForm, setShowNoteEditor]);
+    const handleSaveNote    = useCallback(() => { editingNote ? updateNote() : createNote(); }, [editingNote, updateNote, createNote]);
+    const handleCancelEditor = useCallback(() => setShowNoteEditor(false), [setShowNoteEditor]);
 
-    // Handle add new note
-    const handleAddNote = useCallback(() => {
-        initNoteForm();
-        setShowNoteEditor(true);
-    }, [initNoteForm, setShowNoteEditor]);
-
-    // Handle save note
-    const handleSaveNote = useCallback(() => {
-        if (editingNote) {
-            updateNote();
-            console.log('Updated note:', editingNote);
-        } else {
-            createNote();
-        }
-    }, [editingNote, updateNote, createNote]);
-
-    // Handle cancel editor
-    const handleCancelEditor = useCallback(() => {
-        setShowNoteEditor(false);
-    }, [setShowNoteEditor]);
-
-    // Dynamic styles based on theme
-    const dynamicStyles = {
-        container: {
-            flex: 1,
-            backgroundColor: isDark ? '#171717' : '#f8f9fa'
-        },
-        header: {
-            height: headerHeight,
-            backgroundColor: isDark ? '#171717' : '#fff',
-            flexDirection: 'row' as const,
-            alignItems: 'center' as const,
-            justifyContent: 'space-between' as const,
-            paddingHorizontal: horizontalPadding,
-            borderBottomWidth: 0.25,
-            borderBottomColor: '#424141a9',
-        },
-        headerTitle: {
-            fontFamily: 'Kanit-Bold',
-            fontSize: isSmallPhone ? 18 : isTablet ? 24 : titleFontSize,
-            color: isDark ? '#f5f5f5' : '#2c3e50',
-            letterSpacing: 0.5,
-        }
+    const C = {
+        bg:     isDark ? '#111111' : '#ffffff',
+        text:   isDark ? '#f0f0f0' : '#111111',
+        muted:  isDark ? '#6b6b6b' : '#aaaaaa',
+        border: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
     };
 
     return (
-        <View style={dynamicStyles.container}>
+        <View style={[styles.root, { backgroundColor: isDark ? '#0d0d0d' : '#f7f7f7' }]}>
             <StatusBar
                 barStyle={isDark ? 'light-content' : 'dark-content'}
-                backgroundColor={isDark ? '#171717' : '#f8f9fa'}
+                backgroundColor={C.bg}
             />
 
-            {/* Header */}
-            <View style={dynamicStyles.header}>
-                <Text style={dynamicStyles.headerTitle}>โน๊ตทั้งหมด</Text>
+            {/* ── Header ── */}
+            <View style={[styles.header, { backgroundColor: C.bg, paddingTop: insets.top + 10, borderBottomColor: C.border }]}>
+                <View>
+                    <Text style={[styles.headerTitle, { color: C.text }]}>บันทึก</Text>
+                    <Text style={[styles.headerSub, { color: C.muted }]}>
+                        {filteredNotes.length > 0 ? `${filteredNotes.length} รายการ` : 'จดสิ่งที่คิดไว้ที่นี่'}
+                    </Text>
+                </View>
+                <View style={[styles.headerIconBox, { backgroundColor: isDark ? '#1e1e1e' : '#f2f2f2' }]}>
+                    <Feather name="file-text" size={18} color={C.muted} />
+                </View>
             </View>
 
-            {/* Notes List */}
+            {/* ── Note List ── */}
             <NoteList
                 notes={filteredNotes}
                 isLoading={isLoading}
@@ -129,7 +71,7 @@ const NotesScreen = () => {
                 onSortChange={setSortBy}
             />
 
-            {/* Note Editor Modal */}
+            {/* ── Note Editor Modal ── */}
             <Modal
                 visible={showNoteEditor}
                 animationType="slide"
@@ -145,11 +87,39 @@ const NotesScreen = () => {
                 />
             </Modal>
 
-            {/* Toast notification */}
             <Toast message={toast} onHide={hideToast} />
         </View>
     );
 };
 
+const styles = StyleSheet.create({
+    root: { flex: 1 },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        paddingHorizontal: 20,
+        paddingBottom: 14,
+        borderBottomWidth: 1,
+    },
+    headerTitle: {
+        fontFamily: 'Kanit-Bold',
+        fontSize: 26,
+        letterSpacing: -0.3,
+        lineHeight: 30,
+    },
+    headerSub: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 12,
+        marginTop: 2,
+    },
+    headerIconBox: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+});
 
 export default NotesScreen;
