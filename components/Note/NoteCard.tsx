@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
         zIndex: 1
     },
     title: {
-        fontFamily: 'Kanit-SemiBold',
+        fontFamily: 'Kanit-Bold',
         fontSize: 18,
         marginBottom: 8,
         paddingRight: 24, // Space for pin icon
@@ -357,11 +357,11 @@ const styles = StyleSheet.create({
         borderRadius: 6
     },
     tagText: {
-        fontFamily: 'Kanit-Medium',
+        fontFamily: 'Kanit-Regular',
         fontSize: 10
     },
     moreTagsText: {
-        fontFamily: 'Kanit-Medium',
+        fontFamily: 'Kanit-Regular',
         fontSize: 10
     },
     badgesWrapper: {
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
         gap: 4
     },
     reminderText: {
-        fontFamily: 'Kanit-Medium',
+        fontFamily: 'Kanit-Regular',
         fontSize: 11,
         fontWeight: '600'
     }

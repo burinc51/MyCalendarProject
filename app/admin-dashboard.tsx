@@ -196,40 +196,60 @@ export default function AdminDashboardScreen() {
         </View>
     );
 
-    const renderUserItem = ({ item }: { item: AdminUser }) => (
-        <View style={[styles.userCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.userInfo}>
-                <View style={[styles.userAvatar, { backgroundColor: item.role === 'ADMIN' ? colors.accent : '#94a3b8' }]}>
-                    <Text style={styles.userInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                </View>
-                <View style={styles.userTextBody}>
-                    <View style={styles.userNameRow}>
-                        <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
-                        {item.role === 'ADMIN' && (
-                            <View style={[styles.adminBadge, { backgroundColor: colors.accent + '20' }]}>
-                                <Text style={[styles.adminBadgeText, { color: colors.accent }]}>ผู้ดูแลระบบ</Text>
-                            </View>
-                        )}
+    const renderUserItem = ({ item }: { item: AdminUser }) => {
+        const isCurrentUser = item.id === user?.id;
+
+        return (
+            <View style={[styles.userCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.userInfo}>
+                    <View style={[styles.userAvatar, { backgroundColor: item.role === 'ADMIN' ? colors.accent : '#94a3b8' }]}>
+                        <Text style={styles.userInitial}>{item.name.charAt(0).toUpperCase()}</Text>
                     </View>
-                    <Text style={[styles.userEmail, { color: colors.subText }]} numberOfLines={1}>{item.email}</Text>
+                    <View style={styles.userTextBody}>
+                        <View style={styles.userNameRow}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+                                <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
+                                {isCurrentUser && (
+                                    <View style={[styles.meBadge, { backgroundColor: colors.success + '15' }]}>
+                                        <Text style={[styles.meBadgeText, { color: colors.success }]}>ฉัน</Text>
+                                    </View>
+                                )}
+                            </View>
+                            {item.role === 'ADMIN' && (
+                                <View style={[styles.adminBadge, { backgroundColor: colors.accent + '20' }]}>
+                                    <Text style={[styles.adminBadgeText, { color: colors.accent }]}>ผู้ดูแลระบบ</Text>
+                                </View>
+                            )}
+                        </View>
+                        <Text style={[styles.userEmail, { color: colors.subText }]} numberOfLines={1}>{item.email}</Text>
+                    </View>
+                </View>
+                <View style={styles.userActions}>
+                    <TouchableOpacity
+                        style={[styles.actionBtn, { borderColor: colors.border }]}
+                        onPress={() => openEditModal(item)}
+                    >
+                        <Feather name="edit-2" size={16} color={colors.subText} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[
+                            styles.actionBtn, 
+                            { borderColor: colors.border, backgroundColor: isCurrentUser ? 'transparent' : colors.danger + '10' }
+                        ]}
+                        onPress={() => !isCurrentUser && handleDeleteUser(item.id, item.name)}
+                        disabled={isCurrentUser}
+                    >
+                        <Feather 
+                            name="trash-2" 
+                            size={16} 
+                            color={isCurrentUser ? colors.border : colors.danger} 
+                            style={{ opacity: isCurrentUser ? 0.4 : 1 }}
+                        />
+                    </TouchableOpacity>
                 </View>
             </View>
-            <View style={styles.userActions}>
-                <TouchableOpacity
-                    style={[styles.actionBtn, { borderColor: colors.border }]}
-                    onPress={() => openEditModal(item)}
-                >
-                    <Feather name="edit-2" size={16} color={colors.subText} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.actionBtn, { borderColor: colors.border, backgroundColor: colors.danger + '10' }]}
-                    onPress={() => handleDeleteUser(item.id, item.name)}
-                >
-                    <Feather name="trash-2" size={16} color={colors.danger} />
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
+        );
+    };
 
     if (loading && !users.length) {
         return (
@@ -338,14 +358,15 @@ export default function AdminDashboardScreen() {
                         />
 
                         <Text style={[styles.inputLabel, { color: colors.subText }]}>บทบาท</Text>
-                        <View style={styles.roleContainer}>
+                        <View style={[styles.roleContainer, selectedUser?.id === user?.id && { opacity: 0.6 }]}>
                             <TouchableOpacity
                                 style={[
                                     styles.roleBtn,
                                     { borderColor: colors.border, backgroundColor: editRole === 'USER' ? colors.bg : 'transparent' },
                                     editRole === 'USER' && { borderColor: colors.accent, backgroundColor: colors.accent + '15' }
                                 ]}
-                                onPress={() => setEditRole('USER')}
+                                onPress={() => selectedUser?.id !== user?.id && setEditRole('USER')}
+                                disabled={selectedUser?.id === user?.id}
                             >
                                 <Feather name="user" size={16} color={editRole === 'USER' ? colors.accent : colors.subText} />
                                 <Text style={[styles.roleText, { color: editRole === 'USER' ? colors.accent : colors.subText }]}>ผู้ใช้</Text>
@@ -357,12 +378,19 @@ export default function AdminDashboardScreen() {
                                     { borderColor: colors.border, backgroundColor: editRole === 'ADMIN' ? colors.bg : 'transparent' },
                                     editRole === 'ADMIN' && { borderColor: '#9b59b6', backgroundColor: '#9b59b615' }
                                 ]}
-                                onPress={() => setEditRole('ADMIN')}
+                                onPress={() => selectedUser?.id !== user?.id && setEditRole('ADMIN')}
+                                disabled={selectedUser?.id === user?.id}
                             >
                                 <Feather name="shield" size={16} color={editRole === 'ADMIN' ? '#9b59b6' : colors.subText} />
                                 <Text style={[styles.roleText, { color: editRole === 'ADMIN' ? '#9b59b6' : colors.subText }]}>ผู้ดูแลระบบ</Text>
                             </TouchableOpacity>
                         </View>
+                        
+                        {selectedUser?.id === user?.id && (
+                            <Text style={[styles.roleActionNotice, { color: colors.subText }]}>
+                                * คุณไม่สามารถเปลี่ยนบทบาทของตัวเองได้ที่นี่
+                            </Text>
+                        )}
 
                         <TouchableOpacity
                             style={[styles.saveBtn, { backgroundColor: colors.accent, opacity: submittingEdit || !editName.trim() ? 0.7 : 1 }]}
@@ -442,6 +470,8 @@ const styles = StyleSheet.create({
     userTextBody: { flex: 1 },
     userNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
     userName: { fontSize: 16, fontFamily: 'Kanit-Regular', flexShrink: 1 },
+    meBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+    meBadgeText: { fontSize: 9, fontFamily: 'Kanit-Bold' },
     adminBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
     adminBadgeText: { fontSize: 10, fontFamily: 'Kanit-Regular' },
     userEmail: { fontSize: 13, fontFamily: 'Kanit-Regular' },
@@ -483,6 +513,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: 'Kanit-Regular',
         marginBottom: 20,
+    },
+    roleActionNotice: {
+        fontSize: 12,
+        fontFamily: 'Kanit-Regular',
+        textAlign: 'center',
+        marginTop: -20,
+        marginBottom: 20,
+        fontStyle: 'italic',
     },
     roleContainer: { flexDirection: 'row', gap: 12, marginBottom: 32 },
     roleBtn: {

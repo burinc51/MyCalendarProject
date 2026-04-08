@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import {
+    View, Text, TextInput, TouchableOpacity, StyleSheet,
+    Alert, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator
+} from 'react-native';
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { FontAwesome5, Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +22,7 @@ export default function CreateGroupScreen() {
     const { id, mode } = useLocalSearchParams<{ id?: string, mode?: 'edit' | 'create' }>();
     const isEdit = mode === 'edit';
     const groupId = id ? parseInt(id) : null;
-    
+
     const insets = useSafeAreaInsets();
     const { createGroup, updateGroup, isLoading } = useGroupStore();
     const { user } = useAuthStore();
@@ -30,9 +33,7 @@ export default function CreateGroupScreen() {
     const [isFetching, setIsFetching] = useState(false);
 
     useEffect(() => {
-        if (isEdit && groupId) {
-            loadGroupData();
-        }
+        if (isEdit && groupId) loadGroupData();
     }, [isEdit, groupId]);
 
     const loadGroupData = async () => {
@@ -44,8 +45,7 @@ export default function CreateGroupScreen() {
             setSelectedIcon(g.icon);
             setSelectedColor(g.color);
         } catch (e) {
-            console.error(e);
-            Alert.alert("Error", "Failed to load group data");
+            Alert.alert('ข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลกลุ่มได้');
         } finally {
             setIsFetching(false);
         }
@@ -53,14 +53,13 @@ export default function CreateGroupScreen() {
 
     const handleAction = async () => {
         if (!name.trim()) {
-            Alert.alert('Error', 'Please enter a group name');
+            Alert.alert('แจ้งเตือน', 'กรุณากรอกชื่อกลุ่ม');
             return;
         }
         if (!user?.id) {
-            Alert.alert('Error', 'User not found. Please login again.');
+            Alert.alert('ข้อผิดพลาด', 'ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
             return;
         }
-
         const payload = {
             groupName: name.trim(),
             icon: selectedIcon,
@@ -68,39 +67,39 @@ export default function CreateGroupScreen() {
             bg: selectedColor + '20',
             description: '',
         };
-
         try {
             if (isEdit && groupId) {
                 await updateGroup(groupId, payload);
-                Alert.alert('Success', 'Group updated successfully!', [{ text: 'OK', onPress: () => router.back() }]);
+                Alert.alert('สำเร็จ', 'อัปเดตกลุ่มเรียบร้อยแล้ว', [{ text: 'ตกลง', onPress: () => router.back() }]);
             } else {
                 const newGroup = await createGroup(payload, user.id);
                 Alert.alert(
-                    'Success', 
-                    `Group "${newGroup.groupName}" created successfully!\n\nInvite Code: ${newGroup.inviteCode}`, 
-                    [{ text: 'Great!', onPress: () => router.back() }]
+                    'สร้างกลุ่มสำเร็จ',
+                    `กลุ่ม "${newGroup.groupName}" ถูกสร้างแล้ว\n\nรหัสเชิญ: ${newGroup.inviteCode}`,
+                    [{ text: 'เยี่ยม!', onPress: () => router.back() }]
                 );
             }
         } catch (error: any) {
-            Alert.alert('Error', error.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} group`);
+            Alert.alert('ข้อผิดพลาด', error.response?.data?.message || `ไม่สามารถ${isEdit ? 'อัปเดต' : 'สร้าง'}กลุ่มได้`);
         }
     };
 
     const c = {
-        bg: isDark ? '#111111' : '#f4f6f9',
-        card: isDark ? '#1e1e1e' : '#ffffff',
-        text: isDark ? '#f0f0f0' : '#1a1a2e',
-        label: isDark ? '#a0a0a0' : '#6b7280',
-        input: isDark ? '#262626' : '#ffffff',
-        inputBorder: isDark ? '#333' : '#e2e8f0',
-        inputText: isDark ? '#f0f0f0' : '#1a1a2e',
-        placeholder: isDark ? '#555' : '#9ca3af',
+        bg:          isDark ? '#0d0d0d' : '#f8f8f8',
+        card:        isDark ? '#1a1a1a' : '#ffffff',
+        text:        isDark ? '#f0f0f0' : '#111111',
+        muted:       isDark ? '#6b6b6b' : '#9ca3af',
+        input:       isDark ? '#1a1a1a' : '#ffffff',
+        inputBorder: isDark ? '#2e2e2e' : '#e2e2e2',
+        inputText:   isDark ? '#f0f0f0' : '#111111',
+        placeholder: isDark ? '#4a4a4a' : '#c4c4c4',
     };
 
     if (isFetching) {
         return (
-            <View style={[styles.root, { backgroundColor: c.bg, justifyContent: 'center' }]}>
+            <View style={[styles.root, { backgroundColor: c.bg, justifyContent: 'center', alignItems: 'center' }]}>
                 <ActivityIndicator size="large" color={selectedColor} />
+                <Text style={[styles.loadingText, { color: c.muted }]}>กำลังโหลด...</Text>
             </View>
         );
     }
@@ -108,88 +107,100 @@ export default function CreateGroupScreen() {
     return (
         <View style={[styles.root, { backgroundColor: c.bg }]}>
             <Stack.Screen options={{ headerShown: false }} />
-            <ScreenHeader title={isEdit ? "Group Settings" : "Create Group"} showBack={true} />
+            <ScreenHeader title={isEdit ? 'ตั้งค่ากลุ่ม' : 'สร้างกลุ่ม'} showBack={true} />
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                <ScrollView 
-                    contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 40 }]} 
+                <ScrollView
+                    contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 40 }]}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    <View style={styles.previewContainer}>
-                        <View style={[styles.previewIconBox, { backgroundColor: selectedColor + '20' }]}>
-                            <FontAwesome5 name={selectedIcon} size={32} color={selectedColor} solid />
+                    {/* Preview */}
+                    <View style={[styles.previewCard, { backgroundColor: c.card, borderColor: c.inputBorder }]}>
+                        <View style={[styles.previewIconBox, { backgroundColor: selectedColor + '18' }]}>
+                            <FontAwesome5 name={selectedIcon} size={30} color={selectedColor} solid />
                         </View>
-                        <Text style={[styles.previewName, { color: c.text }]}>{name || 'Group Name'}</Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.previewHint, { color: c.muted }]}>ตัวอย่างกลุ่ม</Text>
+                            <Text style={[styles.previewName, { color: name ? c.text : c.muted }]} numberOfLines={1}>
+                                {name || 'ชื่อกลุ่ม'}
+                            </Text>
+                        </View>
+                        <View style={[styles.previewColorDot, { backgroundColor: selectedColor }]} />
                     </View>
 
-                    <Text style={[styles.label, { color: c.label }]}>Group Name</Text>
+                    {/* Name input */}
+                    <Text style={[styles.sectionLabel, { color: c.muted }]}>ชื่อกลุ่ม</Text>
                     <TextInput
                         style={[styles.input, { backgroundColor: c.input, borderColor: c.inputBorder, color: c.inputText }]}
                         value={name}
                         onChangeText={setName}
-                        placeholder="E.g., Family, Work Team..."
+                        placeholder="เช่น ครอบครัว, ทีมทำงาน..."
                         placeholderTextColor={c.placeholder}
                         maxLength={30}
                     />
 
-                    <Text style={[styles.label, { color: c.label, marginTop: 24 }]}>Select Icon</Text>
-                    <View style={styles.grid}>
+                    {/* Icon picker */}
+                    <Text style={[styles.sectionLabel, { color: c.muted, marginTop: 20 }]}>ไอคอน</Text>
+                    <View style={styles.iconGrid}>
                         {ICONS.map((icon) => {
-                            const isSelected = selectedIcon === icon;
+                            const active = selectedIcon === icon;
                             return (
                                 <TouchableOpacity
                                     key={icon}
                                     style={[
                                         styles.iconBox,
-                                        { 
-                                            backgroundColor: isSelected ? selectedColor + '15' : c.input, 
-                                            borderColor: isSelected ? selectedColor : c.inputBorder 
+                                        {
+                                            backgroundColor: active ? selectedColor + '15' : c.input,
+                                            borderColor: active ? selectedColor : c.inputBorder,
                                         },
                                     ]}
                                     onPress={() => setSelectedIcon(icon)}
                                 >
-                                    <FontAwesome5 name={icon as any} size={20} color={isSelected ? selectedColor : c.label} solid />
+                                    <FontAwesome5 name={icon as any} size={18} color={active ? selectedColor : c.muted} solid />
                                 </TouchableOpacity>
                             );
                         })}
                     </View>
 
-                    <Text style={[styles.label, { color: c.label, marginTop: 28 }]}>Select Color</Text>
-                    <View style={styles.colorGrid}>
+                    {/* Color picker */}
+                    <Text style={[styles.sectionLabel, { color: c.muted, marginTop: 20 }]}>สี</Text>
+                    <View style={styles.colorRow}>
                         {COLORS.map((color) => {
-                            const isSelected = selectedColor === color;
+                            const active = selectedColor === color;
                             return (
                                 <TouchableOpacity
                                     key={color}
                                     style={[
-                                        styles.colorCircle,
+                                        styles.colorDot,
                                         { backgroundColor: color },
+                                        active && { borderWidth: 2.5, borderColor: '#fff', elevation: 4 },
                                     ]}
                                     onPress={() => setSelectedColor(color)}
                                 >
-                                    {isSelected && <Feather name="check" size={20} color="#ffffff" />}
+                                    {active && <Feather name="check" size={14} color="#fff" />}
                                 </TouchableOpacity>
                             );
                         })}
                     </View>
 
+                    {/* CTA */}
                     <TouchableOpacity
                         style={[
-                            styles.createBtn, 
-                            { 
-                                backgroundColor: selectedColor, 
-                                shadowColor: selectedColor,
-                                opacity: isLoading ? 0.7 : 1 
-                            }
+                            styles.ctaBtn,
+                            { backgroundColor: selectedColor, shadowColor: selectedColor, opacity: isLoading ? 0.7 : 1 }
                         ]}
                         onPress={handleAction}
                         disabled={isLoading}
+                        activeOpacity={0.85}
                     >
                         {isLoading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.createBtnText}>{isEdit ? "Save" : "Create Group"}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <Text style={styles.ctaText}>{isEdit ? 'บันทึกการเปลี่ยนแปลง' : 'สร้างกลุ่ม'}</Text>
+                                <Feather name="arrow-right" size={16} color="#fff" />
+                            </View>
                         )}
                     </TouchableOpacity>
                 </ScrollView>
@@ -200,41 +211,116 @@ export default function CreateGroupScreen() {
 
 const styles = StyleSheet.create({
     root: { flex: 1 },
-    container: { padding: 24 },
-    previewContainer: {
+    container: { padding: 20 },
+
+    loadingText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 14,
+        marginTop: 12,
+    },
+
+    // Preview
+    previewCard: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 32,
-        marginTop: 10,
+        gap: 14,
+        borderRadius: 16,
+        borderWidth: 1,
+        padding: 16,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 1,
     },
     previewIconBox: {
-        width: 80,
-        height: 80,
-        borderRadius: 24,
+        width: 52,
+        height: 52,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
+    },
+    previewHint: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 11,
+        marginBottom: 3,
     },
     previewName: {
         fontFamily: 'Kanit-Bold',
-        fontSize: 22,
+        fontSize: 17,
     },
-    label: { fontFamily: 'Kanit-Bold', fontSize: 13, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
-    input: { height: 54, borderWidth: 1, borderRadius: 14, paddingHorizontal: 18, fontFamily: 'Kanit-Regular', fontSize: 16 },
-    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-    iconBox: { width: 58, height: 58, borderRadius: 16, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
-    colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-    colorCircle: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
-    createBtn: { 
-        height: 58, 
-        borderRadius: 18, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        marginTop: 44, 
-        shadowOffset: { width: 0, height: 6 }, 
-        shadowOpacity: 0.3, 
-        shadowRadius: 12, 
-        elevation: 8 
+    previewColorDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        alignSelf: 'center',
     },
-    createBtnText: { color: '#ffffff', fontFamily: 'Kanit-Bold', fontSize: 18, letterSpacing: 0.5 },
-});
 
+    // Section label
+    sectionLabel: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 12,
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
+        marginBottom: 10,
+    },
+
+    // Input
+    input: {
+        height: 50,
+        borderWidth: 1,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        fontFamily: 'Kanit-Regular',
+        fontSize: 15,
+    },
+
+    // Icons
+    iconGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    iconBox: {
+        width: 52,
+        height: 52,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    // Colors
+    colorRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+    },
+    colorDot: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    // CTA
+    ctaBtn: {
+        height: 52,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 36,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        elevation: 6,
+    },
+    ctaText: {
+        color: '#fff',
+        fontFamily: 'Kanit-Bold',
+        fontSize: 15,
+        letterSpacing: 0.2,
+    },
+});

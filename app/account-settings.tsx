@@ -411,7 +411,7 @@ export default function AccountSettingsScreen() {
                                 <Feather name="log-out" size={16} color={C.danger} />
                             )}
                         </View>
-                        <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Medium' }]}>
+                        <Text style={[styles.actionLabel, { color: C.danger }]}>
                             {loggingOut ? 'กำลังออกจากระบบ...' : 'ออกจากระบบ'}
                         </Text>
                         <Feather name="chevron-right" size={20} color={C.subText} />
@@ -427,7 +427,7 @@ export default function AccountSettingsScreen() {
                         <View style={[styles.actionIconBox, { backgroundColor: 'rgba(239,68,68,0.08)' }]}>
                             <Feather name="trash-2" size={16} color={C.danger} />
                         </View>
-                        <Text style={[styles.actionLabel, { color: C.danger, fontFamily: 'Kanit-Medium' }]}>
+                        <Text style={[styles.actionLabel, { color: C.danger }]}>
                             ลบบัญชี
                         </Text>
                         <Feather name="chevron-right" size={20} color={C.subText} />
