@@ -20,6 +20,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 
 import { useTheme } from '@/components/ThemeProvider';
 import type { CalendarEvent, EventUser } from '@/types/event';
@@ -221,8 +222,14 @@ const EventDetailScreen = () => {
         );
     }
 
-    const startD = dayjs(event.startDate);
-    const endD = dayjs(event.endDate);
+    const startD = dayjs(event.startDate).locale('th');
+    let endD = dayjs(event.endDate).locale('th');
+
+    // Adjust end date for all-day events if the end date is at midnight of the next day
+    if (event.isAllDay && endD.hour() === 0 && endD.minute() === 0 && endD.diff(startD, 'day') >= 1) {
+        endD = endD.subtract(1, 'day');
+    }
+
     const sameDay = startD.isSame(endD, 'day');
 
     const dateStr = sameDay ? startD.format('ddd D MMMM YYYY') : `${startD.format('D MMM')} – ${endD.format('D MMM YYYY')}`;
@@ -245,7 +252,7 @@ const EventDetailScreen = () => {
                 title="รายละเอียดกิจกรรม"
                 showBack
                 actionMenu={{
-                    iconColor: '#2ecc71',
+                    iconColor: '#ffffff',
                     accessibilityLabel: 'เมนูจัดการกิจกรรม',
                     items: [
                         { label: 'แก้ไข', onPress: handleEdit },
@@ -304,25 +311,6 @@ const EventDetailScreen = () => {
                         </View>
                     ) : null}
 
-                    {/* Description card in Hero */}
-                    {event.description ? (
-                        <View style={[styles.heroDesc, {
-                            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-                            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                        }]}>
-                            <View style={styles.heroDescHeader}>
-                                <View style={[styles.heroDescIconBox, { backgroundColor: hexToRgba(accent, 0.18) }]}>
-                                    <Feather name="align-left" size={13} color={accent} />
-                                </View>
-                                <Text style={[styles.heroDescLabel, { color: isDark ? '#888' : '#8e9aad' }]}>
-                                    รายละเอียด
-                                </Text>
-                            </View>
-                            <Text style={[styles.heroDescText, { color: isDark ? '#d0d0d0' : '#2d3748' }]}>
-                                {event.description}
-                            </Text>
-                        </View>
-                    ) : null}
                 </View>
 
                 {/* ── Detail Rows ── */}
@@ -341,6 +329,28 @@ const EventDetailScreen = () => {
                         accent={accent}
                         isDark={isDark}
                     />
+
+                    {event.location ? (
+                        <InfoRow
+                            icon="map-pin"
+                            label="สถานที่"
+                            value={event.location}
+                            accent={accent}
+                            isDark={isDark}
+                            multiline
+                        />
+                    ) : null}
+
+                    {event.description ? (
+                        <InfoRow
+                            icon="align-left"
+                            label="รายละเอียด"
+                            value={event.description}
+                            accent={accent}
+                            isDark={isDark}
+                            multiline
+                        />
+                    ) : null}
 
                     {event.priority && pm ? (
                         <View style={[rowStyle.wrap, { backgroundColor: isDark ? '#222' : '#f7f9fc' }]}>
@@ -361,7 +371,20 @@ const EventDetailScreen = () => {
                         </View>
                     ) : null}
 
-                    {event.reminder !== undefined && event.reminder > 0 ? (
+                    {event.remindBeforeValue !== undefined && event.remindBeforeValue !== null && event.remindBeforeValue > 0 ? (
+                        <InfoRow
+                            icon="bell"
+                            label="แจ้งเตือน"
+                            value={`ก่อนเวลา ${event.remindBeforeValue} ${
+                                event.remindBeforeUnit === 'MINUTES' ? 'นาที' :
+                                event.remindBeforeUnit === 'HOURS' ? 'ชั่วโมง' :
+                                event.remindBeforeUnit === 'DAYS' ? 'วัน' :
+                                event.remindBeforeUnit === 'WEEKS' ? 'สัปดาห์' : 'นาที'
+                            }`}
+                            accent={accent}
+                            isDark={isDark}
+                        />
+                    ) : event.reminder !== undefined && event.reminder > 0 ? (
                         <InfoRow
                             icon="bell"
                             label="แจ้งเตือน"
