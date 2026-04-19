@@ -37,6 +37,9 @@ type ActionType =
     | 'GROUP_UPDATED'
     | 'GROUP_MEMBER_ADDED'
     | 'GROUP_MEMBER_REMOVED'
+    | 'INVITATION_SENT'
+    | 'INVITATION_ACCEPTED'
+    | 'INVITATION_REJECTED'
     | string; // fallback for any unknown action
 
 const ACTION_META: Record<string, { label: string; icon: string; color: string }> = {
@@ -49,6 +52,9 @@ const ACTION_META: Record<string, { label: string; icon: string; color: string }
     MEMBER_REMOVED: { label: 'ลบสมาชิกออก', icon: 'user-minus', color: '#f97316' },
     GROUP_SHARED: { label: 'แชร์กลุ่ม', icon: 'share-2', color: '#fbbf24' },
     GROUP_UPDATED: { label: 'อัปเดตกลุ่ม', icon: 'settings', color: '#4ade80' },
+    INVITATION_SENT: { label: 'ส่งคำเชิญ', icon: 'mail', color: '#06b6d4' },
+    INVITATION_ACCEPTED: { label: 'ยอมรับคำเชิญ', icon: 'check-circle', color: '#2ecc71' },
+    INVITATION_REJECTED: { label: 'ปฏิเสธคำเชิญ', icon: 'x-circle', color: '#ef4444' },
     // Default fallback
     DEFAULT: { label: 'มีการเคลื่อนไหว', icon: 'activity', color: '#888888' },
 };
@@ -88,8 +94,8 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
     const timeStr = isToday ? time.format('HH:mm') : time.format('D MMM HH:mm');
 
     const isEventAction = item.actionType.startsWith('EVENT_');
-    const dynamicColor = isEventAction 
-        ? item.eventColor || meta.color 
+    const dynamicColor = isEventAction
+        ? item.eventColor || meta.color
         : item.groupColor || meta.color;
 
     // Attempt to parse start/end dates if available
@@ -132,13 +138,13 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
     const textOpacity = isDeleted ? 0.5 : 1;
 
     const isClickable = (item.actionType.startsWith('EVENT_') && !isDeleted && item.eventId) ||
-                        (['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT'].includes(item.actionType) && item.groupId);
+                        (['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT', 'INVITATION_SENT', 'INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) && item.groupId);
 
     const handlePress = () => {
         if (item.actionType.startsWith('EVENT_') && !isDeleted && item.eventId) {
             router.push(`/event/${item.eventId}`);
         } else if (
-            ['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT'].includes(item.actionType) && 
+            ['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT', 'INVITATION_SENT', 'INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) &&
             item.groupId
         ) {
             router.push(`/group/${item.groupId}/settings`);
@@ -148,7 +154,7 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
     const CardContainer = isClickable ? TouchableOpacity : View;
 
     return (
-        <CardContainer 
+        <CardContainer
             style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}
             activeOpacity={0.7}
             onPress={isClickable ? handlePress : undefined}
@@ -319,7 +325,7 @@ export default function NotificationScreen() {
     return (
         <View style={[styles.screen, { backgroundColor: C.bg }]}>
             {/* Header — same style as CalendarView */}
-            <View style={[styles.header, { backgroundColor: C.headerBg, paddingTop: insets.top + 10 }]}>
+            <View style={[styles.header, { backgroundColor: C.headerBg, paddingTop:  10 }]}>
                 <View>
                     <Text style={[styles.headerTitle, { color: C.headerText }]}>การแจ้งเตือน</Text>
                     <Text style={[styles.headerSub, { color: C.sub }]}>

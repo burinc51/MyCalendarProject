@@ -42,7 +42,7 @@ const NotesScreen = () => {
             />
 
             {/* ── Header ── */}
-            <View style={[styles.header, { backgroundColor: C.bg, paddingTop: insets.top + 10, borderBottomColor: C.border }]}>
+            <View style={[styles.header, { backgroundColor: C.bg, paddingTop:  10, borderBottomColor: C.border }]}>
                 <View>
                     <Text style={[styles.headerTitle, { color: C.text }]}>บันทึก</Text>
                     <Text style={[styles.headerSub, { color: C.muted }]}>

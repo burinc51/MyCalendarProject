@@ -281,7 +281,7 @@ export default function SettingsScreen() {
                                 Alert.alert('❌ ไม่พบ Token', 'Push Notification ใช้ได้เฉพาะบนเครื่องจริงเท่านั้น');
                             }
                         } catch (error) {
-                            Alert.alert('❌ Error', String(error));
+                            Alert.alert('❌ เกิดข้อผิดพลาด', String(error));
                         } finally {
                             setPushTokenLoading(false);
                         }

@@ -45,7 +45,6 @@ export default function GroupSettingsScreen() {
             }
         }, [selectedGroupId])
     );
-    console.log("Group Settings Screen mounted with ID:", selectedGroupId);
 
     const fetchGroupData = async (showLoading = false) => {
         try {
@@ -54,7 +53,7 @@ export default function GroupSettingsScreen() {
             setGroup(data);
         } catch (error) {
             console.error('Failed to fetch group:', error);
-            Alert.alert('Error', 'Failed to load group details');
+            Alert.alert('ข้อผิดพลาด', 'ไม่สามารถโหลดรายละเอียดของกลุ่ม');
         } finally {
             setIsLoading(false);
         }
@@ -73,12 +72,12 @@ export default function GroupSettingsScreen() {
 
     const handleLeaveGroup = () => {
         Alert.alert(
-            'Leave Group',
-            'Are you sure you want to leave this group? You will no longer have access to its calendar.',
+            'ออกจากกลุ่ม',
+            'คุณแน่ใจหรือว่าต้องการออกจากกลุ่มนี้ คุณจะไม่สามารถเข้าถึงปฏิทินของกลุ่มนี้ได้อีก',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'ยกเลิก', style: 'cancel' },
                 {
-                    text: 'Leave',
+                    text: 'ออกจากกลุ่ม',
                     style: 'destructive',
                     onPress: async () => {
                         if (user?.id) {
@@ -86,7 +85,7 @@ export default function GroupSettingsScreen() {
                                 await removeMemberFromGroup(selectedGroupId, user.id);
                                 router.replace('/(tabs)');
                             } catch (e: any) {
-                                Alert.alert('Error', e.message || 'Failed to leave group');
+                                Alert.alert('ข้อผิดพลาด', e.message || 'ไม่สามารถออกจากกลุ่ม');
                             }
                         }
                     }
@@ -114,7 +113,7 @@ export default function GroupSettingsScreen() {
             <Stack.Screen options={{ headerShown: false }} />
 
             <ScreenHeader
-                title={`${group?.name || initialName || 'Group'} Settings`}
+                title={`${group?.name || initialName || 'กลุ่ม'} - ตั้งค่า`}
                 showBack={true}
             />
 
@@ -148,14 +147,14 @@ export default function GroupSettingsScreen() {
                                 style={styles.editProfileText}
                                 className="text-white"
                             >
-                                Settings
+                                ตั้งค่า
                             </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 {/* --- Section: Members --- */}
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>MEMBERS ({members.length})</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>สมาชิก ({members.length})</Text>
                 <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                     {members.map((member, index) => (
                         <View
@@ -174,13 +173,13 @@ export default function GroupSettingsScreen() {
                             </View>
                             <View style={styles.memberInfo}>
                                 <Text style={[styles.memberName, { color: colors.textPrimary }]}>
-                                    {member.name} {member.userId === user?.id && <Text style={{ fontSize: 12, fontWeight: 'normal' }}>(You)</Text>}
+                                    {member.name} {member.userId === user?.id && <Text style={{ fontSize: 12, fontWeight: 'normal' }}>(คุณ)</Text>}
                                 </Text>
-                                <Text style={[styles.memberRole, { color: colors.textSecondary }]}>{member.role || 'Member'}</Text>
+                                <Text style={[styles.memberRole, { color: colors.textSecondary }]}>{member.role || 'สมาชิก'}</Text>
                             </View>
                             {member.role === 'ADMIN' && (
                                 <View style={styles.adminBadge}>
-                                    <Text style={styles.adminText}>Admin</Text>
+                                    <Text style={styles.adminText}>ผู้ดูแล</Text>
                                 </View>
                             )}
                         </View>
@@ -198,12 +197,12 @@ export default function GroupSettingsScreen() {
                                 color={colors.accent}
                             />
                         </View>
-                        <Text style={[styles.addMemberText, { color: colors.accent }]}>Invite Members</Text>
+                        <Text style={[styles.addMemberText, { color: colors.accent }]}>เชิญสมาชิก</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* --- Section: Preferences --- */}
-                {/*<Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>PREFERENCES</Text>*/}
+                {/*<Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>การตั้งค่า</Text>*/}
                 {/*<View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>*/}
                 {/*    <View style={[styles.row, styles.rowBorder, { borderBottomColor: colors.border }]}>*/}
                 {/*        <View style={[styles.prefIcon, { backgroundColor: isDark ? '#333' : '#f3f4f6' }]}>*/}
@@ -213,7 +212,7 @@ export default function GroupSettingsScreen() {
                 {/*                color={colors.textPrimary}*/}
                 {/*            />*/}
                 {/*        </View>*/}
-                {/*        <Text style={[styles.rowText, { color: colors.textPrimary }]}>Notifications</Text>*/}
+                {/*        <Text style={[styles.rowText, { color: colors.textPrimary }]}>การแจ้งเตือน</Text>*/}
                 {/*        <Switch*/}
                 {/*            value={notificationsEnabled}*/}
                 {/*            onValueChange={setNotificationsEnabled}*/}
@@ -225,7 +224,7 @@ export default function GroupSettingsScreen() {
                 {/*</View>*/}
 
                 {/* --- Section: Danger Zone --- */}
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>DANGER ZONE</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>โซนอันตราย</Text>
                 <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                     <TouchableOpacity
                         style={[styles.row, { paddingVertical: 14 }]}
@@ -238,7 +237,7 @@ export default function GroupSettingsScreen() {
                             color={colors.danger}
                             style={{ marginLeft: 6, marginRight: 14 }}
                         />
-                        <Text style={[styles.rowText, { color: colors.danger, fontFamily: 'Kanit-Bold' }]}>Leave Group</Text>
+                        <Text style={[styles.rowText, { color: colors.danger, fontFamily: 'Kanit-Bold' }]}>ออกจากกลุ่ม</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -379,19 +378,4 @@ const styles = StyleSheet.create({
         fontFamily: 'Kanit-Bold',
         fontSize: 15,
     },
-
-    // Preferences
-    prefIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 14,
-    },
-    copyBtn: {
-        padding: 8,
-        backgroundColor: 'rgba(46,204,113,0.1)',
-        borderRadius: 8,
-    }
 });
