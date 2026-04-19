@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -20,6 +20,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useRouter } from 'expo-router';
 import httpClient from '@/lib/httpClient';
+import { getReports, updateReportStatus, ReportResponse, ReportStatus, PaginationWithFilterRequest, ReportFilter } from '@/services/reportService';
 
 // Types
 interface UserStats {
@@ -37,6 +38,14 @@ interface AdminUser {
     createdAt: string;
 }
 
+type ActiveTab = 'users' | 'reports';
+const REPORT_STATUS_FILTERS: { label: string; value: ReportStatus | 'ALL' }[] = [
+    { label: 'ทั้งหมด', value: 'ALL' },
+    { label: 'รอดำเนินการ', value: 'PENDING' },
+    { label: 'กำลังตรวจสอบ', value: 'REVIEWING' },
+    { label: 'แก้ไขแล้ว', value: 'RESOLVED' },
+];
+
 export default function AdminDashboardScreen() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -44,6 +53,7 @@ export default function AdminDashboardScreen() {
     const { user } = useAuthStore();
     const router = useRouter();
 
+    const [activeTab, setActiveTab] = useState<ActiveTab>('users');
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<UserStats | null>(null);
     const [users, setUsers] = useState<AdminUser[]>([]);
@@ -57,9 +67,21 @@ export default function AdminDashboardScreen() {
     const [editRole, setEditRole] = useState<'ADMIN' | 'USER'>('USER');
     const [submittingEdit, setSubmittingEdit] = useState(false);
 
+    // Report State
+    const [reports, setReports] = useState<ReportResponse[]>([]);
+    const [reportLoading, setReportLoading] = useState(false);
+    const [reportPage, setReportPage] = useState(1);
+    const [reportTotalPages, setReportTotalPages] = useState(1);
+    const [reportStatusFilter, setReportStatusFilter] = useState<ReportStatus | 'ALL'>('ALL');
+    const [updatingReportId, setUpdatingReportId] = useState<number | null>(null);
+
     useEffect(() => {
         fetchDashboardData();
     }, []);
+
+    useEffect(() => {
+        if (activeTab === 'reports') fetchReports(1);
+    }, [activeTab, reportStatusFilter]);
 
     const fetchDashboardData = async () => {
         setLoading(true);
@@ -87,6 +109,7 @@ export default function AdminDashboardScreen() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+        if (activeTab === 'reports') fetchReports(1);
         }
     };
 
@@ -115,6 +138,41 @@ export default function AdminDashboardScreen() {
                 }
             ]
         );
+    };
+
+    const fetchReports = async (page: number) => {
+        setReportLoading(true);
+        try {
+            const request: PaginationWithFilterRequest<ReportFilter> = {
+                pageNumber: page,
+                pageSize: 20,
+                sortBy: 'createdAt',
+                sortOrder: 'DESC',
+                filter: {
+                    status: reportStatusFilter === 'ALL' ? undefined : reportStatusFilter,
+                },
+            };
+            const data = await getReports(request);
+            setReports(page === 1 ? data.content : prev => [...prev, ...data.content]);
+            setReportPage(data.pageNo + 1);  // pageNo is 0-indexed
+            setReportTotalPages(data.totalPages);
+        } catch (e) {
+            Alert.alert('ข้อผิดพลาด', 'ไม่สามารถโหลดรายงานได้');
+        } finally {
+            setReportLoading(false);
+        }
+    };
+
+    const handleUpdateReportStatus = async (id: number, status: ReportStatus) => {
+        setUpdatingReportId(id);
+        try {
+            const updated = await updateReportStatus(id, status);
+            setReports(prev => prev.map(r => r.id === updated.id ? updated : r));
+        } catch {
+            Alert.alert('ข้อผิดพลาด', 'ไม่สามารถอัปเดตสถานะได้');
+        } finally {
+            setUpdatingReportId(null);
+        }
     };
 
     const openEditModal = (targetUser: AdminUser) => {
@@ -182,6 +240,17 @@ export default function AdminDashboardScreen() {
         success: '#2ecc71',
         warning: '#f39c12',
         overlay: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)'
+    };
+
+    const statusColor = (s: ReportStatus) => {
+        if (s === 'PENDING') return colors.warning;
+        if (s === 'REVIEWING') return colors.accent;
+        return colors.success;
+    };
+    const statusLabel = (s: ReportStatus) => {
+        if (s === 'PENDING') return 'รอดำเนินการ';
+        if (s === 'REVIEWING') return 'กำลังตรวจสอบ';
+        return 'แก้ไขแล้ว';
     };
 
     const renderStatCard = (label: string, value: number, icon: keyof typeof Feather.glyphMap, color: string) => (
@@ -260,6 +329,51 @@ export default function AdminDashboardScreen() {
         );
     }
 
+    const renderReportItem = ({ item }: { item: ReportResponse }) => (
+        <View style={[styles.reportCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.reportTop}>
+                <View style={[styles.reportStatusBadge, { backgroundColor: statusColor(item.status) + '20' }]}>
+                    <Text style={[styles.reportStatusText, { color: statusColor(item.status) }]}>{statusLabel(item.status)}</Text>
+                </View>
+                <Text style={[styles.reportDate, { color: colors.subText }]}>
+                    {new Date(item.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </Text>
+            </View>
+            <Text style={[styles.reportCategory, { color: colors.text }]}>{item.category}</Text>
+            {item.detail ? (
+                <Text style={[styles.reportDetail, { color: colors.subText }]} numberOfLines={2}>{item.detail}</Text>
+            ) : null}
+            <Text style={[styles.reportUser, { color: colors.subText }]}>
+                <Feather name="user" size={11} /> {item.username || `User #${item.userId}`}
+            </Text>
+            {/* Status Actions */}
+            {item.status !== 'RESOLVED' && (
+                <View style={styles.reportActions}>
+                    {updatingReportId === item.id ? (
+                        <ActivityIndicator size="small" color={colors.accent} />
+                    ) : (
+                        <>
+                            {item.status === 'PENDING' && (
+                                <TouchableOpacity
+                                    style={[styles.reportActionBtn, { backgroundColor: colors.accent + '20', borderColor: colors.accent + '40' }]}
+                                    onPress={() => handleUpdateReportStatus(item.id, 'REVIEWING')}
+                                >
+                                    <Text style={[styles.reportActionText, { color: colors.accent }]}>กำลังตรวจสอบ</Text>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                style={[styles.reportActionBtn, { backgroundColor: colors.success + '20', borderColor: colors.success + '40' }]}
+                                onPress={() => handleUpdateReportStatus(item.id, 'RESOLVED')}
+                            >
+                                <Text style={[styles.reportActionText, { color: colors.success }]}>แก้ไขแล้ว ✓</Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                </View>
+            )}
+        </View>
+    );
+
     return (
         <View style={[styles.container, { backgroundColor: colors.bg }]}>
             <ScreenHeader
@@ -277,7 +391,6 @@ export default function AdminDashboardScreen() {
                 <View style={styles.statsSection}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>สถิติการใช้งาน</Text>
                     <View style={styles.statsGrid}>
-
                         {renderStatCard('ผู้ใช้ทั้งหมด', stats?.totalUsers || 0, 'users', colors.accent)}
                         {renderStatCard('กลุ่มที่สร้าง', stats?.totalGroups || 0, 'folder', colors.success)}
                         {renderStatCard('กิจกรรมที่บันทึก', stats?.totalEvents || 0, 'calendar', colors.warning)}
@@ -285,48 +398,122 @@ export default function AdminDashboardScreen() {
                     </View>
                 </View>
 
-                {/* User Management Section */}
-                <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>การจัดการผู้ใช้</Text>
-                    <Text style={[styles.sectionCount, { color: colors.subText }]}>{filteredUsers.length} ผู้ใช้</Text>
-                </View>
-
-                {/* Search Bar */}
-                <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                    <Feather name="search" size={18} color={colors.subText} />
-                    <TextInput
-                        style={[styles.searchInput, { color: colors.text }]}
-                        placeholder="ค้นหาด้วยชื่อหรืออีเมล..."
-                        placeholderTextColor={colors.subText}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Feather name="x-circle" size={18} color={colors.subText} />
+                {/* Tab Switcher */}
+                <View style={[styles.tabRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    {(['users', 'reports'] as ActiveTab[]).map(tab => (
+                        <TouchableOpacity
+                            key={tab}
+                            style={[styles.tabBtn, activeTab === tab && { backgroundColor: colors.accent }]}
+                            onPress={() => setActiveTab(tab)}
+                        >
+                            <Feather
+                                name={tab === 'users' ? 'users' : 'flag'}
+                                size={15}
+                                color={activeTab === tab ? '#fff' : colors.subText}
+                            />
+                            <Text style={[styles.tabBtnText, { color: activeTab === tab ? '#fff' : colors.subText }]}>
+                                {tab === 'users' ? 'ผู้ใช้' : 'รายงานปัญหา'}
+                            </Text>
                         </TouchableOpacity>
-                    )}
+                    ))}
                 </View>
 
-                {/* Loading overlay during delete */}
-                {loading && users.length > 0 && (
-                    <ActivityIndicator style={{ marginBottom: 12 }} size="small" color={colors.accent} />
+                {/* ─── TAB: Users ─── */}
+                {activeTab === 'users' && (
+                    <>
+                        <View style={styles.sectionHeader}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>การจัดการผู้ใช้</Text>
+                            <Text style={[styles.sectionCount, { color: colors.subText }]}>{filteredUsers.length} ผู้ใช้</Text>
+                        </View>
+
+                        <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                            <Feather name="search" size={18} color={colors.subText} />
+                            <TextInput
+                                style={[styles.searchInput, { color: colors.text }]}
+                                placeholder="ค้นหาด้วยชื่อหรืออีเมล..."
+                                placeholderTextColor={colors.subText}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                    <Feather name="x-circle" size={18} color={colors.subText} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {loading && users.length > 0 && (
+                            <ActivityIndicator style={{ marginBottom: 12 }} size="small" color={colors.accent} />
+                        )}
+
+                        <FlatList
+                            data={filteredUsers}
+                            keyExtractor={item => item.id.toString()}
+                            renderItem={renderUserItem}
+                            scrollEnabled={false}
+                            initialNumToRender={10}
+                            ListEmptyComponent={
+                                <View style={styles.emptyView}>
+                                    <Feather name="user-x" size={48} color={colors.border} />
+                                    <Text style={[styles.emptyText, { color: colors.subText }]}>ไม่พบผู้ใช้</Text>
+                                </View>
+                            }
+                        />
+                    </>
                 )}
 
-                {/* User List */}
-                <FlatList
-                    data={filteredUsers}
-                    keyExtractor={item => item.id.toString()}
-                    renderItem={renderUserItem}
-                    scrollEnabled={false}
-                    initialNumToRender={10}
-                    ListEmptyComponent={
-                        <View style={styles.emptyView}>
-                            <Feather name="user-x" size={48} color={colors.border} />
-                            <Text style={[styles.emptyText, { color: colors.subText }]}>ไม่พบผู้ใช้</Text>
-                        </View>
-                    }
-                />
+                {/* ─── TAB: Reports ─── */}
+                {activeTab === 'reports' && (
+                    <>
+                        {/* Filter chips */}
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
+                            {REPORT_STATUS_FILTERS.map(f => (
+                                <TouchableOpacity
+                                    key={f.value}
+                                    style={[
+                                        styles.filterChip,
+                                        { borderColor: colors.border, backgroundColor: colors.card },
+                                        reportStatusFilter === f.value && { backgroundColor: colors.accent, borderColor: colors.accent },
+                                    ]}
+                                    onPress={() => { setReportStatusFilter(f.value); setReports([]); }}
+                                >
+                                    <Text style={[styles.filterChipText, { color: reportStatusFilter === f.value ? '#fff' : colors.subText }]}>{f.label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        {reportLoading && reports.length === 0 ? (
+                            <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
+                        ) : (
+                            <FlatList
+                                data={reports}
+                                keyExtractor={item => item.id.toString()}
+                                renderItem={renderReportItem}
+                                scrollEnabled={false}
+                                ListEmptyComponent={
+                                    <View style={styles.emptyView}>
+                                        <Feather name="inbox" size={48} color={colors.border} />
+                                        <Text style={[styles.emptyText, { color: colors.subText }]}>ไม่มีรายงานปัญหา</Text>
+                                    </View>
+                                }
+                                ListFooterComponent={
+                                    reportPage < reportTotalPages ? (
+                                        <TouchableOpacity
+                                            style={[styles.loadMoreBtn, { borderColor: colors.border }]}
+                                            onPress={() => fetchReports(reportPage + 1)}
+                                            disabled={reportLoading}
+                                        >
+                                            {reportLoading
+                                                ? <ActivityIndicator size="small" color={colors.accent} />
+                                                : <Text style={[styles.loadMoreText, { color: colors.accent }]}>โหลดเพิ่มเติม</Text>
+                                            }
+                                        </TouchableOpacity>
+                                    ) : null
+                                }
+                            />
+                        )}
+                    </>
+                )}
             </ScrollView>
 
             {/* Edit User Modal */}
@@ -412,6 +599,54 @@ export default function AdminDashboardScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
+
+    // Tab
+    tabRow: {
+        flexDirection: 'row',
+        borderRadius: 18,
+        borderWidth: 1,
+        padding: 4,
+        marginBottom: 20,
+    },
+    tabBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        borderRadius: 14,
+    },
+    tabBtnText: { fontSize: 14, fontFamily: 'Kanit-Regular' },
+
+    // Report cards
+    reportCard: {
+        borderRadius: 18,
+        borderWidth: 1,
+        padding: 16,
+        marginBottom: 12,
+        gap: 6,
+    },
+    reportTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    reportStatusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    reportStatusText: { fontSize: 11, fontFamily: 'Kanit-Bold' },
+    reportDate: { fontSize: 11, fontFamily: 'Kanit-Regular' },
+    reportCategory: { fontSize: 16, fontFamily: 'Kanit-Bold', marginTop: 4 },
+    reportDetail: { fontSize: 13, fontFamily: 'Kanit-Regular', lineHeight: 20 },
+    reportUser: { fontSize: 12, fontFamily: 'Kanit-Regular', marginTop: 2 },
+    reportActions: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
+    reportActionBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1 },
+    reportActionText: { fontSize: 12, fontFamily: 'Kanit-Bold' },
+
+    // Filter chips
+    filterScroll: { marginBottom: 16 },
+    filterContent: { gap: 8, paddingRight: 8 },
+    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+    filterChipText: { fontSize: 13, fontFamily: 'Kanit-Regular' },
+
+    // Load more
+    loadMoreBtn: { borderWidth: 1, borderRadius: 14, padding: 14, alignItems: 'center', marginTop: 8, marginBottom: 16 },
+    loadMoreText: { fontSize: 14, fontFamily: 'Kanit-Regular' },
     content: { flex: 1, paddingHorizontal: 16 },
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 12, fontFamily: 'Kanit-Regular' },
