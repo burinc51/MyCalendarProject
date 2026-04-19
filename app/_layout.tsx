@@ -170,7 +170,11 @@ export default function RootLayout() {
 
             console.log('👆 Notification tapped:', { eventId, type });
 
-            if (eventId && type === 'event_reminder') {
+            // Route to specific event when notification is tapped
+            if (eventId && (type === 'event_reminder' || type === 'test_reminder')) {
+                router.push(`/event/${eventId}`);
+            } else if (type === 'test') {
+                // Test notification without eventId
                 router.push('/(tabs)');
             }
         });

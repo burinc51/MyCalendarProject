@@ -1,5 +1,13 @@
 import httpClient from '@/lib/httpClient';
-import type { CreateGroupPayload, Group, GroupApiResponse } from '@/types/group';
+import type {
+    CreateGroupPayload,
+    Group,
+    GroupApiResponse,
+    InvitableUsersResponse,
+    SendInvitationPayload,
+    SendInvitationResponse,
+    PaginationRequest
+} from '@/types/group';
 import { EventUser } from '@/types/event';
 
 const mapGroup = (g: GroupApiResponse): Group => ({
@@ -58,3 +66,19 @@ export const joinGroupByCode = async (inviteCode: string): Promise<Group> => {
     const response = await httpClient.post('/api/v1/group/join', { inviteCode });
     return mapGroup(response.data);
 };
+
+export const getInvitableUsers = async (groupId: number): Promise<InvitableUsersResponse> => {
+    const response = await httpClient.get(`/api/v1/group/${groupId}/invitable-users`);
+    return response.data;
+};
+
+export const getInvitableUsersPaginated = async (groupId: number, paginationRequest: PaginationRequest): Promise<InvitableUsersResponse> => {
+    const response = await httpClient.post(`/api/v1/group/${groupId}/invitable-users`, paginationRequest);
+    return response.data;
+};
+
+export const sendGroupInvitations = async (groupId: number, payload: SendInvitationPayload): Promise<SendInvitationResponse> => {
+    const response = await httpClient.post(`/api/v1/group/${groupId}/invitations`, payload);
+    return response.data;
+};
+

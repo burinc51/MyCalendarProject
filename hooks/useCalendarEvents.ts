@@ -239,7 +239,7 @@ export const useCalendarEvents = (initialGroupId?: number): UseCalendarEventsRet
                 const mappedEvents = eventsArray.map(mapApiMonthViewToCalendar);
                 setEvents([...mappedEvents]);
             } else {
-                setEvents(MOCK_EVENTS);
+                // setEvents(MOCK_EVENTS);
             }
         } catch (err: unknown) {
             console.error('Failed to fetch events:', err);

@@ -12,17 +12,19 @@ import {
     Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
-import { Feather, MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/components/ThemeProvider';
 import ScreenHeader from '@/components/ScreenHeader';
+import GroupInviteModal from '@/components/GroupInviteModal';
 import { getGroupById, removeMemberFromGroup } from '@/services/groupService';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { Group } from '@/types/group';
+import { useGroupStore } from '@/stores/useGroupStore';
 
 export default function GroupSettingsScreen() {
     const { id, name: initialName } = useLocalSearchParams<{ id: string; name?: string }>();
-    const groupId = parseInt(id as string);
+    const { selectedGroupId } = useGroupStore();
     const router = useRouter();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -32,21 +34,23 @@ export default function GroupSettingsScreen() {
     const [group, setGroup] = useState<Group | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [inviteModalVisible, setInviteModalVisible] = useState(false);
     const isFirstRun = useRef(true);
 
     useFocusEffect(
         React.useCallback(() => {
-            if (groupId) {
+            if (selectedGroupId) {
                 fetchGroupData(isFirstRun.current);
                 isFirstRun.current = false;
             }
-        }, [groupId])
+        }, [selectedGroupId])
     );
+    console.log("Group Settings Screen mounted with ID:", selectedGroupId);
 
     const fetchGroupData = async (showLoading = false) => {
         try {
             if (showLoading) setIsLoading(true);
-            const data = await getGroupById(groupId);
+            const data = await getGroupById(selectedGroupId);
             setGroup(data);
         } catch (error) {
             console.error('Failed to fetch group:', error);
@@ -67,35 +71,32 @@ export default function GroupSettingsScreen() {
         accent: '#2ecc71',
     };
 
-    const handleCopyInviteCode = () => {
-        if (group?.inviteCode) {
-            Clipboard.setString(group.inviteCode);
-            Alert.alert("Copied!", "Invite code copied to clipboard.");
-        }
-    };
-
     const handleLeaveGroup = () => {
         Alert.alert(
-            "Leave Group",
-            "Are you sure you want to leave this group? You will no longer have access to its calendar.",
+            'Leave Group',
+            'Are you sure you want to leave this group? You will no longer have access to its calendar.',
             [
-                { text: "Cancel", style: "cancel" },
+                { text: 'Cancel', style: 'cancel' },
                 {
-                    text: "Leave",
-                    style: "destructive",
+                    text: 'Leave',
+                    style: 'destructive',
                     onPress: async () => {
                         if (user?.id) {
                             try {
-                                await removeMemberFromGroup(groupId, user.id);
+                                await removeMemberFromGroup(selectedGroupId, user.id);
                                 router.replace('/(tabs)');
                             } catch (e: any) {
-                                Alert.alert("Error", e.message || "Failed to leave group");
+                                Alert.alert('Error', e.message || 'Failed to leave group');
                             }
                         }
                     }
                 }
             ]
         );
+    };
+
+    const handleRefreshGroup = async () => {
+        await fetchGroupData(false);
     };
 
     if (isLoading) {
@@ -112,7 +113,10 @@ export default function GroupSettingsScreen() {
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Stack.Screen options={{ headerShown: false }} />
 
-            <ScreenHeader title={`${group?.name || initialName || 'Group'} Settings`} showBack={true} />
+            <ScreenHeader
+                title={`${group?.name || initialName || 'Group'} Settings`}
+                showBack={true}
+            />
 
             <ScrollView
                 style={styles.scrollView}
@@ -123,37 +127,29 @@ export default function GroupSettingsScreen() {
                 <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                     <View style={styles.profileBox}>
                         <View style={[styles.groupIconLg, { backgroundColor: (group?.color || colors.accent) + '20' }]}>
-                            <FontAwesome5 name={group?.icon || "users"} size={32} color={group?.color || colors.accent} />
+                            <FontAwesome5
+                                name={group?.icon || 'users'}
+                                size={32}
+                                color={group?.color || colors.accent}
+                            />
                         </View>
                         <Text style={[styles.groupName, { color: colors.textPrimary }]}>{group?.name || initialName}</Text>
                         <TouchableOpacity
                             style={styles.editProfileBtn}
-                            className='bg-blue-500'
-                            onPress={() => router.push({
-                                pathname: '/group/create',
-                                params: { id: group?.id, mode: 'edit' }
-                            })}
+                            className="bg-blue-500"
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/group/create',
+                                    params: { id: group?.id, mode: 'edit' }
+                                })
+                            }
                         >
-                            <Text style={[styles.editProfileText]} className='text-white'>Settings</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* --- Section: Invite Code --- */}
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>INVITE CODE</Text>
-                <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-                    <View style={styles.row}>
-                        <View style={[styles.prefIcon, { backgroundColor: isDark ? '#333' : '#f3f4f6' }]}>
-                            <Ionicons name="key-outline" size={18} color={colors.textPrimary} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.rowText, { color: colors.textPrimary, fontFamily: 'Kanit-Bold', fontSize: 18, letterSpacing: 2 }]}>
-                                {group?.inviteCode || '------'}
+                            <Text
+                                style={styles.editProfileText}
+                                className="text-white"
+                            >
+                                Settings
                             </Text>
-                            <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: 'Kanit-Regular' }}>Share this code with others to join</Text>
-                        </View>
-                        <TouchableOpacity style={styles.copyBtn} onPress={handleCopyInviteCode}>
-                            <Feather name="copy" size={18} color={colors.accent} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -162,15 +158,15 @@ export default function GroupSettingsScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>MEMBERS ({members.length})</Text>
                 <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                     {members.map((member, index) => (
-                        <View key={member.userId} style={[
-                            styles.row,
-                            index < members.length - 1 && [styles.rowBorder, { borderBottomColor: colors.border }]
-                        ]}>
+                        <View
+                            key={member.userId}
+                            style={[styles.row, index < members.length - 1 && [styles.rowBorder, { borderBottomColor: colors.border }]]}
+                        >
                             <View style={[styles.memberAvatar, { backgroundColor: member.avatarColor || '#94a3b8' }]}>
                                 {member.imageUrl ? (
-                                    <Image 
-                                        source={{ uri: member.imageUrl }} 
-                                        style={{ width: '100%', height: '100%', borderRadius: 18 }} 
+                                    <Image
+                                        source={{ uri: member.imageUrl }}
+                                        style={{ width: '100%', height: '100%', borderRadius: 18 }}
                                     />
                                 ) : (
                                     <Text style={styles.memberInitial}>{member.initialText || (member.name ? member.name.charAt(0).toUpperCase() : '?')}</Text>
@@ -193,32 +189,40 @@ export default function GroupSettingsScreen() {
                     <TouchableOpacity
                         style={[styles.row, styles.addMemberRow]}
                         activeOpacity={0.6}
-                        onPress={handleCopyInviteCode}
+                        onPress={() => setInviteModalVisible(true)}
                     >
                         <View style={[styles.addMemberIcon, { backgroundColor: isDark ? 'rgba(46,204,113,0.1)' : '#eafaf1' }]}>
-                            <Feather name="user-plus" size={18} color={colors.accent} />
+                            <Feather
+                                name="user-plus"
+                                size={18}
+                                color={colors.accent}
+                            />
                         </View>
-                        <Text style={[styles.addMemberText, { color: colors.accent }]}>Invite Members via Code</Text>
+                        <Text style={[styles.addMemberText, { color: colors.accent }]}>Invite Members</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* --- Section: Preferences --- */}
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>PREFERENCES</Text>
-                <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-                    <View style={[styles.row, styles.rowBorder, { borderBottomColor: colors.border }]}>
-                        <View style={[styles.prefIcon, { backgroundColor: isDark ? '#333' : '#f3f4f6' }]}>
-                            <Feather name="bell" size={18} color={colors.textPrimary} />
-                        </View>
-                        <Text style={[styles.rowText, { color: colors.textPrimary }]}>Notifications</Text>
-                        <Switch
-                            value={notificationsEnabled}
-                            onValueChange={setNotificationsEnabled}
-                            trackColor={{ false: isDark ? '#444' : '#d1d5db', true: colors.accent }}
-                            thumbColor="#fff"
-                            style={{ transform: [{ scale: 0.85 }] }}
-                        />
-                    </View>
-                </View>
+                {/*<Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>PREFERENCES</Text>*/}
+                {/*<View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>*/}
+                {/*    <View style={[styles.row, styles.rowBorder, { borderBottomColor: colors.border }]}>*/}
+                {/*        <View style={[styles.prefIcon, { backgroundColor: isDark ? '#333' : '#f3f4f6' }]}>*/}
+                {/*            <Feather*/}
+                {/*                name="bell"*/}
+                {/*                size={18}*/}
+                {/*                color={colors.textPrimary}*/}
+                {/*            />*/}
+                {/*        </View>*/}
+                {/*        <Text style={[styles.rowText, { color: colors.textPrimary }]}>Notifications</Text>*/}
+                {/*        <Switch*/}
+                {/*            value={notificationsEnabled}*/}
+                {/*            onValueChange={setNotificationsEnabled}*/}
+                {/*            trackColor={{ false: isDark ? '#444' : '#d1d5db', true: colors.accent }}*/}
+                {/*            thumbColor="#fff"*/}
+                {/*            style={{ transform: [{ scale: 0.85 }] }}*/}
+                {/*        />*/}
+                {/*    </View>*/}
+                {/*</View>*/}
 
                 {/* --- Section: Danger Zone --- */}
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>DANGER ZONE</Text>
@@ -228,11 +232,24 @@ export default function GroupSettingsScreen() {
                         activeOpacity={0.6}
                         onPress={handleLeaveGroup}
                     >
-                        <Feather name="log-out" size={18} color={colors.danger} style={{ marginLeft: 6, marginRight: 14 }} />
+                        <Feather
+                            name="log-out"
+                            size={18}
+                            color={colors.danger}
+                            style={{ marginLeft: 6, marginRight: 14 }}
+                        />
                         <Text style={[styles.rowText, { color: colors.danger, fontFamily: 'Kanit-Bold' }]}>Leave Group</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            {/* Invite Modal */}
+            <GroupInviteModal
+                visible={inviteModalVisible}
+                groupId={selectedGroupId}
+                onClose={() => setInviteModalVisible(false)}
+                onSuccess={handleRefreshGroup}
+            />
         </View>
     );
 }
@@ -261,7 +278,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         overflow: 'hidden',
     },
-    
+
     // Profile Box
     profileBox: {
         alignItems: 'center',
