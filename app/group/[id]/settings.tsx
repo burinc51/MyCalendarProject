@@ -37,19 +37,21 @@ export default function GroupSettingsScreen() {
     const [inviteModalVisible, setInviteModalVisible] = useState(false);
     const isFirstRun = useRef(true);
 
+    const targetId = id || selectedGroupId;
+
     useFocusEffect(
         React.useCallback(() => {
-            if (selectedGroupId) {
+            if (targetId) {
                 fetchGroupData(isFirstRun.current);
                 isFirstRun.current = false;
             }
-        }, [selectedGroupId])
+        }, [targetId])
     );
 
     const fetchGroupData = async (showLoading = false) => {
         try {
             if (showLoading) setIsLoading(true);
-            const data = await getGroupById(selectedGroupId);
+            const data = await getGroupById(targetId);
             setGroup(data);
         } catch (error) {
             console.error('Failed to fetch group:', error);
@@ -80,9 +82,9 @@ export default function GroupSettingsScreen() {
                     text: 'ออกจากกลุ่ม',
                     style: 'destructive',
                     onPress: async () => {
-                        if (user?.id) {
+                        if (user?.id && targetId) {
                             try {
-                                await removeMemberFromGroup(selectedGroupId, user.id);
+                                await removeMemberFromGroup(targetId, user.id);
                                 router.replace('/(tabs)');
                             } catch (e: any) {
                                 Alert.alert('ข้อผิดพลาด', e.message || 'ไม่สามารถออกจากกลุ่ม');
@@ -245,7 +247,7 @@ export default function GroupSettingsScreen() {
             {/* Invite Modal */}
             <GroupInviteModal
                 visible={inviteModalVisible}
-                groupId={selectedGroupId}
+                groupId={targetId}
                 onClose={() => setInviteModalVisible(false)}
                 onSuccess={handleRefreshGroup}
             />
