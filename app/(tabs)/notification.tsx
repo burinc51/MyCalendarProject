@@ -15,7 +15,7 @@ import dayjs from 'dayjs';
 import { useTheme } from '@/components/ThemeProvider';
 
 import { useAuthStore } from '@/stores/useAuthStore';
-import { fetchActivityLogs, ActivityLog as BaseActivityLog } from '@/services/activityService';
+import { fetchActivityLogs, acceptInvitation, rejectInvitation, ActivityLog as BaseActivityLog } from '@/services/activityService';
 
 // Extend the original ActivityLog to ensure TS compilation passes if properties are lagging behind
 interface ActivityLog extends BaseActivityLog {
@@ -86,7 +86,7 @@ const Avatar: React.FC<{ name: string; actorId: number; size?: number; avatarUrl
     );
 };
 
-const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, isDark }) => {
+const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean; onInvitationHandled?: (id: number) => void }> = ({ item, isDark, onInvitationHandled }) => {
     const router = useRouter();
     const meta = ACTION_META[item.actionType as string] || ACTION_META.DEFAULT;
     const time = dayjs(item.createdAt);
@@ -97,6 +97,8 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
     const dynamicColor = isEventAction
         ? item.eventColor || meta.color
         : item.groupColor || meta.color;
+
+    const [invitationState, setInvitationState] = useState<'pending' | 'accepted' | 'rejected' | 'loading_accept' | 'loading_reject'>('pending');
 
     // Attempt to parse start/end dates if available
     let dateStr = '';
@@ -137,25 +139,119 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
     const textDecorationStyle = isDeleted ? 'line-through' : 'none';
     const textOpacity = isDeleted ? 0.5 : 1;
 
-    const isClickable = (item.actionType.startsWith('EVENT_') && !isDeleted && item.eventId) ||
-                        (['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT', 'INVITATION_SENT', 'INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) && item.groupId);
+    const isInvitation = item.actionType === 'INVITATION_SENT';
+
+    const isClickable = !isInvitation && (
+        (item.actionType.startsWith('EVENT_') && !isDeleted && item.eventId) ||
+        (['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT', 'INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) && item.groupId)
+    );
 
     const handlePress = () => {
         if (item.actionType.startsWith('EVENT_') && !isDeleted && item.eventId) {
             router.push(`/event/${item.eventId}`);
         } else if (
-            ['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT', 'INVITATION_SENT', 'INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) &&
+            ['GROUP_UPDATED', 'GROUP_MEMBER_ADDED', 'GROUP_MEMBER_REMOVED', 'MEMBER_ADDED', 'MEMBER_REMOVED', 'MEMBER_JOINED', 'MEMBER_LEFT', 'INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) &&
             item.groupId
         ) {
             router.push(`/group/${item.groupId}/settings`);
         }
     };
 
+    const handleAccept = async () => {
+        if (!item.invitationId) return;
+        setInvitationState('loading_accept');
+        try {
+            await acceptInvitation(item.invitationId);
+            setInvitationState('accepted');
+            onInvitationHandled?.(item.id);
+        } catch (e) {
+            setInvitationState('pending');
+        }
+    };
+
+    const handleReject = async () => {
+        if (!item.invitationId) return;
+        setInvitationState('loading_reject');
+        try {
+            await rejectInvitation(item.invitationId);
+            setInvitationState('rejected');
+            onInvitationHandled?.(item.id);
+        } catch (e) {
+            setInvitationState('pending');
+        }
+    };
+
     const CardContainer = isClickable ? TouchableOpacity : View;
+
+    const renderInvitationButtons = () => {
+        if (!isInvitation) return null;
+
+        if (invitationState === 'accepted') {
+            return (
+                <View style={styles.invitationResultRow}>
+                    <View style={[styles.invitationResultBadge, { backgroundColor: '#22c55e18', borderColor: '#22c55e40' }]}>
+                        <Feather name="check-circle" size={14} color="#22c55e" />
+                        <Text style={[styles.invitationResultText, { color: '#22c55e' }]}>ยอมรับแล้ว</Text>
+                    </View>
+                </View>
+            );
+        }
+
+        if (invitationState === 'rejected') {
+            return (
+                <View style={styles.invitationResultRow}>
+                    <View style={[styles.invitationResultBadge, { backgroundColor: '#ef444418', borderColor: '#ef444440' }]}>
+                        <Feather name="x-circle" size={14} color="#ef4444" />
+                        <Text style={[styles.invitationResultText, { color: '#ef4444' }]}>ปฏิเสธแล้ว</Text>
+                    </View>
+                </View>
+            );
+        }
+
+        const isLoadingAccept = invitationState === 'loading_accept';
+        const isLoadingReject = invitationState === 'loading_reject';
+        const isAnyLoading = isLoadingAccept || isLoadingReject;
+
+        return (
+            <View style={[styles.invitationButtonRow, { borderTopColor: C.rowBorder }]}>
+                <TouchableOpacity
+                    style={[
+                        styles.invitationBtn,
+                        styles.invitationBtnReject,
+                        { opacity: isAnyLoading ? 0.5 : 1, borderColor: isDark ? '#3f3f3f' : '#e5e7eb' },
+                    ]}
+                    onPress={handleReject}
+                    disabled={isAnyLoading}
+                    activeOpacity={0.75}
+                >
+                    <Feather name={isLoadingReject ? 'loader' : 'x'} size={14} color="#ef4444" />
+                    <Text style={[styles.invitationBtnText, { color: '#ef4444' }]}>
+                        {isLoadingReject ? 'กำลังดำเนินการ...' : 'ปฏิเสธ'}
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[
+                        styles.invitationBtn,
+                        styles.invitationBtnAccept,
+                        { opacity: isAnyLoading ? 0.5 : 1 },
+                    ]}
+                    onPress={handleAccept}
+                    disabled={isAnyLoading}
+                    activeOpacity={0.75}
+                >
+                    <Feather name={isLoadingAccept ? 'loader' : 'check'} size={14} color="#fff" />
+                    <Text style={[styles.invitationBtnText, { color: '#fff' }]}>
+                        {isLoadingAccept ? 'กำลังดำเนินการ...' : 'ยอมรับ'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
 
     return (
         <CardContainer
-            style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}
+            style={[styles.card, { backgroundColor: C.card, borderColor: C.border }, isInvitation && { borderColor: '#06b6d440', borderWidth: 1.5 }]}
             activeOpacity={0.7}
             onPress={isClickable ? handlePress : undefined}
         >
@@ -168,40 +264,29 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
                             <View style={[styles.titleLine, { backgroundColor: dynamicColor }]} />
                             <View style={{ opacity: textOpacity }}>
                                 <Text
-                                    style={[
-                                        styles.eventTitle,
-                                        { color: C.title, textDecorationLine: textDecorationStyle }
-                                    ]}
+                                    style={[styles.eventTitle, { color: C.title, textDecorationLine: textDecorationStyle }]}
                                     numberOfLines={1}
                                 >
                                     {item.eventTitle ?? meta.label}
                                 </Text>
                                 {dateStr ? (
                                     <Text
-                                        style={[
-                                            styles.eventDateText,
-                                            { color: C.sub, textDecorationLine: textDecorationStyle }
-                                        ]}
+                                        style={[styles.eventDateText, { color: C.sub, textDecorationLine: textDecorationStyle }]}
                                         numberOfLines={1}
                                     >
                                         {dateStr}
                                     </Text>
                                 ) : null}
-                                <Text
-                                    style={[
-                                        styles.groupLabel,
-                                        { color: C.sub, textDecorationLine: textDecorationStyle }
-                                    ]}
-                                >
+                                <Text style={[styles.groupLabel, { color: C.sub, textDecorationLine: textDecorationStyle }]}>
                                     {item.groupName ? `กลุ่ม ${item.groupName}` : `กลุ่ม #${item.groupId}`}
                                 </Text>
                             </View>
                         </View>
                     </View>
                     <Avatar
-                        name={item.actorName}
-                        actorId={item.actorId}
-                        avatarUrl={item.actorAvatar}
+                        name={['INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) ? item.targetUserName : item.actorName}
+                        actorId={['INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) ? item.targetUserId : item.actorId}
+                        avatarUrl={['INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) ? item.targetAvatar : item.actorAvatar}
                     />
                 </View>
 
@@ -209,15 +294,13 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
                 <View style={[styles.innerDivider, { backgroundColor: C.rowBorder }]} />
 
                 {/* Activity row */}
-                <View
-                    style={[styles.activityRow, { backgroundColor: C.row }]}
-                >
+                <View style={[styles.activityRow, { backgroundColor: C.row }]}>
                     {/* Actor mini avatar */}
                     <Avatar
-                        name={item.actorName}
-                        actorId={item.actorId}
+                        name={['INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) ? item.targetUserName : item.actorName}
+                        actorId={['INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) ? item.targetUserId : item.actorId}
                         size={28}
-                        avatarUrl={item.actorAvatar}
+                        avatarUrl={['INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) ? item.targetAvatar : item.actorAvatar}
                     />
 
                     {/* Action label */}
@@ -231,10 +314,18 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.activityText, { color: C.title }]}>
-                                <Text style={styles.actorBold}>{item.actorName} </Text>
+                                <Text style={styles.actorBold}>
+                                    {['INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) ? item.targetUserName : item.actorName}{' '}
+                                </Text>
                                 {meta.label}
-                                {item.targetUserName && item.actionType !== 'MEMBER_ADDED'
-                                    ? <Text style={styles.actorBold}> {item.targetUserName}</Text> : ''}
+                                {item.targetUserName && item.actionType !== 'MEMBER_ADDED' ? (
+                                    <Text style={styles.actorBold}>
+                                        {' '}
+                                        {['INVITATION_ACCEPTED', 'INVITATION_REJECTED'].includes(item.actionType) ? item.actorName : item.targetUserName}
+                                    </Text>
+                                ) : (
+                                    ''
+                                )}
                             </Text>
                             {item.actionDetail && (
                                 <View style={[styles.detailBox, { backgroundColor: isDark ? '#333' : '#f3f4f6' }]}>
@@ -252,6 +343,9 @@ const ActivityCard: React.FC<{ item: ActivityLog; isDark: boolean }> = ({ item, 
                     {/* Timestamp */}
                     <Text style={[styles.timeText, { color: C.sub }]}>{timeStr}</Text>
                 </View>
+
+                {/* Invitation Buttons */}
+                {renderInvitationButtons()}
             </View>
         </CardContainer>
     );
@@ -345,6 +439,7 @@ export default function NotificationScreen() {
                     <ActivityCard
                         item={item}
                         isDark={isDark}
+                        onInvitationHandled={() => loadActivities(1, true)}
                     />
                 )}
                 contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 88 }]}
@@ -544,5 +639,53 @@ const styles = StyleSheet.create({
     loadingMore: {
         paddingVertical: 12,
         alignItems: 'center',
+    },
+
+    // Invitation action buttons
+    invitationButtonRow: {
+        flexDirection: 'row',
+        gap: 10,
+        paddingHorizontal: 12,
+        paddingBottom: 12,
+        paddingTop: 10,
+        borderTopWidth: 1,
+    },
+    invitationBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 9,
+        borderRadius: 10,
+    },
+    invitationBtnReject: {
+        borderWidth: 1,
+    },
+    invitationBtnAccept: {
+        backgroundColor: '#06b6d4',
+    },
+    invitationBtnText: {
+        fontFamily: 'Kanit-Bold',
+        fontSize: 13,
+    },
+    invitationResultRow: {
+        paddingHorizontal: 12,
+        paddingBottom: 12,
+        paddingTop: 6,
+        alignItems: 'flex-start',
+    },
+    invitationResultBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        borderWidth: 1,
+    },
+    invitationResultText: {
+        fontFamily: 'Kanit-Bold',
+        fontSize: 13,
     },
 });
