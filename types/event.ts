@@ -72,6 +72,9 @@ export interface CalendarEvent {
     repeatUntil?: string | null;
     pinned?: boolean;
     groupId?: number | null;
+    groupName?: string | null;
+    groupColor?: string | null;
+    icon?: string | null;
     assignees?: EventUser[]; // users associated with this event
     createdBy?: EventUser; // user who created this event
     // Extended fields for calendar rendering

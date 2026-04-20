@@ -14,7 +14,7 @@ import {
     Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import type { CalendarEvent, EventUser } from '@/types/event';
 import { useGroupStore } from '@/stores/useGroupStore';
@@ -93,17 +93,17 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
     const router = useRouter();
 
     const c = {
-        pageBg: isDark ? '#141414' : '#f4f6f9',
-        cardBg: isDark ? '#1e1e1e' : '#ffffff',
-        cardBorder: isDark ? '#2a2a2a' : '#eeeeee',
-        title: isDark ? '#f0f0f0' : '#1a1a2e',
-        subtitle: isDark ? '#888' : '#8e9aad',
-        timeBg: isDark ? '#262626' : '#f0f3f7',
-        timeText: isDark ? '#cccccc' : '#4a5568',
-        allDayBg: isDark ? '#1a3028' : '#eafaf1',
-        allDayText: isDark ? '#2ecc71' : '#27ae60',
-        iconMuted: isDark ? '#555' : '#c0c8d4',
-        emptyText: isDark ? '#555' : '#b0bac5'
+        pageBg:      isDark ? '#0d0d0d' : '#f7f7f7',
+        cardBg:      isDark ? '#1a1a1a' : '#ffffff',
+        cardBorder:  isDark ? '#242424' : '#eeeeee',
+        title:       isDark ? '#f0f0f0' : '#111111',
+        subtitle:    isDark ? '#777777' : '#9ca3af',
+        timeBg:      isDark ? '#1e1e1e' : '#f4f6f9',
+        timeText:    isDark ? '#cccccc' : '#4a5568',
+        allDayBg:    isDark ? 'rgba(46,204,113,0.1)' : 'rgba(46,204,113,0.08)',
+        allDayText:  isDark ? '#2ecc71' : '#27ae60',
+        iconMuted:   isDark ? '#444444' : '#c8d0da',
+        emptyText:   isDark ? '#555555' : '#aaaaaa',
     };
 
     const handlePressEvent = (eventId: number) => {
@@ -117,25 +117,14 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
     if (events.length === 0) {
         return (
             <View style={styles.emptyContainer}>
-                <View
-                    style={[
-                        styles.emptyIconWrap,
-                        {
-                            backgroundColor: isDark ? '#1e1e1e' : '#fff',
-                            borderColor: isDark ? '#2a2a2a' : '#dde3ec',
-                            borderWidth: 1.5,
-                            shadowColor: isDark ? '#4a9eff' : '#0a7ea4'
-                        }
-                    ]}
-                >
-                    <MaterialIcons
-                        name="event-note"
-                        size={34}
-                        color={isDark ? '#4a9eff' : '#0a7ea4'}
-                    />
+                <View style={[
+                    styles.emptyIconWrap,
+                    { backgroundColor: isDark ? '#1a1a1a' : '#f4f4f4', borderColor: isDark ? '#2a2a2a' : '#e8e8e8', borderWidth: 1 }
+                ]}>
+                    <Feather name="calendar" size={28} color={isDark ? '#444' : '#c0c8d4'} />
                 </View>
-                <Text style={[styles.emptyTitle, { color: isDark ? '#d0d0d0' : '#2c3e50' }]}>No events scheduled</Text>
-                <Text style={[styles.emptySub, { color: isDark ? '#666' : '#8e9aad' }]}>Tap + to add your first event</Text>
+                <Text style={[styles.emptyTitle, { color: isDark ? '#555' : '#aaaaaa' }]}>ไม่มีกิจกรรม</Text>
+                <Text style={[styles.emptySub, { color: isDark ? '#444' : '#c0c8d4' }]}>กดปุ่ม + เพื่อเพิ่มกิจกรรมใหม่</Text>
             </View>
         );
     }
@@ -167,7 +156,7 @@ const EventList: React.FC<EventListProps> = ({ events, onEdit: _onEdit, onDelete
                         <View style={[styles.timeBlock, { backgroundColor: c.timeBg }]}>
                             {event.isAllDay ? (
                                 <View style={[styles.allDayPill, { backgroundColor: c.allDayBg }]}>
-                                    <Text style={[styles.allDayText, { color: c.allDayText }]}>All{'\n'}Day</Text>
+                                    <Text style={[styles.allDayText, { color: c.allDayText }]}>ทั้งวัน</Text>
                                 </View>
                             ) : (
                                 <>
@@ -243,10 +232,8 @@ const styles = StyleSheet.create({
         minHeight: 220,
     },
     emptyIconWrap: {
-        width: 80, height: 80, borderRadius: 40,
-        justifyContent: 'center', alignItems: 'center', marginBottom: 8,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.15, shadowRadius: 14, elevation: 6,
+        width: 64, height: 64, borderRadius: 18,
+        justifyContent: 'center', alignItems: 'center', marginBottom: 6,
     },
     emptyTitle: { fontSize: 16, fontFamily: 'Kanit-Bold', marginTop: 4 },
     emptySub: { fontSize: 13, fontFamily: 'Kanit-Regular', opacity: 0.8 },

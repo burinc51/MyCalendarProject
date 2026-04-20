@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 
@@ -40,21 +40,21 @@ const avatarBg = (i: number) => AVATAR_COLORS[i % AVATAR_COLORS.length];
 const getInitial = (u: EventUser) => (u.name || u.username || '?').trim().charAt(0).toUpperCase();
 
 const PRIORITY_META: Record<string, { label: string; icon: keyof typeof Feather.glyphMap; color: string; bg: string }> = {
-    high:   { label: 'สูง', icon: 'alert-circle', color: '#e74c3c', bg: '#fdecea' },
+    high: { label: 'สูง', icon: 'alert-circle', color: '#e74c3c', bg: '#fdecea' },
     medium: { label: 'ปานกลาง', icon: 'minus-circle', color: '#f39c12', bg: '#fef6e4' },
-    low:    { label: 'ต่ำ', icon: 'check-circle', color: '#2ecc71', bg: '#eafaf1' },
+    low: { label: 'ต่ำ', icon: 'check-circle', color: '#2ecc71', bg: '#eafaf1' },
 };
 
 const PRIORITY_META_DARK: Record<string, { bg: string }> = {
-    high:   { bg: '#3a1212' },
+    high: { bg: '#3a1212' },
     medium: { bg: '#3a2a00' },
-    low:    { bg: '#0d2b1a' },
+    low: { bg: '#0d2b1a' },
 };
 
 // Avatar
 const UserAvatar: React.FC<{ user: EventUser; index: number; size?: number }> = ({ user, index, size = 40 }) => {
     const bg = avatarBg(index);
-    const r  = size / 2;
+    const r = size / 2;
     if (user.imageUrl) {
         return <Image source={{ uri: user.imageUrl }} style={{ width: size, height: size, borderRadius: r }} />;
     }
@@ -80,9 +80,9 @@ const InfoRow: React.FC<{
     isDark: boolean;
     multiline?: boolean;
 }> = ({ icon, label, value, accent, isDark, multiline }) => {
-    const bg      = isDark ? '#222' : '#f7f9fc';
-    const labelC  = isDark ? '#888' : '#8e9aad';
-    const valueC  = isDark ? '#e5e5e5' : '#1a1a2e';
+    const bg = isDark ? '#222' : '#f7f9fc';
+    const labelC = isDark ? '#888' : '#8e9aad';
+    const valueC = isDark ? '#e5e5e5' : '#1a1a2e';
     return (
         <View style={[rowStyle.wrap, { backgroundColor: bg }]}>
             <View style={[rowStyle.iconBox, { backgroundColor: hexToRgba(accent, 0.15) }]}>
@@ -98,11 +98,11 @@ const InfoRow: React.FC<{
     );
 };
 const rowStyle = StyleSheet.create({
-    wrap:    { flexDirection: 'row', alignItems: 'flex-start', borderRadius: 14, padding: 14, gap: 14, marginBottom: 10 },
+    wrap: { flexDirection: 'row', alignItems: 'flex-start', borderRadius: 14, padding: 14, gap: 14, marginBottom: 10 },
     iconBox: { width: 38, height: 38, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
-    body:    { flex: 1, gap: 4 },
-    label:   { fontSize: 10, fontFamily: 'Kanit-Regular', letterSpacing: 0.8 },
-    value:   { fontSize: 15, fontFamily: 'Kanit-Bold', lineHeight: 22 },
+    body: { flex: 1, gap: 4 },
+    label: { fontSize: 10, fontFamily: 'Kanit-Regular', letterSpacing: 0.8 },
+    value: { fontSize: 15, fontFamily: 'Kanit-Bold', lineHeight: 22 },
 });
 
 const EventDetailScreen = () => {
@@ -143,11 +143,11 @@ const EventDetailScreen = () => {
 
     const accent = event?.color || '#2ecc71';
 
-    const bg        = isDark ? '#111111' : '#f4f6f9';
-    const titleC    = isDark ? '#f2f2f2' : '#1a1a2e';
-    const subC      = isDark ? '#888'    : '#8e9aad';
-    const divider   = isDark ? '#2a2a2a' : '#eef0f4';
-    const headerBg  = isDark ? hexToRgba(accent, 0.14) : hexToRgba(accent, 0.08);
+    const bg = isDark ? '#111111' : '#f4f6f9';
+    const titleC = isDark ? '#f2f2f2' : '#1a1a2e';
+    const subC = isDark ? '#888' : '#8e9aad';
+    const divider = isDark ? '#2a2a2a' : '#eef0f4';
+    const headerBg = isDark ? hexToRgba(accent, 0.14) : hexToRgba(accent, 0.08);
 
     const handleEdit = useCallback(() => {
         if (!event) return;
@@ -281,9 +281,10 @@ const EventDetailScreen = () => {
 
                     {/* Category + All-day pill */}
                     <View style={styles.heroPills}>
-                        {event.category ? (
-                            <View style={[styles.pill, { backgroundColor: hexToRgba(accent, 0.2) }]}>
-                                <Text style={[styles.pillText, { color: accent }]}>{event.category}</Text>
+                        {event.groupName ? (
+                            <View style={[styles.pill, { backgroundColor: hexToRgba(event.groupColor, 0.2) }]}>
+                                <FontAwesome5 name={event.icon || 'users'} size={16} color={event.groupColor} />
+                                <Text style={[styles.pillText, { color: event.groupColor }]}>{event.groupName}</Text>
                             </View>
                         ) : null}
                         {event.isAllDay ? (
@@ -375,12 +376,11 @@ const EventDetailScreen = () => {
                         <InfoRow
                             icon="bell"
                             label="แจ้งเตือน"
-                            value={`ก่อนเวลา ${event.remindBeforeValue} ${
-                                event.remindBeforeUnit === 'MINUTES' ? 'นาที' :
+                            value={`ก่อนเวลา ${event.remindBeforeValue} ${event.remindBeforeUnit === 'MINUTES' ? 'นาที' :
                                 event.remindBeforeUnit === 'HOURS' ? 'ชั่วโมง' :
-                                event.remindBeforeUnit === 'DAYS' ? 'วัน' :
-                                event.remindBeforeUnit === 'WEEKS' ? 'สัปดาห์' : 'นาที'
-                            }`}
+                                    event.remindBeforeUnit === 'DAYS' ? 'วัน' :
+                                        event.remindBeforeUnit === 'WEEKS' ? 'สัปดาห์' : 'นาที'
+                                }`}
                             accent={accent}
                             isDark={isDark}
                         />
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     // heroDotText: { fontSize: 32, fontFamily: 'Kanit-Bold', color: '#fff' },
     heroTitle: { fontSize: 24, fontFamily: 'Kanit-Bold', textAlign: 'center', lineHeight: 32 },
     heroPills: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
-    pill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20 },
+    pill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
     pillText: { fontSize: 12, fontFamily: 'Kanit-Bold' },
 
     // Created By (in Hero)
