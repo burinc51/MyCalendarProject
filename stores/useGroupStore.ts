@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getGroupsAllByUserId, createGroup as createGroupApi, deleteGroup as deleteGroupApi, joinGroupByCode } from '@/services/groupService';
+import { getGroupsAllByUserId, createGroup as createGroupApi, deleteGroup as deleteGroupApi } from '@/services/groupService';
 import type { Group, CreateGroupPayload, GroupApiResponse } from '@/types/group';
 
 interface GroupState {
@@ -12,7 +12,7 @@ interface GroupState {
     createGroup: (payload: Omit<CreateGroupPayload, 'creatorUserId'>, userId: number) => Promise<GroupApiResponse>;
     updateGroup: (groupId: number, payload: CreateGroupPayload) => Promise<Group>;
     deleteGroup: (groupId: number, userId: number) => Promise<void>;
-    joinGroup: (inviteCode: string) => Promise<Group>;
+
     setSelectedGroupId: (id: number | null) => void;
 }
 
@@ -86,21 +86,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         }
     },
 
-    joinGroup: async (inviteCode) => {
-        set({ isLoading: true, error: null });
-        try {
-            const newGroup = await joinGroupByCode(inviteCode);
-            set((state) => ({
-                groups: [...state.groups, { ...newGroup, groupId: newGroup.id, groupName: newGroup.name } as any],
-                selectedGroupId: newGroup.id,
-                isLoading: false,
-            }));
-            return newGroup;
-        } catch (error: any) {
-            set({ error: error?.message || 'Failed to join group', isLoading: false });
-            throw error;
-        }
-    },
+
 
     setSelectedGroupId: (id) => {
         set({ selectedGroupId: id });

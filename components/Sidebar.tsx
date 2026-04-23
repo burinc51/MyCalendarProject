@@ -319,27 +319,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                         />
                     ))}
 
-                    {/* Join group button */}
-                    <TouchableOpacity
-                        style={[
-                            styles.addGroupBtn,
-                            {
-                                borderColor: isDark ? 'rgba(96,165,250,0.3)' : 'rgba(96,165,250,0.4)',
-                                backgroundColor: isDark ? 'rgba(96,165,250,0.05)' : 'rgba(96,165,250,0.06)',
-                                marginBottom: 10
-                            },
-                        ]}
-                        activeOpacity={0.7}
-                        onPress={() => {
-                            onClose();
-                            setTimeout(() => {
-                                router.push('/group/join');
-                            }, 300);
-                        }}
-                    >
-                        <Feather name="user-plus" size={15} color="#3b82f6" />
-                        <Text style={[styles.addGroupText, { color: '#3b82f6' }]}>เข้าร่วมกลุ่ม</Text>
-                    </TouchableOpacity>
 
                     {/* Add group button */}
                     <TouchableOpacity

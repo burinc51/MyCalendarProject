@@ -62,10 +62,7 @@ export const removeMemberFromGroup = async (groupId: number, userId: number): Pr
     await httpClient.delete(`/api/v1/group/${groupId}/members/${userId}`);
 };
 
-export const joinGroupByCode = async (inviteCode: string): Promise<Group> => {
-    const response = await httpClient.post('/api/v1/group/join', { inviteCode });
-    return mapGroup(response.data);
-};
+
 
 export const getInvitableUsers = async (groupId: number): Promise<InvitableUsersResponse> => {
     const response = await httpClient.get(`/api/v1/group/${groupId}/invitable-users`);

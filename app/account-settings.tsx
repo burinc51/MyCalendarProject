@@ -392,9 +392,9 @@ export default function AccountSettingsScreen() {
                 <View style={[styles.card, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
                     <View style={styles.cardHeader}>
                         <View style={[styles.cardIconBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)' }]}>
-                            <Feather name="shield" size={16} color={C.danger} />
+                            <Feather name="log-out" size={16} color={C.danger} />
                         </View>
-                        <Text style={[styles.cardTitle, { color: C.text }]}>จัดการบัญชี</Text>
+                        <Text style={[styles.cardTitle, { color: C.text }]}>การเข้าสู่ระบบ</Text>
                     </View>
                     <View style={[styles.divider, { backgroundColor: C.divider }]} />
 
@@ -416,23 +416,18 @@ export default function AccountSettingsScreen() {
                         </Text>
                         <Feather name="chevron-right" size={20} color={C.subText} />
                     </TouchableOpacity>
-
-                    <View style={[styles.rowDivider, { backgroundColor: C.divider }]} />
-
-                    <TouchableOpacity
-                        style={styles.actionRow}
-                        onPress={handleDeleteAccount}
-                        activeOpacity={0.65}
-                    >
-                        <View style={[styles.actionIconBox, { backgroundColor: 'rgba(239,68,68,0.08)' }]}>
-                            <Feather name="trash-2" size={16} color={C.danger} />
-                        </View>
-                        <Text style={[styles.actionLabel, { color: C.danger }]}>
-                            ลบบัญชี
-                        </Text>
-                        <Feather name="chevron-right" size={20} color={C.subText} />
-                    </TouchableOpacity>
                 </View>
+
+                {/* Subtle Delete Account */}
+                <TouchableOpacity
+                    style={{ alignItems: 'center', marginTop: 32, marginBottom: 16 }}
+                    onPress={handleDeleteAccount}
+                    activeOpacity={0.65}
+                >
+                    <Text style={{ fontFamily: 'Kanit-Regular', fontSize: 13, color: C.subText }}>
+                        ลบบัญชีผู้ใช้
+                    </Text>
+                </TouchableOpacity>
             </ScrollView>
 
             {/* Save bar (while editing) */}
