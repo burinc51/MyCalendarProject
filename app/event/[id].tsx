@@ -26,6 +26,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import type { CalendarEvent, EventUser } from '@/types/event';
 import ScreenHeader from '@/components/ScreenHeader';
 import { getEventById, deleteEvent } from '@/services/eventService';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 const hexToRgba = (hex: string, alpha: number) => {
     const c = hex?.startsWith('#') ? hex : '#2ecc71';
@@ -111,6 +112,7 @@ const EventDetailScreen = () => {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const params = useLocalSearchParams<{ id: string; event?: string }>();
+    const { user: currentUser } = useAuthStore();
 
     // The whole CalendarEvent might be passed as a JSON string via router param initially
     const initialEvent = useMemo<CalendarEvent | null>(() => {
@@ -181,14 +183,52 @@ const EventDetailScreen = () => {
     const handleShare = useCallback(async () => {
         if (!event) return;
         try {
-            const startStr = dayjs(event.startDate).format('ddd, D MMM YYYY, HH:mm');
-            const endStr = dayjs(event.endDate).format('ddd, D MMM YYYY, HH:mm');
-            const msg = `📅 ${event.title}\n\n` +
-                (event.description ? `📝 ${event.description}\n\n` : '') +
-                `⏰ เริ่ม: ${startStr}\n` +
-                `🏁 สิ้นสุด: ${endStr}\n` +
-                (event.location ? `📍 สถานที่: ${event.location}\n` : '') +
-                '\nส่งต่อจาก MyCalendar';
+            const startD = dayjs(event.startDate).locale('th');
+            let endD = dayjs(event.endDate).locale('th');
+
+            if (event.isAllDay && endD.hour() === 0 && endD.minute() === 0 && endD.diff(startD, 'day') >= 1) {
+                endD = endD.subtract(1, 'day');
+            }
+
+            const isSameDay = startD.isSame(endD, 'day');
+
+            let timeInfo = '';
+            if (event.isAllDay) {
+                if (isSameDay) {
+                    timeInfo = `📅 วันที่: ${startD.format('D MMM YYYY')} (ตลอดวัน)`;
+                } else {
+                    timeInfo = `📅 วันที่: ${startD.format('D MMM')} - ${endD.format('D MMM YYYY')} (ตลอดวัน)`;
+                }
+            } else {
+                if (isSameDay) {
+                    timeInfo = `📅 วันที่: ${startD.format('D MMM YYYY')}\n⏰ เวลา: ${startD.format('HH:mm')} - ${endD.format('HH:mm')} น.`;
+                } else {
+                    timeInfo = `⏰ เริ่ม: ${startD.format('D MMM YYYY, HH:mm')} น.\n🏁 สิ้นสุด: ${endD.format('D MMM YYYY, HH:mm')} น.`;
+                }
+            }
+
+            const priorityMap: Record<string, string> = { high: 'สูง', medium: 'ปานกลาง', low: 'ต่ำ' };
+            const priorityLabel = event.priority ? priorityMap[event.priority] || event.priority : '';
+            const priorityStr = priorityLabel ? `\n📌 ความสำคัญ: ${priorityLabel}` : '';
+
+            const groupStr = event.groupName ? `\n📁 หมวดหมู่/กลุ่ม: ${event.groupName}` : '';
+            const creatorStr = event.createdBy ? `\n👤 สร้างโดย: ${event.createdBy.name || event.createdBy.username}` : '';
+
+            let assigneesStr = '';
+            if (event.assignees && event.assignees.length > 0) {
+                const names = event.assignees.map(u => u.name || u.username).join(', ');
+                assigneesStr = `\n👥 ผู้ที่เกี่ยวข้อง: ${names}`;
+            }
+
+            const msg = `✨ ${event.title}\n\n` +
+                `${timeInfo}` +
+                (event.location ? `\n📍 สถานที่: ${event.location}` : '') +
+                (event.description ? `\n📝 รายละเอียด: ${event.description}` : '') +
+                priorityStr +
+                groupStr +
+                creatorStr +
+                assigneesStr +
+                (currentUser ? `\n\n📱 ส่งต่อโดย ${currentUser.name || currentUser.email} จาก MyCalendar` : '\n\n📱 ส่งต่อจาก MyCalendar');
 
             await Share.share({
                 message: msg,
@@ -197,7 +237,7 @@ const EventDetailScreen = () => {
         } catch (error) {
             console.error('Sharing failed:', error);
         }
-    }, [event]);
+    }, [event, currentUser]);
 
     if (!event && !loading) {
         return (
