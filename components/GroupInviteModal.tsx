@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,6 +10,7 @@ import {
     Modal,
     Image,
     Platform,
+    TextInput,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeProvider';
@@ -29,9 +30,12 @@ export default function GroupInviteModal({
     onClose,
     onSuccess,
 }: GroupInviteModalProps) {
+    
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    
+
+    const PAGE_SIZE_OPTIONS = [1, 5, 10, 15, 20];
+
     const [users, setUsers] = useState<InvitableUser[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -39,11 +43,15 @@ export default function GroupInviteModal({
     const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [pageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(10);
+    const [showPageSizeDropdown, setShowPageSizeDropdown] = useState(false);
+    const [searchText, setSearchText] = useState('');
+    const [activeSearch, setActiveSearch] = useState('');
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const colors = {
         background: isDark ? '#121212' : '#f5f7fa',
-        cardBg: isDark ? '#1e1e1e' : '#ffffff',
+        cardBg: isDark ? '#121212' : '#f5f7fa',
         textPrimary: isDark ? '#f5f5f5' : '#1a1a1a',
         textSecondary: isDark ? '#a3a3a3' : '#6b7280',
         border: isDark ? '#262626' : '#e5e7eb',
@@ -54,13 +62,24 @@ export default function GroupInviteModal({
 
     useEffect(() => {
         if (visible) {
+            setSearchText('');
+            setActiveSearch('');
             setCurrentPage(1);
             setUsers([]);
-            fetchInvitableUsers(1);
+            fetchInvitableUsers(1, '');
         }
     }, [visible]);
 
-    const fetchInvitableUsers = async (page = 1) => {
+    // Cleanup debounce timer on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, []);
+
+    const fetchInvitableUsers = async (page = 1, search?: string, size?: number) => {
         try {
             if (page === 1) {
                 setIsLoading(true);
@@ -69,12 +88,18 @@ export default function GroupInviteModal({
                 setIsLoadingMore(true);
             }
 
+            const searchTerm = search !== undefined ? search : activeSearch;
+            const effectivePageSize = size !== undefined ? size : pageSize;
+            const filter: Record<string, any> = {
+                name: searchTerm.trim(),
+            };
+
             const response = await getInvitableUsersPaginated(groupId, {
                 pageNumber: page,
-                pageSize,
-                sortBy: 'userId',
+                pageSize: effectivePageSize,
+                sortBy: 'id',
                 sortOrder: 'DESC',
-                filter: {},
+                filter,
             });
 
             setTotalPages(response.totalPages);
@@ -97,6 +122,41 @@ export default function GroupInviteModal({
         }
     };
 
+    const handleSearchChange = useCallback((text: string) => {
+        setSearchText(text);
+
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        debounceTimerRef.current = setTimeout(() => {
+            setActiveSearch(text);
+            setCurrentPage(1);
+            setUsers([]);
+            fetchInvitableUsers(1, text);
+        }, 500);
+    }, [groupId, pageSize]);
+
+    const handleClearSearch = useCallback(() => {
+        setSearchText('');
+        setActiveSearch('');
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+        setCurrentPage(1);
+        setUsers([]);
+        fetchInvitableUsers(1, '');
+    }, [groupId, pageSize]);
+
+    const handlePageSizeChange = useCallback((newSize: number) => {
+        setPageSize(newSize);
+        setShowPageSizeDropdown(false);
+        setCurrentPage(1);
+        setUsers([]);
+        setSelectedUserIds(new Set());
+        fetchInvitableUsers(1, activeSearch, newSize);
+    }, [groupId, activeSearch]);
+
     const toggleUserSelection = (userId: number) => {
         const newSet = new Set(selectedUserIds);
         if (newSet.has(userId)) {
@@ -118,7 +178,7 @@ export default function GroupInviteModal({
             await sendGroupInvitations(groupId, {
                 userIds: Array.from(selectedUserIds),
             });
-            
+
             Alert.alert('สำเร็จ', `เชิญผู้ใช้ ${selectedUserIds.size} คน สำเร็จแล้ว`);
             setSelectedUserIds(new Set());
             onSuccess?.();
@@ -178,15 +238,76 @@ export default function GroupInviteModal({
                     <View style={{ width: 24 }} />
                 </View>
 
+                {/* Search Bar + Page Size */}
+                <View style={[styles.searchContainer, { backgroundColor: colors.cardBg, borderBottomColor: colors.border }]}>
+                    <View style={styles.searchRow}>
+                        <View style={[styles.searchInputWrapper, { backgroundColor: isDark ? '#262626' : '#f0f2f5', borderColor: colors.border }]}>
+                            <Feather name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+                            <TextInput
+                                style={[styles.searchInput, { color: colors.textPrimary }]}
+                                placeholder="ค้นหาชื่อหรือ username..."
+                                placeholderTextColor={colors.textSecondary}
+                                value={searchText}
+                                onChangeText={handleSearchChange}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                returnKeyType="search"
+                            />
+                            {searchText.length > 0 && (
+                                <TouchableOpacity onPress={handleClearSearch} style={styles.clearBtn}>
+                                    <Feather name="x-circle" size={18} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {/* Page Size Dropdown */}
+                        <View style={styles.pageSizeWrapper}>
+                            <TouchableOpacity
+                                style={[styles.pageSizeSelector, { borderColor: colors.border, backgroundColor: isDark ? '#262626' : '#f0f2f5' }]}
+                                onPress={() => setShowPageSizeDropdown(!showPageSizeDropdown)}
+                            >
+                                <Text style={[styles.pageSizeSelectorText, { color: colors.textPrimary }]}>{pageSize}</Text>
+                                <Feather name={showPageSizeDropdown ? 'chevron-up' : 'chevron-down'} size={14} color={colors.textSecondary} />
+                            </TouchableOpacity>
+
+                            {showPageSizeDropdown && (
+                                <View style={[styles.pageSizeDropdown, { backgroundColor: isDark ? '#1e1e1e' : '#fff', borderColor: colors.border }]}>
+                                    {PAGE_SIZE_OPTIONS.map((size) => (
+                                        <TouchableOpacity
+                                            key={size}
+                                            style={[
+                                                styles.pageSizeOption,
+                                                { borderBottomColor: colors.border },
+                                                size === pageSize && { backgroundColor: isDark ? 'rgba(46,204,113,0.15)' : '#eafaf1' },
+                                            ]}
+                                            onPress={() => handlePageSizeChange(size)}
+                                        >
+                                            <Text style={[
+                                                styles.pageSizeOptionText,
+                                                { color: size === pageSize ? colors.accent : colors.textPrimary },
+                                            ]}>
+                                                {size}
+                                            </Text>
+                                            {size === pageSize && (
+                                                <Feather name="check" size={14} color={colors.accent} />
+                                            )}
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </View>
+
                 {/* Content */}
-                {isLoading ? (
+                {isLoading && users.length === 0 ? (
                     <View style={styles.centerContent}>
                         <ActivityIndicator size="large" color={colors.accent} />
                     </View>
-                ) : users.length === 0 ? (
+                ) : !isLoading && users.length === 0 ? (
                     <View style={styles.centerContent}>
                         <Feather name="users" size={48} color={colors.textSecondary} />
-                        <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 12 }]}>
+                        <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 15}]}>
                             ไม่มีผู้ใช้ที่สามารถเชิญได้
                         </Text>
                     </View>
@@ -264,7 +385,7 @@ export default function GroupInviteModal({
                             {currentPage < totalPages && (
                                 <TouchableOpacity
                                     style={[styles.loadMoreBtn, { borderTopColor: colors.border }]}
-                                    onPress={() => fetchInvitableUsers(currentPage + 1)}
+                                    onPress={() => fetchInvitableUsers(currentPage + 1, activeSearch)}
                                     disabled={isLoadingMore}
                                 >
                                     {isLoadingMore ? (
@@ -273,7 +394,7 @@ export default function GroupInviteModal({
                                         <>
                                             <Feather name="chevron-down" size={18} color={colors.accent} />
                                             <Text style={[styles.loadMoreText, { color: colors.accent }]}>
-                                                โหลดเพิ่มเติม
+                                                เพิ่มเติม
                                             </Text>
                                         </>
                                     )}
@@ -329,12 +450,47 @@ const styles = StyleSheet.create({
     },
     centerContent: {
         flex: 1,
+        paddingBottom: 200,
         justifyContent: 'center',
         alignItems: 'center',
     },
     emptyText: {
         fontFamily: 'Kanit-Regular',
         fontSize: 14,
+    },
+    searchContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        zIndex: 10,
+    },
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    searchInputWrapper: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: 12,
+        borderWidth: 1,
+        paddingHorizontal: 12,
+        height: 44,
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontFamily: 'Kanit-Regular',
+        fontSize: 14,
+        paddingVertical: 0,
+        height: 44,
+    },
+    clearBtn: {
+        padding: 4,
+        marginLeft: 4,
     },
     userList: {
         flex: 1,
@@ -387,6 +543,59 @@ const styles = StyleSheet.create({
     statusText: {
         fontFamily: 'Kanit-Bold',
         fontSize: 11,
+    },
+    pageSizeWrapper: {
+        position: 'relative',
+        zIndex: 20,
+    },
+    pageSizeSelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        height: 44,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 4,
+    },
+    pageSizeSelectorText: {
+        fontFamily: 'Kanit-Bold',
+        fontSize: 13,
+        minWidth: 20,
+        textAlign: 'center',
+    },
+    pageSizeDropdown: {
+        position: 'absolute',
+        top: '100%',
+        right: 0,
+        minWidth: 80,
+        borderRadius: 10,
+        borderWidth: 1,
+        marginTop: 4,
+        overflow: 'hidden',
+        ...Platform.select({
+            web: {
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+            },
+            default: {
+                elevation: 8,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+            },
+        }),
+    },
+    pageSizeOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    pageSizeOptionText: {
+        fontFamily: 'Kanit-Regular',
+        fontSize: 14,
     },
     loadMoreBtn: {
         flexDirection: 'row',

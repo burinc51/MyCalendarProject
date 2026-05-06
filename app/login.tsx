@@ -141,7 +141,7 @@ export default function LoginScreen() {
             setGoogleLoading(true);
             await GoogleSignin.hasPlayServices();
             const result = await GoogleSignin.signIn();
-            
+
             // Handle version 14+ response format
             let idToken = null;
             if (result.type === 'success') {
@@ -154,7 +154,7 @@ export default function LoginScreen() {
             }
 
             if (!idToken) throw new Error('ไม่พบ idToken จาก Google');
-            console.log("idToken found:", idToken.substring(0, 50) + "...");
+            console.log("idToken found:", idToken);
             const res = await googleSignIn(idToken);
             await setAuth(
                 { id: res.userId, email: res.email, name: res.name, photoUrl: res.pictureUrl, role: res.isAdmin ? 'ADMIN' : 'USER' },
@@ -369,7 +369,7 @@ export default function LoginScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={{ marginTop: 32, alignSelf: 'center', opacity: 0.7 }}
                         onPress={() => router.push({ pathname: '/report', params: { mode: 'login' } })}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

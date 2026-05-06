@@ -232,7 +232,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                     {/* Name + edit */}
                     <View style={styles.nameRow}>
-                        <Text style={styles.nameText}>{displayUserName}</Text>
+                        <Text style={styles.nameText} numberOfLines={1} ellipsizeMode="tail">{displayUserName}</Text>
                         <TouchableOpacity
                             style={styles.editBtn}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -535,11 +535,13 @@ const styles = StyleSheet.create({
         fontSize: 20,
         color: '#fff',
         letterSpacing: 0.3,
+        flex: 1,
     },
     editBtn: {
         backgroundColor: 'rgba(255,255,255,0.15)',
         borderRadius: 12,
         padding: 5,
+        flexShrink: 0,
     },
 
     // Body
